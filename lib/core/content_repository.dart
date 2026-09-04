@@ -13,9 +13,14 @@ class ContentRepository {
 
     var query = supabase.from('darkestworld_content').select();
 
+    // Keep pagination deterministic when titles are duplicated.
     final response = type == null
-        ? await query.order('title').range(from, to)
-        : await query.eq('content_type', type).order('title').range(from, to);
+        ? await query.order('title').order('id').range(from, to)
+        : await query
+            .eq('content_type', type)
+            .order('title')
+            .order('id')
+            .range(from, to);
 
     return List<Map<String, dynamic>>.from(response);
   }
@@ -30,8 +35,12 @@ class ContentRepository {
     var query = supabase.from('storage_assets').select();
 
     final response = assetType == null
-        ? await query.order('title').range(from, to)
-        : await query.eq('asset_type', assetType).order('title').range(from, to);
+        ? await query.order('title').order('id').range(from, to)
+        : await query
+            .eq('asset_type', assetType)
+            .order('title')
+            .order('id')
+            .range(from, to);
 
     return List<Map<String, dynamic>>.from(response);
   }
