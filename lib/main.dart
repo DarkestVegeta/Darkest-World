@@ -3,17 +3,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/content_browser_page.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+const supabasePublishableKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+  if (supabaseUrl.isEmpty || supabasePublishableKey.isEmpty) {
     runApp(const DarkestWorldApp(configurationMissing: true));
     return;
   }
 
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  await Supabase.initialize(
+    url: supabaseUrl,
+    publishableKey: supabasePublishableKey,
+  );
   runApp(const DarkestWorldApp());
 }
 
@@ -55,7 +58,10 @@ class _HomePage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const Text('DarkestWorld', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+          const Text(
+            'DarkestWorld',
+            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 24),
           _SectionButton(label: 'Games', onTap: () => _open(context, 'Games', 'game')),
           _SectionButton(label: 'Movies', onTap: () => _open(context, 'Movies', 'movie')),
@@ -87,7 +93,10 @@ class _SectionButton extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: FilledButton(
         onPressed: onTap,
-        child: Padding(padding: const EdgeInsets.all(16), child: Text(label)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(label),
+        ),
       ),
     );
   }
