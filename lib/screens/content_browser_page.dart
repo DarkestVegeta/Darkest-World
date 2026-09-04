@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/content_repository.dart';
 
@@ -23,6 +24,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   bool _hasMore = true;
   int _page = 0;
   String? _error;
+  double _focusedIndex = 2;
 
   @override
   void initState() {
@@ -33,8 +35,18 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 700) {
+
+    const cardWidth = 220.0;
+    const gap = 18.0;
+    final step = cardWidth + gap;
+    final center = _scrollController.offset / step + 2;
+    if ((_focusedIndex - center).abs() > 0.05) {
+      setState(() => _focusedIndex = center);
+    }
+
+    if (_scrollController.position.maxScrollExtent -
+            _scrollController.position.pixels <
+        step * 5) {
       _loadNextPage();
     }
   }
@@ -73,7 +85,9 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
       _page = 0;
       _hasMore = true;
       _error = null;
+      _focusedIndex = 2;
     });
+    _scrollController.jumpTo(0);
     await _loadNextPage();
   }
 
@@ -123,48 +137,65 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final sidePadding = width >= 1500 ? 56.0 : 36.0;
-        final gap = width >= 1500 ? 18.0 : 14.0;
-        final available = width - (sidePadding * 2) - (gap * 4);
-        final cardWidth = available / 5;
-        final cardHeight = cardWidth * 1.42;
+        final sidePadding = constraints.maxWidth >= 1500 ? 56.0 : 36.0;
+        final gap = constraints.maxWidth >= 1500 ? 18.0 : 14.0;
+        final available = constraints.maxWidth - sidePadding * 2 - gap * 4;
+        final baseWidth = math.max(150.0, available / 5);
+        final baseHeight = baseWidth * 1.42;
+        final step = baseWidth + gap;
 
-        return ListView(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(sidePadding, 28, sidePadding, 48),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 28),
             SizedBox(
-              height: cardHeight + 76,
-              child: _FocusRow(
-                items: _items.take(5).toList(),
-                cardWidth: cardWidth,
-                cardHeight: cardHeight,
-                gap: gap,
+              height: baseHeight + 72,
+              child: ListView.builder(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: sidePadding),
+                itemCount: _items.length,
+                itemBuilder: (context, index) {
+                  final distance = (index - _focusedIndex).abs();
+                  final isMain = distance < 0.5;
+                  final scale = isMain ? 1.10 : 1.0;
+                  final width = baseWidth * scale;
+                  final height = baseHeight * scale;
+
+                  return SizedBox(
+                    width: width,
+                    height: height,
+                    child: Padding(
+                      padding: EdgeInsets.only(right: gap),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        onEnter: (_) => _focusItem(index, step),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 140),
+                          curve: Curves.easeOut,
+                          alignment: Alignment.center,
+                          child: _ContentCard(
+                            item: _items[index],
+                            width: width,
+                            height: height,
+                            highlighted: isMain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 36),
-            if (_items.length > 5)
-              Wrap(
-                spacing: gap,
-                runSpacing: gap,
-                children: _items.skip(5).map((item) {
-                  return _ContentCard(
-                    item: item,
-                    width: cardWidth,
-                    height: cardHeight,
-                  );
-                }).toList(),
-              ),
             if (_loading)
               const Padding(
-                padding: EdgeInsets.all(28),
+                padding: EdgeInsets.all(20),
                 child: Center(child: CircularProgressIndicator()),
               ),
             if (!_hasMore && !_loading)
               const Padding(
-                padding: EdgeInsets.only(top: 24),
+                padding: EdgeInsets.only(top: 8),
                 child: Center(child: Text('Einde van de collectie')),
               ),
           ],
@@ -172,57 +203,13 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
       },
     );
   }
-}
 
-class _FocusRow extends StatefulWidget {
-  final List<Map<String, dynamic>> items;
-  final double cardWidth;
-  final double cardHeight;
-  final double gap;
-
-  const _FocusRow({
-    required this.items,
-    required this.cardWidth,
-    required this.cardHeight,
-    required this.gap,
-  });
-
-  @override
-  State<_FocusRow> createState() => _FocusRowState();
-}
-
-class _FocusRowState extends State<_FocusRow> {
-  int _focused = 2;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = widget.items;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: List.generate(items.length, (index) {
-        final isMain = index == _focused;
-        final scale = isMain ? 1.10 : 1.0;
-        final width = widget.cardWidth * scale;
-        final height = widget.cardHeight * scale;
-
-        return Padding(
-          padding: EdgeInsets.only(right: index == items.length - 1 ? 0 : widget.gap),
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              onEnter: (_) => setState(() => _focused = index),
-              child: _ContentCard(
-                item: items[index],
-                width: width,
-                height: height,
-                highlighted: isMain,
-              ),
-            ),
-          ),
-        );
-      }),
+  void _focusItem(int index, double step) {
+    final target = math.max(0.0, (index - 2) * step);
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOut,
     );
   }
 }
@@ -240,18 +227,17 @@ class _ContentCard extends StatelessWidget {
     this.highlighted = false,
   });
 
-  String get _title => '${item['title'] ?? 'Untitled'}';
-
   @override
   Widget build(BuildContext context) {
+    final title = '${item['title'] ?? 'Untitled'}';
     final metadata = item['metadata'] is Map
         ? Map<String, dynamic>.from(item['metadata'] as Map)
         : <String, dynamic>{};
     final imageUrl = '${item['public_url'] ?? metadata['public_url'] ?? metadata['image_url'] ?? ''}';
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 160),
-      curve: Curves.easeOut,
+    return Container(
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
@@ -270,18 +256,20 @@ class _ContentCard extends StatelessWidget {
         children: [
           Expanded(
             child: imageUrl.isNotEmpty
-                ? Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _Placeholder(title: _title))
-                : _Placeholder(title: _title),
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _Placeholder(title: title),
+                  )
+                : _Placeholder(title: title),
           ),
-          Container(
+          Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
             child: Text(
-              _title,
+              title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500,
-              ),
+              style: TextStyle(fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500),
             ),
           ),
         ],
@@ -299,7 +287,12 @@ class _Placeholder extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Text(title, textAlign: TextAlign.center, maxLines: 4, overflow: TextOverflow.ellipsis),
+        child: Text(
+          title,
+          textAlign: TextAlign.center,
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
     );
   }
