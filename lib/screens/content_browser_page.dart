@@ -35,7 +35,27 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    if (_scrollController.position.maxScrollExtent - _scrollController.position.pixels < 1200) {
+
+    // The left padding reserves two card slots, so the centered item is
+    // always the item at scrollOffset / step + 2.
+    final width = _scrollController.position.viewportDimension;
+    final step = _cardWidth(width) + _gap(width);
+    if (step > 0) {
+      final nextFocus = (_scrollController.offset / step + 2)
+          .round()
+          .toDouble();
+      final clampedFocus = math.max(
+        0.0,
+        math.min(nextFocus, math.max(0, _items.length - 1).toDouble()),
+      );
+      if (clampedFocus != _focusedIndex && mounted) {
+        setState(() => _focusedIndex = clampedFocus);
+      }
+    }
+
+    if (_scrollController.position.maxScrollExtent -
+            _scrollController.position.pixels <
+        1200) {
       _loadNextPage();
     }
   }
@@ -73,9 +93,8 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     if (_items.length < 5 || !_scrollController.hasClients) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
-      final width = _cardWidth(_scrollController.position.viewportDimension);
-      final gap = _gap(_scrollController.position.viewportDimension);
-      final step = width + gap;
+      final width = _scrollController.position.viewportDimension;
+      final step = _cardWidth(width) + _gap(width);
       _scrollController.jumpTo(math.min(
         2 * step,
         _scrollController.position.maxScrollExtent,
@@ -174,8 +193,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
                 padding: EdgeInsets.symmetric(horizontal: padding),
                 itemCount: _items.length,
                 itemBuilder: (context, index) {
-                  final distance = (index - _focusedIndex).abs();
-                  final isMain = distance < 0.5;
+                  final isMain = index == _focusedIndex.round();
 
                   return SizedBox(
                     width: step,
@@ -218,6 +236,8 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   }
 
   void _focusItem(int index, double step) {
+    if (!_scrollController.hasClients) return;
+    setState(() => _focusedIndex = index.toDouble());
     final target = math.max(0.0, (index - 2) * step);
     _scrollController.animateTo(
       math.min(target, _scrollController.position.maxScrollExtent),
