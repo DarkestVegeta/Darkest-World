@@ -23,8 +23,8 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   bool _loading = false;
   bool _hasMore = true;
   int _page = 0;
-  String? _error;
   double _focusedIndex = 2;
+  String? _error;
 
   @override
   void initState() {
@@ -35,18 +35,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-
-    const cardWidth = 220.0;
-    const gap = 18.0;
-    final step = cardWidth + gap;
-    final center = _scrollController.offset / step + 2;
-    if ((_focusedIndex - center).abs() > 0.05) {
-      setState(() => _focusedIndex = center);
-    }
-
-    if (_scrollController.position.maxScrollExtent -
-            _scrollController.position.pixels <
-        step * 5) {
+    if (_scrollController.position.maxScrollExtent - _scrollController.position.pixels < 1200) {
       _loadNextPage();
     }
   }
@@ -70,6 +59,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
         _hasMore = page.length == ContentRepository.pageSize;
         _loading = false;
       });
+      _centerInitialMainIfReady();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -79,16 +69,38 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     }
   }
 
+  void _centerInitialMainIfReady() {
+    if (_items.length < 5 || !_scrollController.hasClients) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final width = _cardWidth(_scrollController.position.viewportDimension);
+      final gap = _gap(_scrollController.position.viewportDimension);
+      final step = width + gap;
+      _scrollController.jumpTo(math.min(
+        2 * step,
+        _scrollController.position.maxScrollExtent,
+      ));
+    });
+  }
+
   Future<void> _refresh() async {
     setState(() {
       _items.clear();
       _page = 0;
       _hasMore = true;
-      _error = null;
       _focusedIndex = 2;
+      _error = null;
     });
-    _scrollController.jumpTo(0);
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
     await _loadNextPage();
+  }
+
+  double _gap(double width) => width >= 1500 ? 18 : 14;
+
+  double _cardWidth(double width) {
+    final padding = width >= 1500 ? 56.0 : 36.0;
+    final gap = _gap(width);
+    return math.max(150.0, (width - padding * 2 - gap * 4) / 5);
   }
 
   @override
@@ -116,7 +128,12 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
           const SizedBox(height: 220),
           Center(child: Text('Laden mislukt: $_error')),
           const SizedBox(height: 16),
-          Center(child: OutlinedButton(onPressed: _loadNextPage, child: const Text('Opnieuw'))),
+          Center(
+            child: OutlinedButton(
+              onPressed: _loadNextPage,
+              child: const Text('Opnieuw'),
+            ),
+          ),
         ],
       );
     }
@@ -137,10 +154,10 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final sidePadding = constraints.maxWidth >= 1500 ? 56.0 : 36.0;
-        final gap = constraints.maxWidth >= 1500 ? 18.0 : 14.0;
-        final available = constraints.maxWidth - sidePadding * 2 - gap * 4;
-        final baseWidth = math.max(150.0, available / 5);
+        final width = constraints.maxWidth;
+        final padding = width >= 1500 ? 56.0 : 36.0;
+        final gap = _gap(width);
+        final baseWidth = _cardWidth(width);
         final baseHeight = baseWidth * 1.42;
         final step = baseWidth + gap;
 
@@ -149,36 +166,32 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
           children: [
             const SizedBox(height: 28),
             SizedBox(
-              height: baseHeight + 72,
+              height: baseHeight + 56,
               child: ListView.builder(
                 controller: _scrollController,
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: sidePadding),
+                padding: EdgeInsets.symmetric(horizontal: padding),
                 itemCount: _items.length,
                 itemBuilder: (context, index) {
                   final distance = (index - _focusedIndex).abs();
                   final isMain = distance < 0.5;
-                  final scale = isMain ? 1.10 : 1.0;
-                  final width = baseWidth * scale;
-                  final height = baseHeight * scale;
 
                   return SizedBox(
-                    width: width,
-                    height: height,
-                    child: Padding(
-                      padding: EdgeInsets.only(right: gap),
+                    width: step,
+                    height: baseHeight + 40,
+                    child: Center(
                       child: MouseRegion(
                         cursor: SystemMouseCursors.click,
                         onEnter: (_) => _focusItem(index, step),
-                        child: AnimatedContainer(
+                        child: AnimatedScale(
+                          scale: isMain ? 1.10 : 1.0,
                           duration: const Duration(milliseconds: 140),
                           curve: Curves.easeOut,
-                          alignment: Alignment.center,
                           child: _ContentCard(
                             item: _items[index],
-                            width: width,
-                            height: height,
+                            width: baseWidth,
+                            height: baseHeight,
                             highlighted: isMain,
                           ),
                         ),
@@ -207,7 +220,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   void _focusItem(int index, double step) {
     final target = math.max(0.0, (index - 2) * step);
     _scrollController.animateTo(
-      target,
+      math.min(target, _scrollController.position.maxScrollExtent),
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOut,
     );
@@ -269,7 +282,9 @@ class _ContentCard extends StatelessWidget {
               title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500),
+              style: TextStyle(
+                fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500,
+              ),
             ),
           ),
         ],
