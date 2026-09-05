@@ -192,7 +192,7 @@ class _SubmitSuggestionDialogState extends State<_SubmitSuggestionDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: _source,
+                  initialValue: _source,
                   decoration: const InputDecoration(labelText: 'Bron'),
                   items: const [
                     DropdownMenuItem(value: 'igdb', child: Text('IGDB')),
@@ -201,7 +201,7 @@ class _SubmitSuggestionDialogState extends State<_SubmitSuggestionDialog> {
                   onChanged: _saving ? null : (value) => setState(() => _source = value!),
                 ),
                 DropdownButtonFormField<String>(
-                  value: _contentType,
+                  initialValue: _contentType,
                   decoration: const InputDecoration(labelText: 'Type'),
                   items: const [
                     DropdownMenuItem(value: 'game', child: Text('Game')),
