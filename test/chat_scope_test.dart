@@ -10,13 +10,13 @@ void main() {
     expect(ChatAccessPolicy.scopeForWorldSlug('dark-core'), isNull);
   });
 
-  test('fullscreen chat exposes only chat worlds and marathon when live', () {
+  test('fullscreen chat exposes only chat worlds and active marathon chat', () {
     expect(
       ChatAccessPolicy.allowedScopesForFullscreen(),
       [ChatScope.games, ChatScope.movies, ChatScope.series, ChatScope.music],
     );
     expect(
-      ChatAccessPolicy.allowedScopesForFullscreen(marathonLive: true),
+      ChatAccessPolicy.allowedScopesForFullscreen(marathonChatActive: true),
       [
         ChatScope.games,
         ChatScope.movies,
@@ -27,14 +27,16 @@ void main() {
     );
   });
 
-  test('marathon chat is unavailable unless the marathon is live', () {
+  test('marathon chat depends on chat presence, not streaming status', () {
     expect(
       const ChatContext(scope: ChatScope.marathon).isAvailable,
       isFalse,
     );
     expect(
-      const ChatContext(scope: ChatScope.marathon, marathonLive: true)
-          .isAvailable,
+      const ChatContext(
+        scope: ChatScope.marathon,
+        marathonChatActive: true,
+      ).isAvailable,
       isTrue,
     );
   });
