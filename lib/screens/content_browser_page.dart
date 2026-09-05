@@ -28,7 +28,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   bool _hasMore = true;
   bool _initialCenterApplied = false;
   int _page = 0;
-  double _focusedIndex = 2;
+  double _focusedIndex = 0;
   String? _error;
 
   @override
@@ -43,7 +43,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 
     final width = _scrollController.position.viewportDimension;
     final step = _cardWidth(width) + _gap(width);
-    if (step > 0) {
+    if (step > 0 && _items.isNotEmpty) {
       final nextFocus = ContentBrowserLayout.focusedIndex(
         offset: _scrollController.offset,
         step: step,
@@ -79,6 +79,9 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
         _page++;
         _hasMore = page.length == ContentRepository.pageSize;
         _loading = false;
+        if (_items.isNotEmpty) {
+          _focusedIndex = _focusedIndex.clamp(0, _items.length - 1).toDouble();
+        }
       });
       _centerInitialMainIfReady();
     } catch (e) {
@@ -91,7 +94,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   }
 
   void _centerInitialMainIfReady() {
-    if (_initialCenterApplied || _items.length < 5 || !_scrollController.hasClients) {
+    if (_initialCenterApplied || _items.isEmpty || !_scrollController.hasClients) {
       return;
     }
     _initialCenterApplied = true;
@@ -99,10 +102,11 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
       if (!mounted || !_scrollController.hasClients) return;
       final width = _scrollController.position.viewportDimension;
       final step = _cardWidth(width) + _gap(width);
+      final targetIndex = math.min(2, _items.length - 1);
       _scrollController.jumpTo(
-        math.min(2 * step, _scrollController.position.maxScrollExtent),
+        math.min(targetIndex * step, _scrollController.position.maxScrollExtent),
       );
-      if (mounted) setState(() => _focusedIndex = 2);
+      if (mounted) setState(() => _focusedIndex = targetIndex.toDouble());
     });
   }
 
@@ -112,7 +116,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
       _page = 0;
       _hasMore = true;
       _initialCenterApplied = false;
-      _focusedIndex = 2;
+      _focusedIndex = 0;
       _error = null;
     });
     if (_scrollController.hasClients) _scrollController.jumpTo(0);
@@ -280,10 +284,11 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 
   void _focusItem(int index, double step) {
     if (!_scrollController.hasClients) return;
-    setState(() => _focusedIndex = index.toDouble());
+    final safeIndex = index.clamp(0, _items.length - 1);
+    setState(() => _focusedIndex = safeIndex.toDouble());
     _scrollController.animateTo(
       ContentBrowserLayout.targetOffset(
-        index: index,
+        index: safeIndex,
         step: step,
         maxScrollExtent: _scrollController.position.maxScrollExtent,
       ),
