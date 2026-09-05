@@ -4,6 +4,7 @@ import 'core/world_sections_repository.dart';
 import 'screens/asset_gallery_page.dart';
 import 'screens/basic_section_page.dart';
 import 'screens/content_browser_page.dart';
+import 'screens/suggestions_page.dart';
 import 'screens/test_asset_lab_page.dart';
 import 'screens/world_status_page.dart';
 
@@ -143,6 +144,10 @@ class _HomePageState extends State<_HomePage> {
               ),
               const SizedBox(height: 12),
               _SectionButton(
+                label: 'Suggestions',
+                onTap: () => _openSuggestions(context),
+              ),
+              _SectionButton(
                 label: 'Gallery',
                 onTap: () => _openGallery(context),
               ),
@@ -173,11 +178,7 @@ class _HomePageState extends State<_HomePage> {
         _openContent(context, section.name, 'series');
         return;
       default:
-        _openBasic(
-          context,
-          section.name,
-          section.description,
-        );
+        _openBasic(context, section.name, section.description);
     }
   }
 
@@ -187,6 +188,13 @@ class _HomePageState extends State<_HomePage> {
       MaterialPageRoute(
         builder: (_) => ContentBrowserPage(title: title, contentType: type),
       ),
+    );
+  }
+
+  void _openSuggestions(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SuggestionsPage()),
     );
   }
 
