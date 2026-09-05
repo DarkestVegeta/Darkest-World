@@ -4,6 +4,7 @@ import 'screens/asset_gallery_page.dart';
 import 'screens/basic_section_page.dart';
 import 'screens/content_browser_page.dart';
 import 'screens/test_asset_lab_page.dart';
+import 'screens/world_status_page.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabasePublishableKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -31,7 +32,7 @@ class DarkestWorldApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'DarkestWorld',
+      title: 'Darkest-World',
       theme: ThemeData.dark(useMaterial3: true),
       home: configurationMissing
           ? const _ConfigurationMissingPage()
@@ -46,7 +47,7 @@ class _ConfigurationMissingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('DarkestWorld configuration is missing.')),
+      body: Center(child: Text('Darkest-World configuration is missing.')),
     );
   }
 }
@@ -57,12 +58,12 @@ class _HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('DarkestWorld')),
+      appBar: AppBar(title: const Text('Darkest-World')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
           const Text(
-            'DarkestWorld',
+            'Darkest-World',
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
@@ -76,15 +77,16 @@ class _HomePage extends StatelessWidget {
           _SectionButton(label: 'Series', onTap: () => _openContent(context, 'Series', 'series')),
           _SectionButton(label: 'Gallery', onTap: () => _openGallery(context)),
           _SectionButton(label: '10-Artbox Test Lab', onTap: () => _openTestLab(context)),
+          _SectionButton(label: 'World Status', onTap: () => _openStatus(context)),
           const SizedBox(height: 24),
           const Text(
-            'DarkestWorld Systems',
+            'Darkest-World Systems',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           _SectionButton(label: 'Events', onTap: () => _openBasic(context, 'Events', 'Events and world activity.')),
           _SectionButton(label: 'Marathons', onTap: () => _openBasic(context, 'Marathons', 'Franchise marathon planning and progress.')),
-          _SectionButton(label: 'Social Media', onTap: () => _openBasic(context, 'Social Media', 'DarkestWorld social channels and posts.')),
+          _SectionButton(label: 'Social Media', onTap: () => _openBasic(context, 'Social Media', 'Darkest-World social channels and posts.')),
           _SectionButton(label: 'Chat', onTap: () => _openBasic(context, 'Chat', 'Community chat foundation.')),
           _SectionButton(label: 'Identity World', onTap: () => _openBasic(context, 'Identity World', 'DarkestVegeta, DarkestFamily and persona information.')),
           _SectionButton(label: 'Dark Core', onTap: () => _openBasic(context, 'Dark Core', 'Core lore, rules and world foundations.')),
@@ -116,6 +118,13 @@ class _HomePage extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const TestAssetLabPage()),
+    );
+  }
+
+  void _openStatus(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const WorldStatusPage()),
     );
   }
 
