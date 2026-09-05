@@ -35,7 +35,9 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
     final id = widget.item['id'];
     try {
       final results = await Future.wait([
-        id == null ? Future.value(<Map<String, dynamic>>[]) : _repository.getRelatedContent('$id'),
+        id == null
+            ? Future.value(<Map<String, dynamic>>[])
+            : _repository.getRelatedContent('$id'),
         _repository.getFranchiseNavigation(widget.item),
       ]);
       if (!mounted) return;
@@ -107,7 +109,10 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
           ),
           const SizedBox(height: 12),
           if (_loading)
-            const SizedBox(height: 110, child: Center(child: CircularProgressIndicator()))
+            const SizedBox(
+              height: 110,
+              child: Center(child: CircularProgressIndicator()),
+            )
           else if (_error != null)
             Text('Franchise-navigatie laden mislukt: $_error')
           else if (_navigation == null)
@@ -164,11 +169,33 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(child: _navigationCard(context, navigation.previous, 'Previous', false)),
+        Expanded(
+          child: _navigationCard(
+            context,
+            navigation.previous,
+            'Previous',
+            false,
+          ),
+        ),
         const SizedBox(width: 18),
-        Expanded(flex: 2, child: _navigationCard(context, navigation.current, 'CURRENT', true)),
+        Expanded(
+          flex: 2,
+          child: _navigationCard(
+            context,
+            navigation.current,
+            'CURRENT',
+            true,
+          ),
+        ),
         const SizedBox(width: 18),
-        Expanded(child: _navigationCard(context, navigation.next, 'Next', false)),
+        Expanded(
+          child: _navigationCard(
+            context,
+            navigation.next,
+            'Next',
+            false,
+          ),
+        ),
       ],
     );
   }
@@ -179,6 +206,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
     String label,
     bool current,
   ) {
+    final title = item == null ? '—' : '${item['title'] ?? 'Untitled'}';
     final enabled = item != null;
     return Card(
       elevation: current ? 8 : 2,
@@ -195,10 +223,10 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
           padding: EdgeInsets.all(current ? 24 : 16),
           child: Column(
             children: [
-              Text(label, style: TextStyle(fontWeight: FontWeight.w700)),
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 10),
               Text(
-                enabled ? '${item!['title'] ?? 'Untitled'}' : '—',
+                title,
                 textAlign: TextAlign.center,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
