@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'screens/asset_gallery_page.dart';
 import 'screens/content_browser_page.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
@@ -63,19 +64,29 @@ class _HomePage extends StatelessWidget {
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
-          _SectionButton(label: 'Games', onTap: () => _open(context, 'Games', 'game')),
-          _SectionButton(label: 'Movies', onTap: () => _open(context, 'Movies', 'movie')),
-          _SectionButton(label: 'Series', onTap: () => _open(context, 'Series', 'series')),
+          _SectionButton(label: 'Games', onTap: () => _openContent(context, 'Games', 'game')),
+          _SectionButton(label: 'Movies', onTap: () => _openContent(context, 'Movies', 'movie')),
+          _SectionButton(label: 'Series', onTap: () => _openContent(context, 'Series', 'series')),
+          _SectionButton(label: 'Gallery', onTap: () => _openGallery(context)),
         ],
       ),
     );
   }
 
-  void _open(BuildContext context, String title, String type) {
+  void _openContent(BuildContext context, String title, String type) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ContentBrowserPage(title: title, contentType: type),
+      ),
+    );
+  }
+
+  void _openGallery(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AssetGalleryPage(title: 'Gallery'),
       ),
     );
   }
