@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../core/content_browser_layout.dart';
 import '../core/content_repository.dart';
 
 class ContentBrowserPage extends StatefulWidget {
@@ -22,6 +23,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   final _items = <Map<String, dynamic>>[];
   bool _loading = false;
   bool _hasMore = true;
+  bool _initialCenterApplied = false;
   int _page = 0;
   double _focusedIndex = 2;
   String? _error;
@@ -36,20 +38,16 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   void _onScroll() {
     if (!_scrollController.hasClients) return;
 
-    // The left padding reserves two card slots, so the centered item is
-    // always the item at scrollOffset / step + 2.
     final width = _scrollController.position.viewportDimension;
     final step = _cardWidth(width) + _gap(width);
     if (step > 0) {
-      final nextFocus = (_scrollController.offset / step + 2)
-          .round()
-          .toDouble();
-      final clampedFocus = math.max(
-        0.0,
-        math.min(nextFocus, math.max(0, _items.length - 1).toDouble()),
-      );
-      if (clampedFocus != _focusedIndex && mounted) {
-        setState(() => _focusedIndex = clampedFocus);
+      final nextFocus = ContentBrowserLayout.focusedIndex(
+        offset: _scrollController.offset,
+        step: step,
+        itemCount: _items.length,
+      ).toDouble();
+      if (nextFocus != _focusedIndex && mounted) {
+        setState(() => _focusedIndex = nextFocus);
       }
     }
 
@@ -90,15 +88,18 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   }
 
   void _centerInitialMainIfReady() {
-    if (_items.length < 5 || !_scrollController.hasClients) return;
+    if (_initialCenterApplied || _items.length < 5 || !_scrollController.hasClients) {
+      return;
+    }
+    _initialCenterApplied = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
       final width = _scrollController.position.viewportDimension;
       final step = _cardWidth(width) + _gap(width);
-      _scrollController.jumpTo(math.min(
-        2 * step,
-        _scrollController.position.maxScrollExtent,
-      ));
+      _scrollController.jumpTo(
+        math.min(2 * step, _scrollController.position.maxScrollExtent),
+      );
+      if (mounted) setState(() => _focusedIndex = 2);
     });
   }
 
@@ -107,6 +108,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
       _items.clear();
       _page = 0;
       _hasMore = true;
+      _initialCenterApplied = false;
       _focusedIndex = 2;
       _error = null;
     });
@@ -131,29 +133,35 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: _buildBody(),
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          IconButton(
+            tooltip: 'Vernieuwen',
+            onPressed: _loading ? null : _refresh,
+            icon: const Icon(Icons.refresh),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
+      body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
     if (_error != null && _items.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 220),
-          Center(child: Text('Laden mislukt: $_error')),
-          const SizedBox(height: 16),
-          Center(
-            child: OutlinedButton(
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Laden mislukt: $_error'),
+            const SizedBox(height: 16),
+            OutlinedButton(
               onPressed: _loadNextPage,
               child: const Text('Opnieuw'),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
@@ -162,13 +170,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     }
 
     if (_items.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 220),
-          Center(child: Text('Geen content gevonden.')),
-        ],
-      );
+      return const Center(child: Text('Geen content gevonden.'));
     }
 
     return LayoutBuilder(
@@ -238,9 +240,12 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   void _focusItem(int index, double step) {
     if (!_scrollController.hasClients) return;
     setState(() => _focusedIndex = index.toDouble());
-    final target = math.max(0.0, (index - 2) * step);
     _scrollController.animateTo(
-      math.min(target, _scrollController.position.maxScrollExtent),
+      ContentBrowserLayout.targetOffset(
+        index: index,
+        step: step,
+        maxScrollExtent: _scrollController.position.maxScrollExtent,
+      ),
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOut,
     );
@@ -266,7 +271,8 @@ class _ContentCard extends StatelessWidget {
     final metadata = item['metadata'] is Map
         ? Map<String, dynamic>.from(item['metadata'] as Map)
         : <String, dynamic>{};
-    final imageUrl = '${item['public_url'] ?? metadata['public_url'] ?? metadata['image_url'] ?? ''}';
+    final imageUrl =
+        '${item['public_url'] ?? metadata['public_url'] ?? metadata['image_url'] ?? ''}';
 
     return Container(
       width: width,
