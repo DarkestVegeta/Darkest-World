@@ -20,7 +20,7 @@ alter table public.darkestworld_chat_messages
   add constraint darkestworld_chat_messages_context_ck
   check (
     (chat_scope in ('games', 'movies', 'series') and content_id is not null and marathon_id is null)
-    or (chat_scope in ('music', 'games', 'movies', 'series') and content_id is null and marathon_id is null)
+    or (chat_scope = 'music' and content_id is null and marathon_id is null)
     or (chat_scope = 'marathon' and marathon_id is not null and content_id is null)
   );
 
