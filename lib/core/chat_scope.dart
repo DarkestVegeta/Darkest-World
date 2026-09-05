@@ -10,13 +10,13 @@ class ChatContext {
   final ChatScope scope;
   final String? contentId;
   final String? contentTitle;
-  final bool marathonLive;
+  final bool marathonChatActive;
 
   const ChatContext({
     required this.scope,
     this.contentId,
     this.contentTitle,
-    this.marathonLive = false,
+    this.marathonChatActive = false,
   });
 
   String get label {
@@ -34,7 +34,8 @@ class ChatContext {
     }
   }
 
-  bool get isAvailable => scope != ChatScope.marathon || marathonLive;
+  bool get isAvailable =>
+      scope != ChatScope.marathon || marathonChatActive;
 }
 
 class ChatAccessPolicy {
@@ -53,13 +54,15 @@ class ChatAccessPolicy {
     }
   }
 
-  static List<ChatScope> allowedScopesForFullscreen({bool marathonLive = false}) {
+  static List<ChatScope> allowedScopesForFullscreen({
+    bool marathonChatActive = false,
+  }) {
     return [
       ChatScope.games,
       ChatScope.movies,
       ChatScope.series,
       ChatScope.music,
-      if (marathonLive) ChatScope.marathon,
+      if (marathonChatActive) ChatScope.marathon,
     ];
   }
 }
