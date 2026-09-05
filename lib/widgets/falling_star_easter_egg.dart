@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -10,8 +11,14 @@ import 'package:flutter/material.dart';
 class FallingStarEasterEgg extends StatefulWidget {
   final VoidCallback? onCaught;
   final VoidCallback? onMissed;
+  final Duration? initialDelay;
 
-  const FallingStarEasterEgg({super.key, this.onCaught, this.onMissed});
+  const FallingStarEasterEgg({
+    super.key,
+    this.onCaught,
+    this.onMissed,
+    this.initialDelay,
+  });
 
   @override
   State<FallingStarEasterEgg> createState() => _FallingStarEasterEggState();
@@ -54,9 +61,14 @@ class _FallingStarEasterEggState extends State<FallingStarEasterEgg>
 
   void _scheduleNext() {
     _spawnTimer?.cancel();
-    final delay = minDelay.inMilliseconds +
-        _random.nextInt(maxDelay.inMilliseconds - minDelay.inMilliseconds + 1);
-    _spawnTimer = Timer(Duration(milliseconds: delay), _startWarning);
+    final delay = widget.initialDelay ??
+        Duration(
+          milliseconds: minDelay.inMilliseconds +
+              _random.nextInt(
+                maxDelay.inMilliseconds - minDelay.inMilliseconds + 1,
+              ),
+        );
+    _spawnTimer = Timer(delay, _startWarning);
   }
 
   void _startWarning() {
