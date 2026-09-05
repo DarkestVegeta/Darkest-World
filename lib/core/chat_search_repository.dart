@@ -31,7 +31,7 @@ class ChatSearchRepository {
     }
 
     final safe = normalized
-        .replaceAll(RegExp(r"[,()"]"), ' ')
+        .replaceAll(RegExp(r"[,()]"), ' ')
         .replaceAll("'", ' ');
     var request = supabase
         .from('darkestworld_content')
