@@ -44,6 +44,9 @@ class WorldSuggestion {
 }
 
 class SuggestionRepository {
+  static const allowedSources = {'igdb', 'tmdb'};
+  static const allowedContentTypes = {'game', 'movie', 'series'};
+
   Future<List<WorldSuggestion>> getMySuggestions() async {
     final user = supabase.auth.currentUser;
     if (user == null) return [];
@@ -72,6 +75,12 @@ class SuggestionRepository {
     if (user == null) {
       throw AuthException('Je moet ingelogd zijn om een suggestie te sturen.');
     }
+    if (!allowedSources.contains(source)) {
+      throw ArgumentError.value(source, 'source', 'Ongeldige externe bron.');
+    }
+    if (!allowedContentTypes.contains(contentType)) {
+      throw ArgumentError.value(contentType, 'contentType', 'Ongeldig contenttype.');
+    }
     if (title.trim().isEmpty) {
       throw ArgumentError.value(title, 'title', 'Titel mag niet leeg zijn.');
     }
@@ -94,7 +103,7 @@ class SuggestionRepository {
       'submitted_by': user.id,
       'source': source,
       'content_type': contentType,
-      'external_id': externalId,
+      'external_id': externalId.trim(),
       'title': title.trim(),
       'image_url': imageUrl?.trim().isEmpty == true ? null : imageUrl?.trim(),
       'soul_points': soulPoints,
