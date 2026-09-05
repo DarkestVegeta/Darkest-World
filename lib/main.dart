@@ -9,6 +9,7 @@ import 'screens/music_world_page.dart';
 import 'screens/suggestions_page.dart';
 import 'screens/test_asset_lab_page.dart';
 import 'screens/world_status_page.dart';
+import 'widgets/living_world_scene.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabasePublishableKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -82,6 +83,7 @@ class _HomePageState extends State<_HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Darkest-World'),
+        backgroundColor: Colors.black.withValues(alpha: 0.35),
         actions: [
           IconButton(
             tooltip: 'Vernieuwen',
@@ -91,79 +93,111 @@ class _HomePageState extends State<_HomePage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: FutureBuilder<List<WorldSection>>(
-        future: _sections,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: LivingWorldScene(
+        child: FutureBuilder<List<WorldSection>>(
+          future: _sections,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Worlds laden mislukt: ${snapshot.error}'),
-                  const SizedBox(height: 16),
-                  OutlinedButton(
-                    onPressed: _reloadSections,
-                    child: const Text('Opnieuw'),
+            if (snapshot.hasError) {
+              return Center(
+                child: Card(
+                  color: Colors.black.withValues(alpha: 0.70),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Worlds laden mislukt: ${snapshot.error}'),
+                        const SizedBox(height: 16),
+                        OutlinedButton(
+                          onPressed: _reloadSections,
+                          child: const Text('Opnieuw'),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            );
-          }
-
-          final sections = snapshot.data ?? const <WorldSection>[];
-          if (sections.isEmpty) {
-            return const Center(child: Text('Geen worlds beschikbaar.'));
-          }
-
-          return ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              const Text(
-                'Darkest-World',
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text('${sections.length} worlds geladen uit Supabase.'),
-              const SizedBox(height: 24),
-              const Text(
-                'Worlds',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              for (final section in sections)
-                _SectionButton(
-                  label: section.name,
-                  onTap: () => _openSection(context, section),
                 ),
-              const SizedBox(height: 24),
-              const Text(
-                'Development',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              _SectionButton(
-                label: 'Suggestions',
-                onTap: () => _openSuggestions(context),
-              ),
-              _SectionButton(
-                label: 'Gallery',
-                onTap: () => _openGallery(context),
-              ),
-              _SectionButton(
-                label: '10-Artbox Test Lab',
-                onTap: () => _openTestLab(context),
-              ),
-              _SectionButton(
-                label: 'World Status',
-                onTap: () => _openStatus(context),
-              ),
-            ],
-          );
-        },
+              );
+            }
+
+            final sections = snapshot.data ?? const <WorldSection>[];
+            if (sections.isEmpty) {
+              return const Center(child: Text('Geen worlds beschikbaar.'));
+            }
+
+            return ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                Card(
+                  color: Colors.black.withValues(alpha: 0.48),
+                  child: const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Darkest-World',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Een levende wereld. De werelden en content groeien mee met het systeem.',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Card(
+                  color: Colors.black.withValues(alpha: 0.42),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Text('${sections.length} worlds geladen uit Supabase.'),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Worlds',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                for (final section in sections)
+                  _SectionButton(
+                    label: section.name,
+                    onTap: () => _openSection(context, section),
+                  ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Development',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                _SectionButton(
+                  label: 'Suggestions',
+                  onTap: () => _openSuggestions(context),
+                ),
+                _SectionButton(
+                  label: 'Gallery',
+                  onTap: () => _openGallery(context),
+                ),
+                _SectionButton(
+                  label: '10-Artbox Test Lab',
+                  onTap: () => _openTestLab(context),
+                ),
+                _SectionButton(
+                  label: 'World Status',
+                  onTap: () => _openStatus(context),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
