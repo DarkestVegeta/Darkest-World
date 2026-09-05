@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/world_sections_repository.dart';
 import 'screens/asset_gallery_page.dart';
 import 'screens/basic_section_page.dart';
+import 'screens/chat_world_page.dart';
 import 'screens/content_browser_page.dart';
 import 'screens/suggestions_page.dart';
 import 'screens/test_asset_lab_page.dart';
@@ -49,7 +50,7 @@ class _ConfigurationMissingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('Darkest-World configuration is missing.')),
+      body: Center(child: Text('DarkestWorld configuration is missing.')),
     );
   }
 }
@@ -177,6 +178,9 @@ class _HomePageState extends State<_HomePage> {
       case 'series-world':
         _openContent(context, section.name, 'series');
         return;
+      case 'chat':
+        _openChat(context);
+        return;
       default:
         _openBasic(context, section.name, section.description);
     }
@@ -188,6 +192,13 @@ class _HomePageState extends State<_HomePage> {
       MaterialPageRoute(
         builder: (_) => ContentBrowserPage(title: title, contentType: type),
       ),
+    );
+  }
+
+  void _openChat(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ChatWorldPage()),
     );
   }
 
