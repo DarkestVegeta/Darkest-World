@@ -5,6 +5,7 @@ import 'screens/asset_gallery_page.dart';
 import 'screens/basic_section_page.dart';
 import 'screens/chat_world_page.dart';
 import 'screens/content_browser_page.dart';
+import 'screens/music_world_page.dart';
 import 'screens/suggestions_page.dart';
 import 'screens/test_asset_lab_page.dart';
 import 'screens/world_status_page.dart';
@@ -177,6 +178,17 @@ class _HomePageState extends State<_HomePage> {
         return;
       case 'series-world':
         _openContent(context, section.name, 'series');
+        return;
+      case 'music-world':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MusicWorldPage(
+              title: section.name,
+              description: section.description,
+            ),
+          ),
+        );
         return;
       case 'chat':
         _openChat(context);
