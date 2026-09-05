@@ -2,8 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'falling_star_easter_egg.dart';
-
 /// Lightweight, asset-free animated background for the Darkest-World home.
 class LivingWorldScene extends StatefulWidget {
   final Widget child;
@@ -38,7 +36,6 @@ class _LivingWorldSceneState extends State<LivingWorldScene>
           ),
         ),
         widget.child,
-        const FallingStarEasterEgg(),
       ],
     );
   }
