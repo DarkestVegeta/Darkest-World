@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/asset_gallery_page.dart';
+import 'screens/basic_section_page.dart';
 import 'screens/content_browser_page.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
@@ -64,10 +65,28 @@ class _HomePage extends StatelessWidget {
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
+          const Text(
+            'Worlds',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
           _SectionButton(label: 'Games', onTap: () => _openContent(context, 'Games', 'game')),
           _SectionButton(label: 'Movies', onTap: () => _openContent(context, 'Movies', 'movie')),
           _SectionButton(label: 'Series', onTap: () => _openContent(context, 'Series', 'series')),
           _SectionButton(label: 'Gallery', onTap: () => _openGallery(context)),
+          const SizedBox(height: 24),
+          const Text(
+            'DarkestWorld Systems',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          _SectionButton(label: 'Events', onTap: () => _openBasic(context, 'Events', 'Events and world activity.')),
+          _SectionButton(label: 'Marathons', onTap: () => _openBasic(context, 'Marathons', 'Franchise marathon planning and progress.')),
+          _SectionButton(label: 'Social Media', onTap: () => _openBasic(context, 'Social Media', 'DarkestWorld social channels and posts.')),
+          _SectionButton(label: 'Chat', onTap: () => _openBasic(context, 'Chat', 'Community chat foundation.')),
+          _SectionButton(label: 'Identity World', onTap: () => _openBasic(context, 'Identity World', 'DarkestVegeta, DarkestFamily and persona information.')),
+          _SectionButton(label: 'Dark Core', onTap: () => _openBasic(context, 'Dark Core', 'Core lore, rules and world foundations.')),
+          _SectionButton(label: 'Create Your World', onTap: () => _openBasic(context, 'Create Your World', 'Future creation and customization layer.')),
         ],
       ),
     );
@@ -87,6 +106,15 @@ class _HomePage extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (_) => const AssetGalleryPage(title: 'Gallery'),
+      ),
+    );
+  }
+
+  void _openBasic(BuildContext context, String title, String description) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BasicSectionPage(title: title, description: description),
       ),
     );
   }
