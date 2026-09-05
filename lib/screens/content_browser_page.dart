@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/content_browser_layout.dart';
 import '../core/content_repository.dart';
+import 'content_detail_page.dart';
 
 class ContentBrowserPage extends StatefulWidget {
   final String? contentType;
@@ -204,15 +205,18 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
                       child: MouseRegion(
                         cursor: SystemMouseCursors.click,
                         onEnter: (_) => _focusItem(index, step),
-                        child: AnimatedScale(
-                          scale: isMain ? 1.10 : 1.0,
-                          duration: const Duration(milliseconds: 140),
-                          curve: Curves.easeOut,
-                          child: _ContentCard(
-                            item: _items[index],
-                            width: baseWidth,
-                            height: baseHeight,
-                            highlighted: isMain,
+                        child: GestureDetector(
+                          onTap: () => _openDetail(_items[index]),
+                          child: AnimatedScale(
+                            scale: isMain ? 1.10 : 1.0,
+                            duration: const Duration(milliseconds: 140),
+                            curve: Curves.easeOut,
+                            child: _ContentCard(
+                              item: _items[index],
+                              width: baseWidth,
+                              height: baseHeight,
+                              highlighted: isMain,
+                            ),
                           ),
                         ),
                       ),
@@ -234,6 +238,13 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
           ],
         );
       },
+    );
+  }
+
+  void _openDetail(Map<String, dynamic> item) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)),
     );
   }
 
