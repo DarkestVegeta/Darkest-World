@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../core/chat_scope.dart';
 import '../core/content_browser_layout.dart';
 import '../core/content_repository.dart';
+import 'chatbox.dart';
 import 'content_detail_page.dart';
 
 class ContentBrowserPage extends StatefulWidget {
@@ -125,6 +127,31 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     return math.max(150.0, (width - padding * 2 - gap * 4) / 5);
   }
 
+  ChatContext? get _chatContext {
+    ChatScope? scope;
+    switch (widget.contentType) {
+      case 'game':
+        scope = ChatScope.games;
+        break;
+      case 'movie':
+        scope = ChatScope.movies;
+        break;
+      case 'series':
+        scope = ChatScope.series;
+        break;
+      default:
+        return null;
+    }
+
+    final index = _focusedIndex.round();
+    final item = index >= 0 && index < _items.length ? _items[index] : null;
+    return ChatContext(
+      scope: scope,
+      contentId: item?['id']?.toString(),
+      contentTitle: item?['title']?.toString(),
+    );
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -146,6 +173,9 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
         ],
       ),
       body: _buildBody(),
+      floatingActionButton: _chatContext == null
+          ? null
+          : Chatbox(contextData: _chatContext!),
     );
   }
 
