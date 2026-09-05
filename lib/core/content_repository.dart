@@ -3,6 +3,7 @@ import 'supabase_client.dart';
 class ContentRepository {
   // Technical batch size. The UI decides how many items are visible.
   static const int pageSize = 36;
+  static const int testAssetCount = 10;
 
   Future<List<Map<String, dynamic>>> getContentPage({
     String? type,
@@ -72,6 +73,19 @@ class ContentRepository {
         .order('title')
         .order('id')
         .range(from, to);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getTestAssets() async {
+    final response = await supabase
+        .from('storage_assets')
+        .select()
+        .eq('is_test_asset', true)
+        .eq('asset_type', 'snes_sealed')
+        .not('public_url', 'is', null)
+        .order('title')
+        .limit(testAssetCount);
 
     return List<Map<String, dynamic>>.from(response);
   }
