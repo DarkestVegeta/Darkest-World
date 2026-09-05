@@ -38,18 +38,30 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
     super.dispose();
   }
 
-  ChatContext get _activeContext => ChatContext(
-        scope: _scope,
-        contentId: widget.context?.contentId,
-        contentTitle: widget.context?.contentTitle,
-        marathonChatActive: widget.marathonChatActive,
-      );
+  ChatContext get _activeContext {
+    final original = widget.context;
+    final sameContext = original != null && original.scope == _scope;
+    return ChatContext(
+      scope: _scope,
+      contentId: sameContext ? original.contentId : null,
+      contentTitle: sameContext ? original.contentTitle : null,
+      marathonChatActive: widget.marathonChatActive,
+    );
+  }
+
+  Future<void> _selectScope(ChatScope scope) async {
+    if (_scope == scope) return;
+    setState(() => _scope = scope);
+    await _loadMessages();
+  }
 
   Future<void> _loadMessages() async {
     final active = _activeContext;
     if (!active.isAvailable) {
+      if (!mounted) return;
       setState(() {
         _messages = const [];
+        _loadingMessages = false;
         _error = null;
       });
       return;
@@ -63,12 +75,8 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
     try {
       final messages = await _repository.getMessages(
         scope: active.scope,
-        contentId: active.scope == ChatScope.marathon
-            ? null
-            : active.contentId,
-        marathonId: active.scope == ChatScope.marathon
-            ? active.contentId
-            : null,
+        contentId: active.scope == ChatScope.marathon ? null : active.contentId,
+        marathonId: null,
       );
       if (!mounted) return;
       setState(() {
@@ -124,10 +132,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
           ),
           PopupMenuButton<ChatScope>(
             tooltip: 'Chat kiezen',
-            onSelected: (scope) {
-              setState(() => _scope = scope);
-              _loadMessages();
-            },
+            onSelected: _selectScope,
             itemBuilder: (_) => [
               for (final scope in scopes)
                 PopupMenuItem(value: scope, child: Text(_scopeLabel(scope))),
@@ -146,7 +151,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
   }
 
   String get _title {
-    final contentTitle = widget.context?.contentTitle;
+    final contentTitle = _activeContext.contentTitle;
     if (contentTitle != null && contentTitle.trim().isNotEmpty) {
       return '${_scopeLabel(_scope)} · $contentTitle';
     }
@@ -170,10 +175,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: OutlinedButton.icon(
-              onPressed: () {
-                setState(() => _scope = scope);
-                _loadMessages();
-              },
+              onPressed: () => _selectScope(scope),
               icon: Icon(_scopeIcon(scope)),
               label: Text(_scopeLabel(scope)),
             ),
