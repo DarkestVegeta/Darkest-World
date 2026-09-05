@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/world_sections_repository.dart';
 import 'screens/asset_gallery_page.dart';
 import 'screens/basic_section_page.dart';
 import 'screens/content_browser_page.dart';
@@ -52,48 +53,132 @@ class _ConfigurationMissingPage extends StatelessWidget {
   }
 }
 
-class _HomePage extends StatelessWidget {
+class _HomePage extends StatefulWidget {
   const _HomePage();
+
+  @override
+  State<_HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<_HomePage> {
+  final _repository = WorldSectionsRepository();
+  late Future<List<WorldSection>> _sections;
+
+  @override
+  void initState() {
+    super.initState();
+    _sections = _repository.load();
+  }
+
+  void _reloadSections() {
+    setState(() => _sections = _repository.load());
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Darkest-World')),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          const Text(
-            'Darkest-World',
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+      appBar: AppBar(
+        title: const Text('Darkest-World'),
+        actions: [
+          IconButton(
+            tooltip: 'Vernieuwen',
+            onPressed: _reloadSections,
+            icon: const Icon(Icons.refresh),
           ),
-          const SizedBox(height: 24),
-          const Text(
-            'Worlds',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          _SectionButton(label: 'Games', onTap: () => _openContent(context, 'Games', 'game')),
-          _SectionButton(label: 'Movies', onTap: () => _openContent(context, 'Movies', 'movie')),
-          _SectionButton(label: 'Series', onTap: () => _openContent(context, 'Series', 'series')),
-          _SectionButton(label: 'Gallery', onTap: () => _openGallery(context)),
-          _SectionButton(label: '10-Artbox Test Lab', onTap: () => _openTestLab(context)),
-          _SectionButton(label: 'World Status', onTap: () => _openStatus(context)),
-          const SizedBox(height: 24),
-          const Text(
-            'Darkest-World Systems',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          _SectionButton(label: 'Events', onTap: () => _openBasic(context, 'Events', 'Events and world activity.')),
-          _SectionButton(label: 'Marathons', onTap: () => _openBasic(context, 'Marathons', 'Franchise marathon planning and progress.')),
-          _SectionButton(label: 'Social Media', onTap: () => _openBasic(context, 'Social Media', 'Darkest-World social channels and posts.')),
-          _SectionButton(label: 'Chat', onTap: () => _openBasic(context, 'Chat', 'Community chat foundation.')),
-          _SectionButton(label: 'Identity World', onTap: () => _openBasic(context, 'Identity World', 'DarkestVegeta, DarkestFamily and persona information.')),
-          _SectionButton(label: 'Dark Core', onTap: () => _openBasic(context, 'Dark Core', 'Core lore, rules and world foundations.')),
-          _SectionButton(label: 'Create Your World', onTap: () => _openBasic(context, 'Create Your World', 'Future creation and customization layer.')),
+          const SizedBox(width: 8),
         ],
       ),
+      body: FutureBuilder<List<WorldSection>>(
+        future: _sections,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Worlds laden mislukt: ${snapshot.error}'),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: _reloadSections,
+                    child: const Text('Opnieuw'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final sections = snapshot.data ?? const <WorldSection>[];
+          if (sections.isEmpty) {
+            return const Center(child: Text('Geen worlds beschikbaar.'));
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              const Text(
+                'Darkest-World',
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text('${sections.length} worlds geladen uit Supabase.'),
+              const SizedBox(height: 24),
+              const Text(
+                'Worlds',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              for (final section in sections)
+                _SectionButton(
+                  label: section.name,
+                  onTap: () => _openSection(context, section),
+                ),
+              const SizedBox(height: 24),
+              const Text(
+                'Development',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              _SectionButton(
+                label: 'Gallery',
+                onTap: () => _openGallery(context),
+              ),
+              _SectionButton(
+                label: '10-Artbox Test Lab',
+                onTap: () => _openTestLab(context),
+              ),
+              _SectionButton(
+                label: 'World Status',
+                onTap: () => _openStatus(context),
+              ),
+            ],
+          );
+        },
+      ),
     );
+  }
+
+  void _openSection(BuildContext context, WorldSection section) {
+    switch (section.slug) {
+      case 'game-world':
+        _openContent(context, section.name, 'game');
+        return;
+      case 'cinema-world':
+        _openContent(context, section.name, 'movie');
+        return;
+      case 'series-world':
+        _openContent(context, section.name, 'series');
+        return;
+      default:
+        _openBasic(
+          context,
+          section.name,
+          section.description,
+        );
+    }
   }
 
   void _openContent(BuildContext context, String title, String type) {
@@ -132,7 +217,10 @@ class _HomePage extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BasicSectionPage(title: title, description: description),
+        builder: (_) => BasicSectionPage(
+          title: title,
+          description: description,
+        ),
       ),
     );
   }
