@@ -198,7 +198,9 @@ class _HomePageState extends State<_HomePage> {
   void _openChat(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ChatWorldPage()),
+      MaterialPageRoute(
+        builder: (_) => const ChatWorldPage(marathonChatActive: true),
+      ),
     );
   }
 
