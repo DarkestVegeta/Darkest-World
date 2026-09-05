@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../core/chat_repository.dart';
@@ -30,6 +28,9 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
   void initState() {
     super.initState();
     _scope = widget.context?.scope ?? ChatScope.games;
+    if (_scope == ChatScope.marathon && !widget.marathonChatActive) {
+      _scope = ChatScope.games;
+    }
     _resetStream();
   }
 
@@ -53,7 +54,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
   void _resetStream() {
     final active = _activeContext;
     if (!active.isAvailable) {
-      setState(() => _messageStream = null);
+      _messageStream = null;
       return;
     }
 
@@ -62,13 +63,13 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
       contentId: active.scope == ChatScope.marathon ? null : active.contentId,
       marathonId: null,
     );
-    if (mounted) setState(() {});
   }
 
   void _selectScope(ChatScope scope) {
     if (_scope == scope) return;
     setState(() => _scope = scope);
     _resetStream();
+    setState(() {});
   }
 
   Future<void> _sendMessage() async {
