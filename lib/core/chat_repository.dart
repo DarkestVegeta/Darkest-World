@@ -73,6 +73,41 @@ class ChatRepository {
     ];
   }
 
+  Stream<List<ChatMessage>> streamMessages({
+    required ChatScope scope,
+    String? contentId,
+    String? marathonId,
+    int limit = 100,
+  }) {
+    if (limit < 1 || limit > 200) {
+      throw ArgumentError.value(limit, 'limit', 'Must be between 1 and 200.');
+    }
+
+    var stream = supabase
+        .from('darkestworld_chat_messages')
+        .stream(primaryKey: ['id'])
+        .eq('chat_scope', scope.name);
+
+    if (contentId != null) {
+      stream = stream.eq('content_id', contentId);
+    } else {
+      stream = stream.isFilter('content_id', null);
+    }
+
+    if (marathonId != null) {
+      stream = stream.eq('marathon_id', marathonId);
+    } else {
+      stream = stream.isFilter('marathon_id', null);
+    }
+
+    return stream.order('created_at').limit(limit).map(
+          (rows) => [
+            for (final row in rows)
+              ChatMessage.fromMap(Map<String, dynamic>.from(row)),
+          ],
+        );
+  }
+
   Future<void> sendMessage({
     required ChatContext context,
     required String message,
@@ -101,7 +136,9 @@ class ChatRepository {
       'author_id': user.id,
       'message': trimmed,
       'chat_scope': context.scope.name,
-      'content_id': context.contentId,
+      'content_id': context.scope == ChatScope.marathon
+          ? null
+          : context.contentId,
       'marathon_id': context.scope == ChatScope.marathon
           ? context.contentId
           : null,
