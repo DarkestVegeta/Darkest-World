@@ -61,15 +61,16 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
     _messageStream = _repository.streamMessages(
       scope: active.scope,
       contentId: active.scope == ChatScope.marathon ? null : active.contentId,
-      marathonId: null,
+      marathonId: active.scope == ChatScope.marathon ? active.contentId : null,
     );
   }
 
   void _selectScope(ChatScope scope) {
     if (_scope == scope) return;
-    setState(() => _scope = scope);
-    _resetStream();
-    setState(() {});
+    setState(() {
+      _scope = scope;
+      _resetStream();
+    });
   }
 
   Future<void> _sendMessage() async {
