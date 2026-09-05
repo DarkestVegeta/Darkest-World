@@ -1,7 +1,7 @@
 import 'supabase_client.dart';
 
 class ContentRepository {
-  // Fetch in reasonably sized technical batches; the UI controls what is visible.
+  // Technical batch size. The UI decides how many items are visible.
   static const int pageSize = 36;
 
   Future<List<Map<String, dynamic>>> getContentPage({
@@ -12,16 +12,9 @@ class ContentRepository {
     final to = from + pageSize - 1;
 
     var query = supabase.from('darkestworld_content').select();
+    if (type != null) query = query.eq('content_type', type);
 
-    // Keep pagination deterministic when titles are duplicated.
-    final response = type == null
-        ? await query.order('title').order('id').range(from, to)
-        : await query
-            .eq('content_type', type)
-            .order('title')
-            .order('id')
-            .range(from, to);
-
+    final response = await query.order('title').order('id').range(from, to);
     return List<Map<String, dynamic>>.from(response);
   }
 
@@ -33,14 +26,14 @@ class ContentRepository {
     final to = from + pageSize - 1;
 
     var query = supabase.from('storage_assets').select();
+    if (assetType != null) query = query.eq('asset_type', assetType);
 
-    final response = assetType == null
-        ? await query.order('title').order('id').range(from, to)
-        : await query
-            .eq('asset_type', assetType)
-            .order('title')
-            .order('id')
-            .range(from, to);
+    // Only assets with a usable public URL belong in the public gallery.
+    final response = await query
+        .not('public_url', 'is', null)
+        .order('title')
+        .order('id')
+        .range(from, to);
 
     return List<Map<String, dynamic>>.from(response);
   }
