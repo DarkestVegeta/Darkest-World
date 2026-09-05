@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../core/chat_repository.dart';
 import '../core/chat_scope.dart';
 
@@ -20,16 +23,14 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
   final _repository = ChatRepository();
   final _messageController = TextEditingController();
   late ChatScope _scope;
-  List<ChatMessage> _messages = const [];
-  bool _loadingMessages = false;
+  Stream<List<ChatMessage>>? _messageStream;
   bool _sending = false;
-  String? _error;
 
   @override
   void initState() {
     super.initState();
     _scope = widget.context?.scope ?? ChatScope.games;
-    _loadMessages();
+    _resetStream();
   }
 
   @override
@@ -49,47 +50,25 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
     );
   }
 
-  Future<void> _selectScope(ChatScope scope) async {
-    if (_scope == scope) return;
-    setState(() => _scope = scope);
-    await _loadMessages();
-  }
-
-  Future<void> _loadMessages() async {
+  void _resetStream() {
     final active = _activeContext;
     if (!active.isAvailable) {
-      if (!mounted) return;
-      setState(() {
-        _messages = const [];
-        _loadingMessages = false;
-        _error = null;
-      });
+      setState(() => _messageStream = null);
       return;
     }
 
-    setState(() {
-      _loadingMessages = true;
-      _error = null;
-    });
+    _messageStream = _repository.streamMessages(
+      scope: active.scope,
+      contentId: active.scope == ChatScope.marathon ? null : active.contentId,
+      marathonId: null,
+    );
+    if (mounted) setState(() {});
+  }
 
-    try {
-      final messages = await _repository.getMessages(
-        scope: active.scope,
-        contentId: active.scope == ChatScope.marathon ? null : active.contentId,
-        marathonId: null,
-      );
-      if (!mounted) return;
-      setState(() {
-        _messages = messages;
-        _loadingMessages = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loadingMessages = false;
-        _error = e.toString();
-      });
-    }
+  void _selectScope(ChatScope scope) {
+    if (_scope == scope) return;
+    setState(() => _scope = scope);
+    _resetStream();
   }
 
   Future<void> _sendMessage() async {
@@ -104,7 +83,6 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
         message: _messageController.text,
       );
       _messageController.clear();
-      await _loadMessages();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -125,11 +103,6 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
       appBar: AppBar(
         title: Text(_title),
         actions: [
-          IconButton(
-            tooltip: 'Berichten vernieuwen',
-            onPressed: _loadingMessages ? null : _loadMessages,
-            icon: const Icon(Icons.refresh),
-          ),
           PopupMenuButton<ChatScope>(
             tooltip: 'Chat kiezen',
             onSelected: _selectScope,
@@ -209,6 +182,11 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
       return const Center(child: Text('Marathon Chat is momenteel niet actief.'));
     }
 
+    final stream = _messageStream;
+    if (stream == null) {
+      return const Center(child: Text('Chatverbinding niet beschikbaar.'));
+    }
+
     return Column(
       children: [
         Container(
@@ -220,7 +198,48 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
           ),
         ),
         const Divider(height: 1),
-        Expanded(child: _messagesView()),
+        Expanded(
+          child: StreamBuilder<List<ChatMessage>>(
+            stream: stream,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text('Chat laden mislukt: ${snapshot.error}'));
+              }
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final messages = snapshot.data ?? const <ChatMessage>[];
+              if (messages.isEmpty) {
+                return const Center(child: Text('Nog geen berichten in deze chatcontext.'));
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: messages.length,
+                itemBuilder: (_, index) {
+                  final message = messages[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            message.authorId ?? 'Onbekend',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(message.message),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -252,54 +271,6 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _messagesView() {
-    if (_loadingMessages) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Chat laden mislukt: $_error', textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            OutlinedButton(onPressed: _loadMessages, child: const Text('Opnieuw')),
-          ],
-        ),
-      );
-    }
-    if (_messages.isEmpty) {
-      return const Center(
-        child: Text('Nog geen berichten in deze chatcontext.'),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _messages.length,
-      itemBuilder: (_, index) {
-        final message = _messages[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 10),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message.authorId ?? 'Onbekend',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(message.message),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
