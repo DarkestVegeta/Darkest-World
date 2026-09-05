@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/asset_gallery_page.dart';
 import 'screens/basic_section_page.dart';
 import 'screens/content_browser_page.dart';
+import 'screens/test_asset_lab_page.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabasePublishableKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -74,6 +75,7 @@ class _HomePage extends StatelessWidget {
           _SectionButton(label: 'Movies', onTap: () => _openContent(context, 'Movies', 'movie')),
           _SectionButton(label: 'Series', onTap: () => _openContent(context, 'Series', 'series')),
           _SectionButton(label: 'Gallery', onTap: () => _openGallery(context)),
+          _SectionButton(label: '10-Artbox Test Lab', onTap: () => _openTestLab(context)),
           const SizedBox(height: 24),
           const Text(
             'DarkestWorld Systems',
@@ -107,6 +109,13 @@ class _HomePage extends StatelessWidget {
       MaterialPageRoute(
         builder: (_) => const AssetGalleryPage(title: 'Gallery'),
       ),
+    );
+  }
+
+  void _openTestLab(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TestAssetLabPage()),
     );
   }
 
