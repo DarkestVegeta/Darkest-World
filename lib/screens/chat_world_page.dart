@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/chat_repository.dart';
 import '../core/chat_scope.dart';
+import '../core/chat_search_repository.dart';
 
 class ChatWorldPage extends StatefulWidget {
   final ChatContext? context;
@@ -19,10 +20,17 @@ class ChatWorldPage extends StatefulWidget {
 
 class _ChatWorldPageState extends State<ChatWorldPage> {
   final _repository = ChatRepository();
+  final _searchRepository = ChatSearchRepository();
   final _messageController = TextEditingController();
+  final _searchController = TextEditingController();
   late ChatScope _scope;
   Stream<List<ChatMessage>>? _messageStream;
+  List<ChatSearchResult> _searchResults = [];
   bool _sending = false;
+  bool _searching = false;
+  String? _searchError;
+  String? _selectedContentId;
+  String? _selectedContentTitle;
 
   @override
   void initState() {
@@ -31,22 +39,23 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
     if (_scope == ChatScope.marathon && !widget.marathonChatActive) {
       _scope = ChatScope.games;
     }
+    _selectedContentId = widget.context?.contentId;
+    _selectedContentTitle = widget.context?.contentTitle;
     _resetStream();
   }
 
   @override
   void dispose() {
     _messageController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   ChatContext get _activeContext {
-    final original = widget.context;
-    final sameContext = original != null && original.scope == _scope;
     return ChatContext(
       scope: _scope,
-      contentId: sameContext ? original.contentId : null,
-      contentTitle: sameContext ? original.contentTitle : null,
+      contentId: _selectedContentId,
+      contentTitle: _selectedContentTitle,
       marathonChatActive: widget.marathonChatActive,
     );
   }
@@ -69,6 +78,61 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
     if (_scope == scope) return;
     setState(() {
       _scope = scope;
+      _selectedContentId = null;
+      _selectedContentTitle = null;
+      _searchResults = [];
+      _searchError = null;
+      _resetStream();
+    });
+  }
+
+  Future<void> _search() async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _searchError = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _searching = true;
+      _searchError = null;
+    });
+
+    try {
+      final results = await _searchRepository.search(
+        scope: _scope,
+        query: query,
+        contentId: _scope == ChatScope.marathon ? _selectedContentId : null,
+      );
+      if (!mounted) return;
+      setState(() => _searchResults = results);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _searchResults = [];
+        _searchError = e.toString();
+      });
+    } finally {
+      if (mounted) setState(() => _searching = false);
+    }
+  }
+
+  void _useSearchResult(ChatSearchResult result) {
+    if (result.contentId == null ||
+        (_scope != ChatScope.games &&
+            _scope != ChatScope.movies &&
+            _scope != ChatScope.series)) {
+      return;
+    }
+
+    setState(() {
+      _selectedContentId = result.contentId;
+      _selectedContentTitle = result.title;
+      _searchResults = [];
+      _searchController.clear();
       _resetStream();
     });
   }
@@ -167,13 +231,69 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
-        const TextField(
-          decoration: InputDecoration(
-            prefixIcon: Icon(Icons.search),
-            hintText: 'Zoek content of onderwerp...',
-            border: OutlineInputBorder(),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => _search(),
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search),
+                  hintText: 'Zoek content of onderwerp...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton.filled(
+              tooltip: 'Zoeken',
+              onPressed: _searching ? null : _search,
+              icon: _searching
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.search),
+            ),
+          ],
         ),
+        if (_searchError != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Zoeken mislukt: $_searchError',
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+        if (_searchController.text.trim().isNotEmpty &&
+            !_searching &&
+            _searchError == null &&
+            _searchResults.isEmpty) ...[
+          const SizedBox(height: 12),
+          const Text('Geen resultaten gevonden.'),
+        ],
+        if (_searchResults.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          for (final result in _searchResults)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.search),
+                title: Text(result.title),
+                subtitle: result.subtitle.isEmpty
+                    ? null
+                    : Text(result.subtitle),
+                trailing: result.contentId != null &&
+                        _scope != ChatScope.music &&
+                        _scope != ChatScope.marathon
+                    ? const Icon(Icons.arrow_forward)
+                    : null,
+                onTap: result.contentId == null
+                    ? null
+                    : () => _useSearchResult(result),
+              ),
+            ),
+        ],
       ],
     );
   }
