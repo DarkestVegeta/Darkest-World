@@ -23,24 +23,15 @@ class WorldStatus {
 }
 
 class WorldStatusRepository {
-  Future<int> _count(PostgrestFilterBuilder<List<Map<String, dynamic>>> query) async {
-    final response = await query.select('id').count(CountOption.exact);
-    return response.count ?? 0;
-  }
-
   Future<WorldStatus> load() async {
     final results = await Future.wait<int>([
-      _count(supabase.from('darkestworld_sections')),
-      _count(supabase.from('storage_assets')),
-      _count(
-        supabase.from('storage_assets').eq('asset_type', 'snes_sealed'),
-      ),
-      _count(
-        supabase.from('storage_assets').not('public_url', 'is', null),
-      ),
-      _count(supabase.from('darkestworld_content')),
-      _count(supabase.from('darkestworld_content_relations')),
-      _count(supabase.from('darkestworld_timeline')),
+      _countSections(),
+      _countAssets(),
+      _countSnesAssets(),
+      _countPublicAssets(),
+      _countContent(),
+      _countRelations(),
+      _countTimeline(),
     ]);
 
     return WorldStatus(
@@ -52,5 +43,63 @@ class WorldStatusRepository {
       relations: results[5],
       timeline: results[6],
     );
+  }
+
+  Future<int> _countSections() async {
+    final response = await supabase
+        .from('darkestworld_sections')
+        .select('id')
+        .count(CountOption.exact);
+    return response.count ?? 0;
+  }
+
+  Future<int> _countAssets() async {
+    final response = await supabase
+        .from('storage_assets')
+        .select('id')
+        .count(CountOption.exact);
+    return response.count ?? 0;
+  }
+
+  Future<int> _countSnesAssets() async {
+    final response = await supabase
+        .from('storage_assets')
+        .select('id')
+        .eq('asset_type', 'snes_sealed')
+        .count(CountOption.exact);
+    return response.count ?? 0;
+  }
+
+  Future<int> _countPublicAssets() async {
+    final response = await supabase
+        .from('storage_assets')
+        .select('id')
+        .not('public_url', 'is', null)
+        .count(CountOption.exact);
+    return response.count ?? 0;
+  }
+
+  Future<int> _countContent() async {
+    final response = await supabase
+        .from('darkestworld_content')
+        .select('id')
+        .count(CountOption.exact);
+    return response.count ?? 0;
+  }
+
+  Future<int> _countRelations() async {
+    final response = await supabase
+        .from('darkestworld_content_relations')
+        .select('id')
+        .count(CountOption.exact);
+    return response.count ?? 0;
+  }
+
+  Future<int> _countTimeline() async {
+    final response = await supabase
+        .from('darkestworld_timeline')
+        .select('id')
+        .count(CountOption.exact);
+    return response.count ?? 0;
   }
 }
