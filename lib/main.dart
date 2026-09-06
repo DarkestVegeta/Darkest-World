@@ -230,8 +230,10 @@ class _HomePageState extends State<_HomePage> {
         );
         return;
       case WorldDestination.chat:
+        _openChat(context, marathonChatActive: true);
+        return;
       case WorldDestination.chatbox:
-        _openChat(context);
+        _openChat(context, marathonChatActive: false);
         return;
       case WorldDestination.events:
         Navigator.push(
@@ -292,11 +294,13 @@ class _HomePageState extends State<_HomePage> {
     );
   }
 
-  void _openChat(BuildContext context) {
+  void _openChat(BuildContext context, {required bool marathonChatActive}) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const ChatWorldPage(marathonChatActive: true),
+        builder: (_) => ChatWorldPage(
+          marathonChatActive: marathonChatActive,
+        ),
       ),
     );
   }
