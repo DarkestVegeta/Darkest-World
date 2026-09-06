@@ -123,7 +123,7 @@ Status: FIXED / SECURITY ADVISOR CLEAN / CI GREEN
 - GitHub Actions run #170 completed successfully: Flutter analyze and the full Flutter test suite passed.
 
 ### Round 26 — Timeline / Chronology construction layer
-Status: IMPLEMENTED / TEST ADDED / CI PENDING
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
 
 - Fresh control check was completed before implementation; the Round 25 CI chain was green and the existing architecture was preserved.
 - Added a dedicated `Timeline` navigation destination without changing the existing world-section database rows.
@@ -133,6 +133,8 @@ Status: IMPLEMENTED / TEST ADDED / CI PENDING
 - The page is explicitly read-only and does not create or modify timeline data.
 - Supabase live SQL access was unavailable during this round, so no database migration or timeline schema change was attempted; this avoids guessing the existing timeline table contract.
 - No database rows, artboxes, or stored images were changed.
+- The initial widget regression assertion was corrected to account for the page title and heading both using `Timeline / Chronology`.
+- GitHub Actions run #177 completed successfully on head `3f778f8c06d72034f55bcfdd6543768802a817a1`.
 
 ## Current next queue
 
@@ -142,6 +144,6 @@ Status: IMPLEMENTED / TEST ADDED / CI PENDING
 4. Chatbox / Create Your World construction layer is complete and CI-green.
 5. Round 24 SNES import security flaw is fixed in the live function.
 6. Round 25 private memory-note RLS advisor finding is fixed; security advisor is clean.
-7. Round 26 Timeline / Chronology construction layer is implemented; CI validation is pending.
+7. Round 26 Timeline / Chronology construction layer is complete and CI-green.
 8. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
 9. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
