@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/chat_repository.dart';
 import '../core/chat_scope.dart';
 import '../core/chat_search_repository.dart';
+import '../core/supabase_client.dart';
 
 class ChatWorldPage extends StatefulWidget {
   final ChatContext? context;
