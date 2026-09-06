@@ -97,7 +97,7 @@ Status: FIXED / TEST ADDED / VERIFIED / CI BLOCKED
 - Re-ran security inspection: recommendation warnings disappeared; private `darkestworld_memory_notes` remains intentionally internal with no anon/auth grants.
 - Expanded the database security regression suite from 16 to 18 assertions and added suggestion model coverage.
 - Backend migration `add_viewer_recommendation_read_policies` applied successfully.
-- Commits: `478b92cd029745cb2660916ca56fc4331ff09db9`, `fac8e06499b7eeb68dab7f6e5ffd869aea4b9eb1`.
+- Commits: `478b92cd029745cb2660916ca56fc4331ff09db9`, `fac8e06499b7eeb68dab7e5ffd869aea4b9eb1`.
 - CI remains blocked/pending.
 
 ### Round 9 — music category data contract
@@ -156,13 +156,25 @@ Status: VERIFIED / OPEN FOLLOW-UP
 - Important follow-up discovered: `WorldStatusRepository` currently loads full `id` result sets client-side for counts. With 948 storage assets this is still below the common 1000-row API ceiling, but it is a scalability/correctness risk as the collection grows. This is queued for a dedicated count-contract round rather than being changed speculatively here.
 - No artboxes or stored image data were touched.
 
+### Round 14 — exact world-status counting contract
+Status: FIXED / VERIFIED / CI BLOCKED
+
+- Revisited the Round 13 follow-up instead of starting a new unrelated feature.
+- Confirmed `supabase_flutter ^2.8.0` supports exact database counts through `.count(CountOption.exact)`.
+- Replaced all seven client-side full-row count queries in `WorldStatusRepository` with exact database count queries, including filtered SNES and public-URL counts.
+- The dashboard/status layer no longer depends on the API returning every matching row just to calculate a count, removing the row-ceiling correctness risk identified in Round 13.
+- Verified the live asset totals used by the status contract remain 948 total assets, 947 SNES sealed assets, and 862 public assets.
+- No database schema/data migration was required.
+- No artboxes or stored image data were touched.
+- Commit: `e66697e9cec702d9a350619a742ab820ac83a842`.
+- CI remains blocked/pending because no workflow run is exposed for the current repository commit; the implementation was cross-checked against the current Supabase Dart API documentation.
+
 ## Current next queue
 
-1. Replace client-side full-row counting in `WorldStatusRepository` with an exact count contract and regression verification before the asset collection can exceed the API row ceiling.
-2. Audit any remaining core repository/model contracts for malformed/null identity and ordering assumptions.
-3. Recheck auth/session behavior across any remaining authenticated or future write surfaces.
-4. Recheck CI execution/coverage when a workflow run becomes available.
-5. Final foundation stabilization audit before feature expansion.
+1. Audit any remaining core repository/model contracts for malformed/null identity and ordering assumptions.
+2. Recheck auth/session behavior across any remaining authenticated or future write surfaces.
+3. Recheck CI execution/coverage when a workflow run becomes available.
+4. Final foundation stabilization audit before feature expansion.
 
 ## Latest known repository state
 
@@ -185,6 +197,7 @@ Status: VERIFIED / OPEN FOLLOW-UP
 - Chat auth state is lifecycle-aware and the Realtime publication/RLS contract is verified.
 - Suggestions auth state is lifecycle-aware and submission is visibly gated by the live session.
 - Viewer recommendation tables have row-scoped authenticated read policies matching their authenticated read grants.
+- World status counts now use exact database counts rather than loading full id sets.
 - Database security regression test suite contains 18 assertions; pgTAP is not installed, so those assertions are not claimed as executed through pgTAP.
 
 ## Rule for the next `go`
