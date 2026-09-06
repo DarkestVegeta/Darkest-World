@@ -6,6 +6,7 @@ import 'screens/asset_gallery_page.dart';
 import 'screens/basic_section_page.dart';
 import 'screens/chat_world_page.dart';
 import 'screens/content_browser_page.dart';
+import 'screens/create_your_world_page.dart';
 import 'screens/events_world_page.dart';
 import 'screens/marathons_world_page.dart';
 import 'screens/music_world_page.dart';
@@ -229,6 +230,7 @@ class _HomePageState extends State<_HomePage> {
         );
         return;
       case WorldDestination.chat:
+      case WorldDestination.chatbox:
         _openChat(context);
         return;
       case WorldDestination.events:
@@ -258,6 +260,17 @@ class _HomePageState extends State<_HomePage> {
           context,
           MaterialPageRoute(
             builder: (_) => SocialMediaWorldPage(
+              title: section.name,
+              description: section.description,
+            ),
+          ),
+        );
+        return;
+      case WorldDestination.createYourWorld:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CreateYourWorldPage(
               title: section.name,
               description: section.description,
             ),
