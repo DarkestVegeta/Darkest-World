@@ -6,6 +6,7 @@ import 'screens/asset_gallery_page.dart';
 import 'screens/basic_section_page.dart';
 import 'screens/chat_world_page.dart';
 import 'screens/content_browser_page.dart';
+import 'screens/events_world_page.dart';
 import 'screens/music_world_page.dart';
 import 'screens/suggestions_page.dart';
 import 'screens/test_asset_lab_page.dart';
@@ -227,6 +228,17 @@ class _HomePageState extends State<_HomePage> {
         return;
       case WorldDestination.chat:
         _openChat(context);
+        return;
+      case WorldDestination.events:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EventsWorldPage(
+              title: section.name,
+              description: section.description,
+            ),
+          ),
+        );
         return;
       case WorldDestination.basic:
         _openBasic(context, section.name, section.description);
