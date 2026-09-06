@@ -3,37 +3,19 @@ import 'package:darkest_world/core/world_navigation.dart';
 
 void main() {
   test('maps dedicated worlds to their explicit destinations', () {
-    expect(
-      WorldNavigation.destinationForSlug('game-world'),
-      WorldDestination.gameContent,
-    );
-    expect(
-      WorldNavigation.destinationForSlug('cinema-world'),
-      WorldDestination.movieContent,
-    );
-    expect(
-      WorldNavigation.destinationForSlug('series-world'),
-      WorldDestination.seriesContent,
-    );
-    expect(
-      WorldNavigation.destinationForSlug('music-world'),
-      WorldDestination.music,
-    );
-    expect(
-      WorldNavigation.destinationForSlug('chat'),
-      WorldDestination.chat,
-    );
-    expect(
-      WorldNavigation.destinationForSlug('events'),
-      WorldDestination.events,
-    );
+    expect(WorldNavigation.destinationForSlug('game-world'), WorldDestination.gameContent);
+    expect(WorldNavigation.destinationForSlug('cinema-world'), WorldDestination.movieContent);
+    expect(WorldNavigation.destinationForSlug('series-world'), WorldDestination.seriesContent);
+    expect(WorldNavigation.destinationForSlug('music-world'), WorldDestination.music);
+    expect(WorldNavigation.destinationForSlug('chat'), WorldDestination.chat);
+    expect(WorldNavigation.destinationForSlug('events'), WorldDestination.events);
+    expect(WorldNavigation.destinationForSlug('marathons'), WorldDestination.marathons);
   });
 
   test('keeps other current world slugs on the safe foundation page', () {
     const fallbackSlugs = [
       'identity-world',
       'dark-core',
-      'marathons',
       'social-media',
       'chatbox',
       'create-your-world',
@@ -49,9 +31,6 @@ void main() {
   });
 
   test('unknown slugs fail safely to the foundation page', () {
-    expect(
-      WorldNavigation.destinationForSlug('future-world'),
-      WorldDestination.basic,
-    );
+    expect(WorldNavigation.destinationForSlug('future-world'), WorldDestination.basic);
   });
 }
