@@ -7,8 +7,10 @@ import 'screens/basic_section_page.dart';
 import 'screens/chat_world_page.dart';
 import 'screens/content_browser_page.dart';
 import 'screens/create_your_world_page.dart';
+import 'screens/dark_core_page.dart';
 import 'screens/darkest_vegeta_visual_hub_page.dart';
 import 'screens/events_world_page.dart';
+import 'screens/identity_world_page.dart';
 import 'screens/marathons_world_page.dart';
 import 'screens/music_world_page.dart';
 import 'screens/social_media_world_page.dart';
@@ -291,6 +293,28 @@ class _HomePageState extends State<_HomePage> {
         return;
       case WorldDestination.timeline:
         _openTimeline(context, title: section.name, description: section.description);
+        return;
+      case WorldDestination.identityWorld:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => IdentityWorldPage(
+              title: section.name,
+              description: section.description,
+            ),
+          ),
+        );
+        return;
+      case WorldDestination.darkCore:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DarkCorePage(
+              title: section.name,
+              description: section.description,
+            ),
+          ),
+        );
         return;
       case WorldDestination.basic:
         _openBasic(context, section.name, section.description);
