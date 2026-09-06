@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/chat_repository.dart';
 import '../core/chat_scope.dart';
@@ -24,8 +27,10 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
   final _messageController = TextEditingController();
   final _searchController = TextEditingController();
   late ChatScope _scope;
+  StreamSubscription<AuthState>? _authSubscription;
   Stream<List<ChatMessage>>? _messageStream;
   List<ChatSearchResult> _searchResults = [];
+  bool _signedIn = false;
   bool _sending = false;
   bool _searching = false;
   String? _searchError;
@@ -41,11 +46,19 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
     }
     _selectedContentId = widget.context?.contentId;
     _selectedContentTitle = widget.context?.contentTitle;
+    _signedIn = supabase.auth.currentUser != null;
+    _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
+      if (!mounted) return;
+      setState(() {
+        _signedIn = data.session != null;
+      });
+    });
     _resetStream();
   }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _messageController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -138,7 +151,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
   }
 
   Future<void> _sendMessage() async {
-    if (_sending) return;
+    if (_sending || !_signedIn) return;
     final active = _activeContext;
     if (!active.isAvailable) return;
 
@@ -314,9 +327,16 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
-          child: Text(
-            _title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _title,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(_signedIn ? 'Ingelogd · chatten beschikbaar' : 'Niet ingelogd · lezen is beschikbaar'),
+            ],
           ),
         ),
         const Divider(height: 1),
@@ -369,18 +389,21 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
               Expanded(
                 child: TextField(
                   controller: _messageController,
+                  enabled: _signedIn && !_sending,
                   maxLines: 3,
                   minLines: 1,
                   onSubmitted: (_) => _sendMessage(),
-                  decoration: const InputDecoration(
-                    hintText: 'Typ een bericht...',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: _signedIn
+                        ? 'Typ een bericht...'
+                        : 'Log in om een bericht te plaatsen...',
+                    border: const OutlineInputBorder(),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               FilledButton(
-                onPressed: _sending ? null : _sendMessage,
+                onPressed: _signedIn && !_sending ? _sendMessage : null,
                 child: _sending
                     ? const SizedBox(
                         width: 18,
