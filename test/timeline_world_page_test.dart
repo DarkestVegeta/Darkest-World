@@ -13,7 +13,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Timeline / Chronology'), findsOneWidget);
+    expect(find.text('Timeline / Chronology'), findsNWidgets(2));
     expect(find.text('Construction layer'), findsOneWidget);
     expect(find.textContaining('Game → Game → Movie → Series → Game'), findsOneWidget);
     expect(find.textContaining('Timeline data is not populated yet.'), findsOneWidget);
