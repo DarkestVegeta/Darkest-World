@@ -31,13 +31,23 @@ Status: DONE / FIXED / TESTED
 - Preserved the existing SNES/artbox data; no artbox was removed or modified.
 
 ### Round 2 — current main routing audit
-Status: OPEN
+Status: DONE / VERIFIED
 
 - Rechecked the current `main.dart` against the live `darkestworld_sections` rows.
-- Confirmed the 12 database sections are loaded dynamically.
-- Confirmed dedicated routing currently exists for Game World, Cinema World, Series World, Music World, and Chat.
-- Confirmed the remaining sections intentionally fall back to the generic section page for now.
-- No new feature implementation was made in this round; the next work item is to audit the foundation behavior of those fallback worlds and their repositories before adding dedicated features.
+- Confirmed all 12 database sections are loaded dynamically.
+- Confirmed dedicated routing exists for Game World, Cinema World, Series World, Music World, and Chat.
+- Confirmed the remaining sections safely fall back to the generic foundation page for now.
+- Confirmed this fallback is a deliberate foundation state, not a missing route accident.
+
+### Round 3 — explicit world navigation contract
+Status: FIXED / TEST ADDED / CI PENDING
+
+- Added `lib/core/world_navigation.dart` as the single explicit mapping from world slug to destination type.
+- Updated `main.dart` to use that contract instead of embedding the slug-routing contract directly in the page.
+- Added `test/world_navigation_test.dart` covering all 12 current world slugs plus an unknown future slug.
+- This makes accidental routing changes easier to detect and prevents the main page from silently gaining inconsistent routing logic.
+- GitHub commits for this round: `11c4f89ea7176e73c7ea2ebf754d31c066858561`, `a7727c43255966fe166dc07a267785aedfeefb29`, `3d3bc5ef3069134246f30611c660048ccf042bab`.
+- CI lookup for the latest commit currently returned no workflow run, so this round is **not marked CI-passed** yet.
 
 ## Current next queue
 
@@ -56,7 +66,8 @@ Status: OPEN
 - SNES sealed assets currently documented at: 947.
 - Required SNES minimum: 890.
 - Content rows currently: 0, so production franchise navigation has no populated content sequence yet.
-- Existing content-browser boundary tests are present.
+- Content-browser boundary tests are present.
+- Explicit world-navigation contract and tests are now present.
 
 ## Rule for the next `go`
 
