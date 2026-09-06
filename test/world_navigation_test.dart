@@ -1,0 +1,54 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:darkest_world/core/world_navigation.dart';
+
+void main() {
+  test('maps dedicated worlds to their explicit destinations', () {
+    expect(
+      WorldNavigation.destinationForSlug('game-world'),
+      WorldDestination.gameContent,
+    );
+    expect(
+      WorldNavigation.destinationForSlug('cinema-world'),
+      WorldDestination.movieContent,
+    );
+    expect(
+      WorldNavigation.destinationForSlug('series-world'),
+      WorldDestination.seriesContent,
+    );
+    expect(
+      WorldNavigation.destinationForSlug('music-world'),
+      WorldDestination.music,
+    );
+    expect(
+      WorldNavigation.destinationForSlug('chat'),
+      WorldDestination.chat,
+    );
+  });
+
+  test('keeps all other current world slugs on the safe foundation page', () {
+    const fallbackSlugs = [
+      'identity-world',
+      'dark-core',
+      'events',
+      'marathons',
+      'social-media',
+      'chatbox',
+      'create-your-world',
+    ];
+
+    for (final slug in fallbackSlugs) {
+      expect(
+        WorldNavigation.destinationForSlug(slug),
+        WorldDestination.basic,
+        reason: 'Unexpected dedicated routing for $slug',
+      );
+    }
+  });
+
+  test('unknown slugs fail safely to the foundation page', () {
+    expect(
+      WorldNavigation.destinationForSlug('future-world'),
+      WorldDestination.basic,
+    );
+  });
+}
