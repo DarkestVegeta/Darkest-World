@@ -76,11 +76,24 @@ Status: FIXED / TEST ADDED / CI PENDING
 - Commits: `c9d0a28266234be1a67049195779607b02afe90c`, `9a95e364073f4fd3b9f00e333c2e88cb73727e8d`, `1fb5c0a60c2942b8fb693839ba4d31cd5c4e0fbd`.
 - CI lookup for the latest commit `1fb5c0a60c2942b8fb693839ba4d31cd5c4e0fbd` returned no workflow run, so this round is **CI pending**, not CI-passed.
 
+### Round 6 — realtime lifecycle and authenticated chat session behavior
+Status: FIXED / VERIFIED / CI PENDING
+
+- Audited `ChatWorldPage` and `ChatRepository` for Realtime subscription lifecycle and auth-session behavior.
+- Found that the chat UI only checked `currentUser` at send time. The screen itself did not react to login/logout changes, so the input could remain apparently usable after a session transition until a send attempt failed.
+- Added an explicit `onAuthStateChange` subscription in `ChatWorldPage` and cancel it in `dispose`, so the UI now tracks the live auth session and cannot keep an active send control after logout.
+- Chat remains readable while signed out, while message creation is visibly disabled until an authenticated session exists. The repository still keeps the server-side auth/RLS check as the authoritative protection.
+- Verified the live database contract: `darkestworld_chat_messages` is in the `supabase_realtime` publication and has RLS enabled. Its current policies allow authenticated SELECT and authenticated INSERT only when `auth.uid()` matches `author_id`.
+- No Realtime schema objects were modified. This matters because Supabase locked the managed `realtime` schema against direct structural changes in July 2026; the existing publication-based setup is left intact.
+- No artboxes or stored image data were touched.
+- Commit: `b9e3ba7353f0df3c32b1b7b8d42938b013372fd9`.
+- CI lookup for `b9e3ba7353f0df3c32b1b7b8d42938b013372fd9` has not produced a workflow run, so CI remains **pending**, not green.
+
 ## Current next queue
 
-1. Audit realtime lifecycle/disposal and authenticated session behavior.
-2. Audit CI/test coverage gaps and add only foundation tests that prove real behavior.
-3. Re-run security/data integrity checks after any backend change.
+1. Audit CI/test coverage gaps and add only foundation tests that prove real behavior.
+2. Re-run security/data integrity checks after any backend change.
+3. Audit auth/session behavior across the remaining authenticated surfaces (suggestions and any future write surfaces).
 4. Recheck world → browser → detail navigation only if a new change/regression/dependency requires it.
 
 ## Latest known repository state
@@ -96,6 +109,7 @@ Status: FIXED / TEST ADDED / CI PENDING
 - World-section parsing contract now rejects malformed required identity fields and has dedicated tests.
 - Franchise navigation now has a directly testable deterministic contract.
 - Content detail Related and Previous/CURRENT/Next loading are independent.
+- Chat auth state is now lifecycle-aware and the Realtime publication/RLS contract was verified.
 
 ## Rule for the next `go`
 
