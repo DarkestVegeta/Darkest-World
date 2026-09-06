@@ -10,7 +10,7 @@ void main() {
       ),
     );
 
-    expect(find.text('DarkestVegeta Visual Hub'), findsOneWidget);
+    expect(find.text('DarkestVegeta Visual Hub'), findsNWidgets(2));
     expect(find.text('Construction layer'), findsOneWidget);
     expect(find.text('Streaming Room'), findsOneWidget);
     expect(find.text('LEFT'), findsOneWidget);
