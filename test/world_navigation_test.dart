@@ -23,13 +23,16 @@ void main() {
       WorldNavigation.destinationForSlug('chat'),
       WorldDestination.chat,
     );
+    expect(
+      WorldNavigation.destinationForSlug('events'),
+      WorldDestination.events,
+    );
   });
 
-  test('keeps all other current world slugs on the safe foundation page', () {
+  test('keeps other current world slugs on the safe foundation page', () {
     const fallbackSlugs = [
       'identity-world',
       'dark-core',
-      'events',
       'marathons',
       'social-media',
       'chatbox',
