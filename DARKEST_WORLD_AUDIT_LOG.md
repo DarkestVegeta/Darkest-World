@@ -148,6 +148,19 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - GitHub Actions run #186 completed successfully on that head: Flutter analyze and the full Flutter test suite passed.
 - No database migration, rows, artboxes, or stored images were modified.
 
+### Round 28 — Identity World + Dark Core construction layers
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
+
+- Added dedicated `Identity World` and `Dark Core` destinations to the centralized world-navigation layer.
+- Added read-only `IdentityWorldPage` and `DarkCorePage` construction layers using the live section title and description supplied by the existing world-sections flow.
+- Connected both destinations from `main.dart` without changing the existing world-section database rows.
+- Added navigation regression coverage for `identity-world` and `dark-core` plus widget regression coverage for both construction layers.
+- The new pages explicitly remain read-only: Identity World notes that personal collection integration is a future layer, while Dark Core leaves core-system/lore integrations open without modifying existing world data.
+- Initial CI run #193 failed because the new widget test omitted the `flutter/material.dart` import; fixed in commit `d1c1c7dc54fcd1ae0d485d95e5a60cb30b4c1e4b` without changing production behavior.
+- The next CI run #194 failed only because a Dark Core widget assertion used the wrong capitalization; fixed in commit `0cd68c22b2334863195997bd58e5c87f24dceedc`.
+- GitHub Actions run #195 (`34067349425`) completed successfully: Flutter analyze and the full Flutter test suite passed.
+- No database migration, rows, artboxes, or stored images were modified.
+
 ## Current next queue
 
 1. Foundation remains green and security-verified.
@@ -158,6 +171,7 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 6. Round 25 private memory-note RLS advisor finding is fixed; security advisor is clean.
 7. Round 26 Timeline / Chronology construction layer is complete and CI-green.
 8. Round 27 Visual Hub construction layer is complete and CI-green on head `311d771b0b676afe459025c0b0e446d3af964149` (GitHub Actions run #186).
-9. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
-10. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
-11. Do not select DarkestWall as the next feature merely because it is an open concept; its implementation remains intentionally deferred.
+9. Round 28 Identity World + Dark Core construction layers are complete and CI-green on head `0cd68c22b2334863195997bd58e5c87f24dceedc` (GitHub Actions run #195).
+10. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
+11. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
+12. Do not select DarkestWall as the next feature merely because it is an open concept; its implementation remains intentionally deferred.
