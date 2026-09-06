@@ -6,6 +6,7 @@ enum WorldDestination {
   chat,
   events,
   marathons,
+  socialMedia,
   basic,
 }
 
@@ -28,6 +29,8 @@ class WorldNavigation {
         return WorldDestination.events;
       case 'marathons':
         return WorldDestination.marathons;
+      case 'social-media':
+        return WorldDestination.socialMedia;
       default:
         return WorldDestination.basic;
     }
