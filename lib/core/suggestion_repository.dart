@@ -44,6 +44,19 @@ class WorldSuggestion {
     if (status.isEmpty) throw const FormatException('Suggestion is missing a usable status.');
     if (submittedBy.isEmpty) throw const FormatException('Suggestion is missing a usable submitter.');
 
+    final rawSoulPoints = row['soul_points'];
+    final soulPoints = switch (rawSoulPoints) {
+      null => 0,
+      num value => value.toInt(),
+      _ => throw const FormatException('Suggestion has malformed soul points.'),
+    };
+
+    final rawSubmittedAt = row['submitted_at']?.toString().trim() ?? '';
+    final submittedAt = DateTime.tryParse(rawSubmittedAt);
+    if (submittedAt == null) {
+      throw const FormatException('Suggestion has malformed submitted_at.');
+    }
+
     return WorldSuggestion(
       id: id,
       source: source,
@@ -53,10 +66,10 @@ class WorldSuggestion {
       imageUrl: row['image_url']?.toString().trim().isEmpty == true
           ? null
           : row['image_url']?.toString().trim(),
-      soulPoints: (row['soul_points'] as num?)?.toInt() ?? 0,
+      soulPoints: soulPoints,
       status: status,
       submittedBy: submittedBy,
-      submittedAt: DateTime.parse('${row['submitted_at']}'),
+      submittedAt: submittedAt,
     );
   }
 }
@@ -103,18 +116,10 @@ class SuggestionRepository {
       throw ArgumentError.value(title, 'title', 'Titel mag niet leeg zijn.');
     }
     if (externalId.trim().isEmpty) {
-      throw ArgumentError.value(
-        externalId,
-        'externalId',
-        'Externe ID mag niet leeg zijn.',
-      );
+      throw ArgumentError.value(externalId, 'externalId', 'Externe ID mag niet leeg zijn.');
     }
     if (soulPoints < 0) {
-      throw ArgumentError.value(
-        soulPoints,
-        'soulPoints',
-        'Zielenpunten kunnen niet negatief zijn.',
-      );
+      throw ArgumentError.value(soulPoints, 'soulPoints', 'Zielenpunten kunnen niet negatief zijn.');
     }
 
     await supabase.from('darkestworld_suggestions').insert({
