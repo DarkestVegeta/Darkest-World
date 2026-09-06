@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/suggestion_repository.dart';
+import '../core/supabase_client.dart';
 
 class SuggestionsPage extends StatefulWidget {
   const SuggestionsPage({super.key});
@@ -12,11 +16,27 @@ class SuggestionsPage extends StatefulWidget {
 class _SuggestionsPageState extends State<SuggestionsPage> {
   final _repository = SuggestionRepository();
   late Future<List<WorldSuggestion>> _suggestions;
+  StreamSubscription<AuthState>? _authSubscription;
+  bool _signedIn = false;
 
   @override
   void initState() {
     super.initState();
+    _signedIn = supabase.auth.currentUser != null;
     _suggestions = _repository.getMySuggestions();
+    _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
+      if (!mounted) return;
+      setState(() {
+        _signedIn = data.session != null;
+        _suggestions = _repository.getMySuggestions();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   void _reload() {
@@ -24,11 +44,12 @@ class _SuggestionsPageState extends State<SuggestionsPage> {
   }
 
   Future<void> _openSubmitForm() async {
+    if (!_signedIn) return;
     final submitted = await showDialog<bool>(
       context: context,
       builder: (_) => const _SubmitSuggestionDialog(),
     );
-    if (submitted == true) _reload();
+    if (submitted == true && mounted) _reload();
   }
 
   @override
@@ -72,12 +93,14 @@ class _SuggestionsPageState extends State<SuggestionsPage> {
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Zoek games, films of series op IGDB/TMDB. Darkest-World bewaart alleen de minimale gegevens van wat je wilt voorstellen.',
+              Text(
+                _signedIn
+                    ? 'Zoek games, films of series op IGDB/TMDB. Darkest-World bewaart alleen de minimale gegevens van wat je wilt voorstellen.'
+                    : 'Log in om suggesties te bekijken en in te dienen. Darkest-World bewaart alleen de minimale gegevens van wat je wilt voorstellen.',
               ),
               const SizedBox(height: 18),
               FilledButton.icon(
-                onPressed: _openSubmitForm,
+                onPressed: _signedIn ? _openSubmitForm : null,
                 icon: const Icon(Icons.add),
                 label: const Text('Suggestie indienen'),
               ),
