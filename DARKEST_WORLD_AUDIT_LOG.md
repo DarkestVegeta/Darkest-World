@@ -58,22 +58,34 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - No database migration, rows, artboxes, or stored image data were modified.
 
 ### Round 21 — Marathons World implementation
-Status: IMPLEMENTED / TEST ADDED / CI PENDING
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
 
-- Identified `Marathons World` as the next unfinished world: the live `darkestworld_marathons` table exists and currently contains 0 rows, while navigation still used the generic foundation page.
 - Added `WorldMarathon` parsing with required `id`, `title`, and `slug` validation plus safe optional description/status/date handling.
 - Added `MarathonsWorldRepository` backed by `darkestworld_marathons`, ordered by start date, title, and id.
 - Added read-only `MarathonsWorldPage` with loading, error, empty, refresh, status, and schedule display.
 - Routed `marathons` through the dedicated navigation destination and connected it from `main.dart`.
 - Added regression tests for complete rows, optional fields, required fields, and malformed dates.
-- Live security verification: `darkestworld_marathons` has RLS enabled, `anon` SELECT disabled, and authenticated SELECT enabled; no insert privilege is exposed to either role.
-- Current main commit: `1a0c849e95cc1b14174e4172887e270deb83c70c`.
-- CI for this Round 21 commit is triggered/pending confirmation.
+- Live `darkestworld_marathons` contains 0 rows; RLS is enabled, anonymous SELECT is disabled, authenticated SELECT is enabled, and no insert privilege is exposed.
+- GitHub Actions run `34061169196` completed successfully: Flutter analyze and the full Flutter test suite passed.
+- Current verified CI head: `c561c3d4693b7c8b6f43bd949a85ff4f9e0a16ae`.
 - No database migration or data rows were changed. Existing artboxes/images remain untouched.
+
+### Round 22 — Social Media World implementation
+Status: IMPLEMENTED / TEST ADDED / CI PENDING
+
+- Confirmed the existing `Social Media` world section uses slug `social-media` and description `Social media hub and posts`.
+- Confirmed live `darkestworld_social_profiles` contains 8 active profile rows and `darkestworld_social_posts` currently contains 0 rows.
+- Added `SocialProfile` and `SocialPost` models with required-field validation and safe optional text/date handling.
+- Added `SocialMediaWorldRepository` backed by both social tables, filtering active profiles and ordering profiles deterministically; posts are ordered newest-first.
+- Added read-only `SocialMediaWorldPage` with platform profiles, post list, loading/error/empty states, and refresh.
+- Routed `social-media` through a dedicated `WorldDestination.socialMedia` and connected it from `main.dart`.
+- Added regression tests for complete/optional profile data, required fields, post parsing, and malformed publication dates.
+- No database migration or rows were changed. Existing artboxes/images remain untouched.
 
 ## Current next queue
 
 1. Foundation remains green and security-verified.
-2. Marathons World is technically wired; finish CI verification and then move to the next unfinished world.
-3. Next likely queue: Social Media, then Chatbox / Create Your World, while preserving the existing data model and avoiding unnecessary database writes.
-4. Keep existing artboxes/images/data untouched during all feature work.
+2. Marathons World is complete and CI-green.
+3. Social Media World is implemented; finish CI verification before moving on.
+4. Next likely queue after green CI: Chatbox / Create Your World, while preserving the existing data model and avoiding unnecessary database writes.
+5. Keep existing artboxes/images/data untouched during all feature work.
