@@ -28,16 +28,34 @@ class WorldSuggestion {
   });
 
   factory WorldSuggestion.fromMap(Map<String, dynamic> row) {
+    final id = '${row['id'] ?? ''}'.trim();
+    final source = '${row['source'] ?? ''}'.trim();
+    final contentType = '${row['content_type'] ?? ''}'.trim();
+    final externalId = '${row['external_id'] ?? ''}'.trim();
+    final title = '${row['title'] ?? ''}'.trim();
+    final status = '${row['status'] ?? ''}'.trim();
+    final submittedBy = '${row['submitted_by'] ?? ''}'.trim();
+
+    if (id.isEmpty) throw const FormatException('Suggestion is missing a usable id.');
+    if (source.isEmpty) throw const FormatException('Suggestion is missing a usable source.');
+    if (contentType.isEmpty) throw const FormatException('Suggestion is missing a usable content type.');
+    if (externalId.isEmpty) throw const FormatException('Suggestion is missing a usable external id.');
+    if (title.isEmpty) throw const FormatException('Suggestion is missing a usable title.');
+    if (status.isEmpty) throw const FormatException('Suggestion is missing a usable status.');
+    if (submittedBy.isEmpty) throw const FormatException('Suggestion is missing a usable submitter.');
+
     return WorldSuggestion(
-      id: '${row['id']}',
-      source: '${row['source']}',
-      contentType: '${row['content_type']}',
-      externalId: '${row['external_id']}',
-      title: '${row['title']}',
-      imageUrl: row['image_url']?.toString(),
+      id: id,
+      source: source,
+      contentType: contentType,
+      externalId: externalId,
+      title: title,
+      imageUrl: row['image_url']?.toString().trim().isEmpty == true
+          ? null
+          : row['image_url']?.toString().trim(),
       soulPoints: (row['soul_points'] as num?)?.toInt() ?? 0,
-      status: '${row['status']}',
-      submittedBy: '${row['submitted_by']}',
+      status: status,
+      submittedBy: submittedBy,
       submittedAt: DateTime.parse('${row['submitted_at']}'),
     );
   }
