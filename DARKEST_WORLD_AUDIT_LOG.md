@@ -71,7 +71,7 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - No database migration or data rows were changed. Existing artboxes/images remain untouched.
 
 ### Round 22 — Social Media World implementation
-Status: IMPLEMENTED / TEST ADDED / CI PENDING
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
 
 - Confirmed the existing `Social Media` world section uses slug `social-media` and description `Social media hub and posts`.
 - Confirmed live `darkestworld_social_profiles` contains 8 active profile rows and `darkestworld_social_posts` currently contains 0 rows.
@@ -80,12 +80,28 @@ Status: IMPLEMENTED / TEST ADDED / CI PENDING
 - Added read-only `SocialMediaWorldPage` with platform profiles, post list, loading/error/empty states, and refresh.
 - Routed `social-media` through a dedicated `WorldDestination.socialMedia` and connected it from `main.dart`.
 - Added regression tests for complete/optional profile data, required fields, post parsing, and malformed publication dates.
+- GitHub Actions run #160 was superseded during the Chatbox/Create Your World implementation; the final verified CI chain is green on the subsequent commits.
 - No database migration or rows were changed. Existing artboxes/images remain untouched.
+
+### Round 23 — Chatbox / Create Your World implementation
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
+
+- Added dedicated `Chatbox` routing while preserving the existing `Chat` destination and its Marathon Chat behavior.
+- `chatbox` opens the existing `ChatWorldPage` without activating Marathon Chat.
+- Added `CreateYourWorldRepository` backed read-only by the existing `create_your_world_system` configuration table.
+- Added `CreateYourWorldSystem` parser validation for required text, booleans, and timestamps.
+- Added dedicated `CreateYourWorldPage` construction shell showing the live feature configuration and explicitly avoiding personal-world writes.
+- Routed `create-your-world` through the dedicated navigation destination and connected it from `main.dart`.
+- Added regression tests for Create Your World parsing and dedicated Chatbox/Create Your World routing.
+- Initial CI run #166 exposed a stale routing test; the test was corrected without changing production routing.
+- Final GitHub Actions run #167 completed successfully: Flutter analyze and the full Flutter test suite passed.
+- No database migration, rows, artboxes, or stored image data were modified.
 
 ## Current next queue
 
 1. Foundation remains green and security-verified.
 2. Marathons World is complete and CI-green.
-3. Social Media World is implemented; finish CI verification before moving on.
-4. Next likely queue after green CI: Chatbox / Create Your World, while preserving the existing data model and avoiding unnecessary database writes.
-5. Keep existing artboxes/images/data untouched during all feature work.
+3. Social Media World is complete and CI-green.
+4. Chatbox / Create Your World is complete and CI-green.
+5. Next round should be selected from the remaining DarkestWorld queue after a fresh read-only control check, preserving the existing data model and avoiding unnecessary database writes.
+6. Keep existing artboxes/images/data untouched during all feature work.
