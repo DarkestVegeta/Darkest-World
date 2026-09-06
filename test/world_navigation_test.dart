@@ -13,6 +13,7 @@ void main() {
     expect(WorldNavigation.destinationForSlug('marathons'), WorldDestination.marathons);
     expect(WorldNavigation.destinationForSlug('social-media'), WorldDestination.socialMedia);
     expect(WorldNavigation.destinationForSlug('create-your-world'), WorldDestination.createYourWorld);
+    expect(WorldNavigation.destinationForSlug('timeline'), WorldDestination.timeline);
   });
 
   test('keeps unrelated current world slugs on the safe foundation page', () {
