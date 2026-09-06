@@ -4,6 +4,7 @@ enum WorldDestination {
   seriesContent,
   music,
   chat,
+  events,
   basic,
 }
 
@@ -22,6 +23,8 @@ class WorldNavigation {
         return WorldDestination.music;
       case 'chat':
         return WorldDestination.chat;
+      case 'events':
+        return WorldDestination.events;
       default:
         return WorldDestination.basic;
     }
