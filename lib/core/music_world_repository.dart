@@ -16,11 +16,25 @@ class MusicWorldCategory {
   });
 
   factory MusicWorldCategory.fromMap(Map<String, dynamic> row) {
+    final id = '${row['id'] ?? ''}'.trim();
+    final name = '${row['name'] ?? ''}'.trim();
+    final slug = '${row['slug'] ?? ''}'.trim();
+
+    if (id.isEmpty) {
+      throw const FormatException('Music category is missing a usable id.');
+    }
+    if (name.isEmpty) {
+      throw const FormatException('Music category is missing a usable name.');
+    }
+    if (slug.isEmpty) {
+      throw const FormatException('Music category is missing a usable slug.');
+    }
+
     return MusicWorldCategory(
-      id: '${row['id']}',
-      name: '${row['name']}',
-      slug: '${row['slug']}',
-      description: '${row['description'] ?? ''}',
+      id: id,
+      name: name,
+      slug: slug,
+      description: '${row['description'] ?? ''}'.trim(),
       sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
     );
   }
