@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/world_navigation.dart';
 import 'core/world_sections_repository.dart';
 import 'screens/asset_gallery_page.dart';
 import 'screens/basic_section_page.dart';
@@ -203,17 +204,17 @@ class _HomePageState extends State<_HomePage> {
   }
 
   void _openSection(BuildContext context, WorldSection section) {
-    switch (section.slug) {
-      case 'game-world':
+    switch (WorldNavigation.destinationForSlug(section.slug)) {
+      case WorldDestination.gameContent:
         _openContent(context, section.name, 'game');
         return;
-      case 'cinema-world':
+      case WorldDestination.movieContent:
         _openContent(context, section.name, 'movie');
         return;
-      case 'series-world':
+      case WorldDestination.seriesContent:
         _openContent(context, section.name, 'series');
         return;
-      case 'music-world':
+      case WorldDestination.music:
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -224,11 +225,12 @@ class _HomePageState extends State<_HomePage> {
           ),
         );
         return;
-      case 'chat':
+      case WorldDestination.chat:
         _openChat(context);
         return;
-      default:
+      case WorldDestination.basic:
         _openBasic(context, section.name, section.description);
+        return;
     }
   }
 
