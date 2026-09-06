@@ -117,12 +117,24 @@ Status: FIXED / TEST ADDED / VERIFIED / CI BLOCKED
 - GitHub commits: `478b92cd029745cb2660916ca56fc4331ff09db9` (suggestion model test), `fac8e06499b7eeb68dab7f6e5ffd869aea4b9eb1` (database security test update).
 - CI remains **blocked/pending** because GitHub still exposes no workflow run for the current repository commits; no false green status is claimed.
 
+### Round 9 — music category data contract
+Status: FIXED / TEST ADDED / CI BLOCKED
+
+- Started from Current next queue #1 and audited the remaining core data contracts without repeating completed navigation/auth work.
+- Inspected `MusicWorldRepository` and the live `music_world_categories` schema. The database treats `id`, `name`, and `slug` as required identity fields, but the Flutter model previously interpolated missing/null values into strings and accepted blank identity fields as valid.
+- Hardened `MusicWorldCategory.fromMap`: `id`, `name`, and `slug` are now trimmed and must be nonblank; optional `description` is normalized; numeric `sort_order` behavior is preserved.
+- Added `test/music_world_repository_test.dart` covering normalization, nullable description/default sort order, and rejection of missing/blank required identity fields.
+- No database schema/data migration was required because this was a client-side contract hardening change.
+- Existing artboxes and stored image data were not touched.
+- GitHub commits: `977cff35a5bc82afc593a5fa40b34312ae7c80f5` (model hardening), `9baa8902bf88f70f025b37b81e8b794058de6bac` (tests).
+- CI remains **blocked/pending**: no workflow run is available for these commits, so tests are not claimed as CI-passed.
+
 ## Current next queue
 
-1. Audit the remaining foundation data contracts for concrete correctness gaps while CI execution is unavailable.
+1. Audit the next remaining foundation data contract for a concrete correctness gap.
 2. Recheck auth/session behavior across any remaining authenticated or future write surfaces.
 3. Recheck CI execution/coverage when a workflow run becomes available.
-4. Recheck world → browser → detail navigation only if a new change/regression/dependency requires it.
+4. Final foundation stabilization audit before feature expansion.
 
 ## Latest known repository state
 
@@ -135,10 +147,11 @@ Status: FIXED / TEST ADDED / VERIFIED / CI BLOCKED
 - Content-browser boundary tests are present.
 - Explicit world-navigation contract and tests are present.
 - World-section parsing contract now rejects malformed required identity fields and has dedicated tests.
+- Music category parsing contract now rejects malformed required identity fields and has dedicated tests.
 - Franchise navigation now has a directly testable deterministic contract.
 - Content detail Related and Previous/CURRENT/Next loading are independent.
 - Chat auth state is lifecycle-aware and the Realtime publication/RLS contract was verified.
-- Suggestions auth state is now lifecycle-aware and submission is visibly gated by the live session.
+- Suggestions auth state is lifecycle-aware and submission is visibly gated by the live session.
 - Viewer recommendation tables now have row-scoped authenticated read policies matching their authenticated read grants.
 - Database security regression test suite now contains 18 assertions, although pgTAP is not installed in the project and therefore these assertions are not claimed as executed through pgTAP.
 
