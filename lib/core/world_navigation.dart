@@ -10,6 +10,8 @@ enum WorldDestination {
   socialMedia,
   createYourWorld,
   timeline,
+  identityWorld,
+  darkCore,
   basic,
 }
 
@@ -40,6 +42,10 @@ class WorldNavigation {
         return WorldDestination.createYourWorld;
       case 'timeline':
         return WorldDestination.timeline;
+      case 'identity-world':
+        return WorldDestination.identityWorld;
+      case 'dark-core':
+        return WorldDestination.darkCore;
       default:
         return WorldDestination.basic;
     }
