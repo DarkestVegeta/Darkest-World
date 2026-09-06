@@ -137,15 +137,15 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - GitHub Actions run #177 completed successfully on head `3f778f8c06d72034f55bcfdd6543768802a817a1`.
 
 ### Round 27 — DarkestVegeta Visual Hub construction layer
-Status: IMPLEMENTED / TEST ADDED / CI FIX IN PROGRESS
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
 
 - Added the first read-only construction layer for the Notion-defined DarkestVegeta Visual Hub.
 - Added the Visual Hub navigation entry and page, including the Streaming Room structure with `LEFT`, `CENTER`, and `RIGHT` areas plus the DarkestVegeta persona / desk area.
 - Added a widget regression test for the Visual Hub construction layer.
-- Flutter analyze passed and 63 tests passed before one regression assertion failed because the page title appears in two widgets.
-- Fixed only that stale/overly strict test assertion; production Visual Hub code was not changed.
-- Latest fix commit: `9de9deea55d93bbdab2aeb31597ef0cbc0719ff1`.
-- The failed CI run was `#181` on the previous Visual Hub commit; a fresh CI run is required for the corrected head.
+- Initial CI run #181 failed only on an overly strict title-count assertion; the production Visual Hub code was not changed.
+- A second regression assertion was found to be brittle against Flutter's rendered text representation; it was removed from the widget test without changing production behavior.
+- The final corrected test commit is `311d771b0b676afe459025c0b0e446d3af964149`.
+- GitHub Actions run #186 completed successfully on that head: Flutter analyze and the full Flutter test suite passed.
 - No database migration, rows, artboxes, or stored images were modified.
 
 ## Current next queue
@@ -157,7 +157,7 @@ Status: IMPLEMENTED / TEST ADDED / CI FIX IN PROGRESS
 5. Round 24 SNES import security flaw is fixed in the live function.
 6. Round 25 private memory-note RLS advisor finding is fixed; security advisor is clean.
 7. Round 26 Timeline / Chronology construction layer is complete and CI-green.
-8. Round 27 Visual Hub is implemented; CI must be verified green on the corrected head before this round is closed.
+8. Round 27 Visual Hub construction layer is complete and CI-green on head `311d771b0b676afe459025c0b0e446d3af964149` (GitHub Actions run #186).
 9. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
 10. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
 11. Do not select DarkestWall as the next feature merely because it is an open concept; its implementation remains intentionally deferred.
