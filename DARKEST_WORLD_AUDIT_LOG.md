@@ -67,7 +67,7 @@ Status: FIXED / TEST ADDED / CI PENDING
 
 - Audited `content_browser_page.dart`, `content_detail_page.dart`, and `content_repository.dart` as one navigation chain.
 - Confirmed browser cards hand the selected content row directly into the detail page, and detail Previous/CURRENT/Next and Related entries reopen the same detail contract.
-- Found a correctness coupling in the detail page: Related and Previous/CURRENT/Next were loaded through one `Future.wait`, so a failure in either query caused both UI sections to enter the error state even when the other query succeeded.
+- Found a correctness coupling in the detail page: Related and franchise-navigation were loaded through one `Future.wait`, so a failure in either query caused both UI sections to enter the error state even when the other query succeeded.
 - Split Related and franchise-navigation loading into independent operations with independent loading/error state. A failure in one navigation contract no longer hides a successful result from the other.
 - Hardened franchise navigation around a trimmed current id and extracted the deterministic ordering/selection logic into `ContentRepository.buildFranchiseNavigation` so the core Previous/CURRENT/Next contract can be tested without requiring a live database.
 - Preserved the intended ordering: timeline wins when it identifies the current item; otherwise release date → title → id is the deterministic fallback. If a populated timeline does not contain the current item, fallback ordering remains available.
@@ -84,16 +84,29 @@ Status: FIXED / VERIFIED / CI PENDING
 - Added an explicit `onAuthStateChange` subscription in `ChatWorldPage` and cancel it in `dispose`, so the UI now tracks the live auth session and cannot keep an active send control after logout.
 - Chat remains readable while signed out, while message creation is visibly disabled until an authenticated session exists. The repository still keeps the server-side auth/RLS check as the authoritative protection.
 - Verified the live database contract: `darkestworld_chat_messages` is in the `supabase_realtime` publication and has RLS enabled. Its current policies allow authenticated SELECT and authenticated INSERT only when `auth.uid()` matches `author_id`.
-- No Realtime schema objects were modified. This matters because Supabase locked the managed `realtime` schema against direct structural changes in July 2026; the existing publication-based setup is left intact.
+- No Realtime schema objects were modified.
 - No artboxes or stored image data were touched.
 - Commit: `b9e3ba7353f0df3c32b1b7b8d42938b013372fd9`.
 - CI lookup for `b9e3ba7353f0df3c32b1b7b8d42938b013372fd9` has not produced a workflow run, so CI remains **pending**, not green.
 
+### Round 7 — authenticated Suggestions session behavior + CI contract audit
+Status: FIXED / VERIFIED / CI BLOCKED
+
+- Audited `SuggestionsPage` and `SuggestionRepository` as the remaining existing authenticated write surface.
+- Found the same session-state gap that had existed in Chat: SuggestionsPage only evaluated authentication indirectly through repository calls. The screen did not react immediately to login/logout transitions, and the submit button could remain available until a request failed.
+- Added an explicit `onAuthStateChange` subscription to `SuggestionsPage` and cancel it in `dispose`.
+- Suggestions now reload when the authentication session changes, and the submit action is disabled while signed out. The repository remains authoritative and still rejects submission without an authenticated user.
+- Audited the CI workflow: it already runs `flutter analyze` and `flutter test` on pushes to `main` and pull requests. No repository-side mechanism exposed by the current connector can trigger a workflow manually, and commit-specific workflow lookups continue to return no runs. Therefore CI is **blocked/pending**, not passed.
+- Existing foundation tests are present for world navigation, world-section parsing, franchise navigation, chat scope, content-browser boundaries, and the living-world widget. No speculative tests were added solely to inflate coverage.
+- No backend schema change was made in this round, so no new security migration was introduced.
+- No artboxes or stored image data were touched.
+- Commit: `75196ca1614b3b077a9c0c448ed833b598905f54`.
+
 ## Current next queue
 
-1. Audit CI/test coverage gaps and add only foundation tests that prove real behavior.
-2. Re-run security/data integrity checks after any backend change.
-3. Audit auth/session behavior across the remaining authenticated surfaces (suggestions and any future write surfaces).
+1. Re-run security/data integrity checks after any backend change; otherwise audit the remaining foundation data contracts for concrete correctness gaps.
+2. Inspect the remaining authenticated/future write surfaces for the same server-authoritative session pattern.
+3. Recheck CI execution/coverage when a workflow run becomes available.
 4. Recheck world → browser → detail navigation only if a new change/regression/dependency requires it.
 
 ## Latest known repository state
@@ -109,7 +122,8 @@ Status: FIXED / VERIFIED / CI PENDING
 - World-section parsing contract now rejects malformed required identity fields and has dedicated tests.
 - Franchise navigation now has a directly testable deterministic contract.
 - Content detail Related and Previous/CURRENT/Next loading are independent.
-- Chat auth state is now lifecycle-aware and the Realtime publication/RLS contract was verified.
+- Chat auth state is lifecycle-aware and the Realtime publication/RLS contract was verified.
+- Suggestions auth state is now lifecycle-aware and submission is visibly gated by the live session.
 
 ## Rule for the next `go`
 
