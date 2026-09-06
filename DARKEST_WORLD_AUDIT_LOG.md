@@ -136,6 +136,18 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - The initial widget regression assertion was corrected to account for the page title and heading both using `Timeline / Chronology`.
 - GitHub Actions run #177 completed successfully on head `3f778f8c06d72034f55bcfdd6543768802a817a1`.
 
+### Round 27 — DarkestVegeta Visual Hub construction layer
+Status: IMPLEMENTED / TEST ADDED / CI FIX IN PROGRESS
+
+- Added the first read-only construction layer for the Notion-defined DarkestVegeta Visual Hub.
+- Added the Visual Hub navigation entry and page, including the Streaming Room structure with `LEFT`, `CENTER`, and `RIGHT` areas plus the DarkestVegeta persona / desk area.
+- Added a widget regression test for the Visual Hub construction layer.
+- Flutter analyze passed and 63 tests passed before one regression assertion failed because the page title appears in two widgets.
+- Fixed only that stale/overly strict test assertion; production Visual Hub code was not changed.
+- Latest fix commit: `9de9deea55d93bbdab2aeb31597ef0cbc0719ff1`.
+- The failed CI run was `#181` on the previous Visual Hub commit; a fresh CI run is required for the corrected head.
+- No database migration, rows, artboxes, or stored images were modified.
+
 ## Current next queue
 
 1. Foundation remains green and security-verified.
@@ -145,5 +157,7 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 5. Round 24 SNES import security flaw is fixed in the live function.
 6. Round 25 private memory-note RLS advisor finding is fixed; security advisor is clean.
 7. Round 26 Timeline / Chronology construction layer is complete and CI-green.
-8. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
-9. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
+8. Round 27 Visual Hub is implemented; CI must be verified green on the corrected head before this round is closed.
+9. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
+10. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
+11. Do not select DarkestWall as the next feature merely because it is an open concept; its implementation remains intentionally deferred.
