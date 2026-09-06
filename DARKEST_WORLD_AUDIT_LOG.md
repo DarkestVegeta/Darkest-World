@@ -111,15 +111,28 @@ Status: FIXED / LIVE FUNCTION UPDATED / NO DATA CHANGED
 - A live Dropbox import was intentionally NOT triggered during verification, because doing so could delete source files from Dropbox; the existing 5-minute Cron configuration was left untouched.
 
 ### Round 25 — private memory notes RLS hardening
-Status: FIXED / SECURITY ADVISOR CLEAN
+Status: FIXED / SECURITY ADVISOR CLEAN / CI GREEN
 
 - Fresh read-only control check confirmed Round 24 CI run #169 completed successfully: Flutter analyze and the full Flutter test suite passed.
 - Rechecked the live Supabase schema and confirmed `private.darkestworld_memory_notes` is intentionally not a client-facing data surface.
 - Supabase security advisor reported one informational `rls_enabled_no_policy` finding because the private table had RLS enabled but no explicit policy.
 - Added an explicit restrictive deny-all RLS policy for direct access to `private.darkestworld_memory_notes`; privileged backend/service access remains governed separately.
-- Re-ran the Supabase security advisor and confirmed there are now no security lints.
+- Supabase security advisor was confirmed clean after the change.
 - No existing rows were changed, and no artboxes or stored images were touched.
 - Migration: `20260906220901_lock_down_private_memory_notes_policy`.
+- GitHub Actions run #170 completed successfully: Flutter analyze and the full Flutter test suite passed.
+
+### Round 26 — Timeline / Chronology construction layer
+Status: IMPLEMENTED / TEST ADDED / CI PENDING
+
+- Fresh control check was completed before implementation; the Round 25 CI chain was green and the existing architecture was preserved.
+- Added a dedicated `Timeline` navigation destination without changing the existing world-section database rows.
+- Added `TimelineWorldPage` as the first construction layer for the Notion-defined Timeline / Chronology concept.
+- The page documents cross-media chronology such as `Game → Game → Movie → Series → Game`, supporting Games, Movies, Series, franchise timelines and related content.
+- Added a navigation regression test and a widget regression test.
+- The page is explicitly read-only and does not create or modify timeline data.
+- Supabase live SQL access was unavailable during this round, so no database migration or timeline schema change was attempted; this avoids guessing the existing timeline table contract.
+- No database rows, artboxes, or stored images were changed.
 
 ## Current next queue
 
@@ -129,5 +142,6 @@ Status: FIXED / SECURITY ADVISOR CLEAN
 4. Chatbox / Create Your World construction layer is complete and CI-green.
 5. Round 24 SNES import security flaw is fixed in the live function.
 6. Round 25 private memory-note RLS advisor finding is fixed; security advisor is clean.
-7. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
-8. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
+7. Round 26 Timeline / Chronology construction layer is implemented; CI validation is pending.
+8. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
+9. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
