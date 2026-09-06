@@ -9,6 +9,7 @@ import 'screens/content_browser_page.dart';
 import 'screens/events_world_page.dart';
 import 'screens/marathons_world_page.dart';
 import 'screens/music_world_page.dart';
+import 'screens/social_media_world_page.dart';
 import 'screens/suggestions_page.dart';
 import 'screens/test_asset_lab_page.dart';
 import 'screens/world_status_page.dart';
@@ -246,6 +247,17 @@ class _HomePageState extends State<_HomePage> {
           context,
           MaterialPageRoute(
             builder: (_) => MarathonsWorldPage(
+              title: section.name,
+              description: section.description,
+            ),
+          ),
+        );
+        return;
+      case WorldDestination.socialMedia:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SocialMediaWorldPage(
               title: section.name,
               description: section.description,
             ),
