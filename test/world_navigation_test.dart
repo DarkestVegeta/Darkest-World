@@ -10,13 +10,13 @@ void main() {
     expect(WorldNavigation.destinationForSlug('chat'), WorldDestination.chat);
     expect(WorldNavigation.destinationForSlug('events'), WorldDestination.events);
     expect(WorldNavigation.destinationForSlug('marathons'), WorldDestination.marathons);
+    expect(WorldNavigation.destinationForSlug('social-media'), WorldDestination.socialMedia);
   });
 
   test('keeps other current world slugs on the safe foundation page', () {
     const fallbackSlugs = [
       'identity-world',
       'dark-core',
-      'social-media',
       'chatbox',
       'create-your-world',
     ];
