@@ -31,6 +31,6 @@ void main() {
 
     expect(find.text('Dark Core'), findsNWidgets(2));
     expect(find.text('Core'), findsOneWidget);
-    expect(find.textContaining('core systems and lore'), findsOneWidget);
+    expect(find.textContaining('Core systems and lore'), findsOneWidget);
   });
 }
