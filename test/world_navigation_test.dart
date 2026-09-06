@@ -8,17 +8,17 @@ void main() {
     expect(WorldNavigation.destinationForSlug('series-world'), WorldDestination.seriesContent);
     expect(WorldNavigation.destinationForSlug('music-world'), WorldDestination.music);
     expect(WorldNavigation.destinationForSlug('chat'), WorldDestination.chat);
+    expect(WorldNavigation.destinationForSlug('chatbox'), WorldDestination.chatbox);
     expect(WorldNavigation.destinationForSlug('events'), WorldDestination.events);
     expect(WorldNavigation.destinationForSlug('marathons'), WorldDestination.marathons);
     expect(WorldNavigation.destinationForSlug('social-media'), WorldDestination.socialMedia);
+    expect(WorldNavigation.destinationForSlug('create-your-world'), WorldDestination.createYourWorld);
   });
 
-  test('keeps other current world slugs on the safe foundation page', () {
+  test('keeps unrelated current world slugs on the safe foundation page', () {
     const fallbackSlugs = [
       'identity-world',
       'dark-core',
-      'chatbox',
-      'create-your-world',
     ];
 
     for (final slug in fallbackSlugs) {
