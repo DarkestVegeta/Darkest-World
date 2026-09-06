@@ -1,6 +1,6 @@
 begin;
 
-select plan(16);
+select plan(18);
 
 -- Critical exposed tables must have RLS enabled.
 select results_eq(
@@ -67,7 +67,7 @@ select results_eq(
   'anon has no suggestion grants'
 );
 
--- Internal recommendation tables are not client-accessible.
+-- Internal recommendation tables are authenticated read-only and row-scoped to the viewer.
 select results_eq(
   $$select count(*)::bigint from information_schema.role_table_grants where table_schema='public' and table_name in ('darkestworld_viewer_recommendations','darkestworld_viewer_recommendation_ranking') and grantee='anon'$$,
   $$values (0::bigint)$$,
@@ -78,6 +78,18 @@ select results_eq(
   $$select count(*)::bigint from information_schema.role_table_grants where table_schema='public' and table_name in ('darkestworld_viewer_recommendations','darkestworld_viewer_recommendation_ranking') and grantee='authenticated' and privilege_type <> 'SELECT'$$,
   $$values (0::bigint)$$,
   'authenticated recommendations are read-only'
+);
+
+select results_eq(
+  $$select count(*)::bigint from pg_policies where schemaname='public' and tablename='darkestworld_viewer_recommendations' and policyname='authenticated users can read own viewer recommendations' and roles='{authenticated}' and cmd='SELECT' and qual like '%auth.uid()%viewer_id%'$$,
+  $$values (1::bigint)$$,
+  'recommendations have an authenticated own-viewer read policy'
+);
+
+select results_eq(
+  $$select count(*)::bigint from pg_policies where schemaname='public' and tablename='darkestworld_viewer_recommendation_ranking' and policyname='authenticated users can read own viewer recommendation ranking' and roles='{authenticated}' and cmd='SELECT' and qual like '%auth.uid()%viewer_id%'$$,
+  $$values (1::bigint)$$,
+  'recommendation ranking has an authenticated own-viewer read policy'
 );
 
 -- Scoped chat schema invariants exist.
