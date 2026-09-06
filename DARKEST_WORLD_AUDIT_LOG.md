@@ -54,7 +54,7 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - Added read-only `EventsWorldPage` with loading, error, empty, refresh, event metadata, dates, and location.
 - Added repository regression tests.
 - Live `darkestworld_events` currently contains 0 rows.
-- GitHub Actions run #146 completed successfully: Flutter analyze and full Flutter tests passed.
+- GitHub Actions run #146 completed successfully: `flutter analyze` and full Flutter tests passed.
 - No database migration, rows, artboxes, or stored image data were modified.
 
 ### Round 21 — Marathons World implementation
@@ -97,11 +97,25 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - Final GitHub Actions run #167 completed successfully: Flutter analyze and the full Flutter test suite passed.
 - No database migration, rows, artboxes, or stored image data were modified.
 
+### Round 24 — SNES import security fallback removal
+Status: FIXED / LIVE FUNCTION UPDATED / NO DATA CHANGED
+
+- Found a real security flaw during the A-to-Z audit in `snes-sealed-import`: the live Edge Function contained a hardcoded fallback value for `SNES_IMPORT_TOKEN`.
+- Removed the hardcoded fallback from the live function.
+- The function now refuses every request if `SNES_IMPORT_TOKEN` is absent and otherwise requires an exact `x-cron-token` match.
+- Preserved the existing Dropbox OAuth, Dropbox file traversal, Supabase Storage upload, `storage_assets` recording, duplicate handling, and Dropbox deletion behavior.
+- Kept `verify_jwt=false` because the function uses its existing custom internal authentication header.
+- Deployed live `snes-sealed-import` version 13 successfully.
+- Re-read the deployed function and confirmed the hardcoded token fallback is gone.
+- No database rows, migrations, artboxes, or stored images were modified.
+- A live Dropbox import was intentionally NOT triggered during verification, because doing so could delete source files from Dropbox; the existing 5-minute Cron configuration was left untouched.
+
 ## Current next queue
 
 1. Foundation remains green and security-verified.
 2. Marathons World is complete and CI-green.
 3. Social Media World is complete and CI-green.
-4. Chatbox / Create Your World is complete and CI-green.
-5. Next round should be selected from the remaining DarkestWorld queue after a fresh read-only control check, preserving the existing data model and avoiding unnecessary database writes.
-6. Keep existing artboxes/images/data untouched during all feature work.
+4. Chatbox / Create Your World construction layer is complete and CI-green.
+5. Round 24 security flaw is fixed in the live SNES import function.
+6. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
+7. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
