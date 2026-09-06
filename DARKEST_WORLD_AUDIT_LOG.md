@@ -129,6 +129,18 @@ Status: FIXED / TEST ADDED / CI BLOCKED
 - GitHub commits: `977cff35a5bc82afc593a5fa40b34312ae7c80f5` (model hardening), `9baa8902bf88f70f025b37b81e8b794058de6bac` (tests).
 - CI remains **blocked/pending**: no workflow run is available for these commits, so tests are not claimed as CI-passed.
 
+### Round 10 — chat search query correctness
+Status: FIXED / TEST ADDED / CI BLOCKED
+
+- Audited `ChatSearchRepository` as the next remaining foundation data/query contract.
+- Found that user search text was passed into ILIKE patterns without escaping `%`, `_`, and `\\`, so those characters were interpreted as SQL LIKE wildcards instead of literal search text. This could return unrelated results for queries containing those characters.
+- Added `ChatSearchRepository.escapeIlikeQuery` and applied it to both content search and chat-message search while preserving the existing surrounding `%` substring matching behavior.
+- Added `test/chat_search_repository_test.dart` covering wildcard escaping and ordinary query preservation.
+- Verified the live chat context constraint before changing search behavior: marathon messages are allowed with `marathon_id` set or null, while music messages require both context IDs null; therefore no database change was necessary for this round.
+- No artboxes or stored image data were touched.
+- GitHub commits: `989b26240992cca70a30e94f4e307ea73e161392` (search hardening), `d43c16d6c7cc7d05c6a5f05970961bf437695e7a` (tests).
+- CI remains **blocked/pending**: no workflow run is available for these commits, so tests are not claimed as CI-passed.
+
 ## Current next queue
 
 1. Audit the next remaining foundation data contract for a concrete correctness gap.
@@ -148,6 +160,7 @@ Status: FIXED / TEST ADDED / CI BLOCKED
 - Explicit world-navigation contract and tests are present.
 - World-section parsing contract now rejects malformed required identity fields and has dedicated tests.
 - Music category parsing contract now rejects malformed required identity fields and has dedicated tests.
+- Chat search now treats ILIKE wildcard characters in user input literally.
 - Franchise navigation now has a directly testable deterministic contract.
 - Content detail Related and Previous/CURRENT/Next loading are independent.
 - Chat auth state is lifecycle-aware and the Realtime publication/RLS contract was verified.
