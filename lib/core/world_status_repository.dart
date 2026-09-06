@@ -1,3 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'supabase_client.dart';
 
 class WorldStatus {
@@ -21,25 +23,34 @@ class WorldStatus {
 }
 
 class WorldStatusRepository {
+  Future<int> _count(PostgrestFilterBuilder<List<Map<String, dynamic>>> query) async {
+    final response = await query.select('id').count(CountOption.exact);
+    return response.count ?? 0;
+  }
+
   Future<WorldStatus> load() async {
-    final results = await Future.wait([
-      supabase.from('darkestworld_sections').select('id'),
-      supabase.from('storage_assets').select('id'),
-      supabase.from('storage_assets').select('id').eq('asset_type', 'snes_sealed'),
-      supabase.from('storage_assets').select('id').not('public_url', 'is', null),
-      supabase.from('darkestworld_content').select('id'),
-      supabase.from('darkestworld_content_relations').select('id'),
-      supabase.from('darkestworld_timeline').select('id'),
+    final results = await Future.wait<int>([
+      _count(supabase.from('darkestworld_sections')),
+      _count(supabase.from('storage_assets')),
+      _count(
+        supabase.from('storage_assets').eq('asset_type', 'snes_sealed'),
+      ),
+      _count(
+        supabase.from('storage_assets').not('public_url', 'is', null),
+      ),
+      _count(supabase.from('darkestworld_content')),
+      _count(supabase.from('darkestworld_content_relations')),
+      _count(supabase.from('darkestworld_timeline')),
     ]);
 
     return WorldStatus(
-      sections: (results[0] as List).length,
-      assets: (results[1] as List).length,
-      snesAssets: (results[2] as List).length,
-      publicAssets: (results[3] as List).length,
-      content: (results[4] as List).length,
-      relations: (results[5] as List).length,
-      timeline: (results[6] as List).length,
+      sections: results[0],
+      assets: results[1],
+      snesAssets: results[2],
+      publicAssets: results[3],
+      content: results[4],
+      relations: results[5],
+      timeline: results[6],
     );
   }
 }
