@@ -46,8 +46,34 @@ Status: FIXED / CI GREEN / FOUNDATION VERIFIED
 - Main application entry still loads the world sections from Supabase and routes sections through the centralized world-navigation layer.
 - No database migration, rows, artboxes, or stored image data were modified.
 
+### Round 20 — Events World implementation
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
+
+- Added dedicated `EventsWorld` routing in the centralized navigation layer.
+- Added `EventsWorldRepository` backed by `darkestworld_events` with required-field and optional-date validation.
+- Added read-only `EventsWorldPage` with loading, error, empty, refresh, event metadata, dates, and location.
+- Added repository regression tests.
+- Live `darkestworld_events` currently contains 0 rows.
+- GitHub Actions run #146 completed successfully: Flutter analyze and full Flutter tests passed.
+- No database migration, rows, artboxes, or stored image data were modified.
+
+### Round 21 — Marathons World implementation
+Status: IMPLEMENTED / TEST ADDED / CI PENDING
+
+- Identified `Marathons World` as the next unfinished world: the live `darkestworld_marathons` table exists and currently contains 0 rows, while navigation still used the generic foundation page.
+- Added `WorldMarathon` parsing with required `id`, `title`, and `slug` validation plus safe optional description/status/date handling.
+- Added `MarathonsWorldRepository` backed by `darkestworld_marathons`, ordered by start date, title, and id.
+- Added read-only `MarathonsWorldPage` with loading, error, empty, refresh, status, and schedule display.
+- Routed `marathons` through the dedicated navigation destination and connected it from `main.dart`.
+- Added regression tests for complete rows, optional fields, required fields, and malformed dates.
+- Live security verification: `darkestworld_marathons` has RLS enabled, `anon` SELECT disabled, and authenticated SELECT enabled; no insert privilege is exposed to either role.
+- Current main commit: `1a0c849e95cc1b14174e4172887e270deb83c70c`.
+- CI for this Round 21 commit is triggered/pending confirmation.
+- No database migration or data rows were changed. Existing artboxes/images remain untouched.
+
 ## Current next queue
 
-1. Foundation is green and security-verified.
-2. Move from stabilization into the next unfinished feature/foundation-adjacent implementation.
-3. Keep existing artboxes/images/data untouched during all feature work.
+1. Foundation remains green and security-verified.
+2. Marathons World is technically wired; finish CI verification and then move to the next unfinished world.
+3. Next likely queue: Social Media, then Chatbox / Create Your World, while preserving the existing data model and avoiding unnecessary database writes.
+4. Keep existing artboxes/images/data untouched during all feature work.
