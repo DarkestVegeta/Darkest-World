@@ -18,7 +18,9 @@ void main() {
     expect(find.text('RIGHT'), findsOneWidget);
     expect(find.text('DarkestVegeta persona / desk area'), findsOneWidget);
     expect(
-      find.textContaining('No artwork, database rows, or stored images are created'),
+      find.text(
+        'No artwork, database rows, or stored images are created or changed by this construction layer.',
+      ),
       findsOneWidget,
     );
   });
