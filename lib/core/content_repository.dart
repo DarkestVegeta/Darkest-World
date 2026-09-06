@@ -13,7 +13,6 @@ class FranchiseNavigation {
 }
 
 class ContentRepository {
-  // Technical batch size. The UI decides how many items are visible.
   static const int pageSize = 36;
   static const int testAssetCount = 10;
 
@@ -27,26 +26,27 @@ class ContentRepository {
     final to = from + pageSize - 1;
 
     var query = supabase.from('darkestworld_content').select();
-    if (type != null) query = query.eq('content_type', type);
+    final normalizedType = type?.trim();
+    if (normalizedType != null && normalizedType.isNotEmpty) {
+      query = query.eq('content_type', normalizedType);
+    }
 
     final response = await query.order('title').order('id').range(from, to);
     return List<Map<String, dynamic>>.from(response);
   }
 
   Future<Map<String, dynamic>?> getContentById(String id) async {
+    final normalizedId = id.trim();
+    if (normalizedId.isEmpty) return null;
+
     final response = await supabase
         .from('darkestworld_content')
         .select()
-        .eq('id', id)
+        .eq('id', normalizedId)
         .maybeSingle();
     return response == null ? null : Map<String, dynamic>.from(response);
   }
 
-  /// Builds the Previous | CURRENT | Next contract from already-loaded rows.
-  ///
-  /// Timeline rows are authoritative when they identify the current item. If
-  /// they are absent or do not contain the current item, the content rows are
-  /// used in release-date/title/id order.
   static FranchiseNavigation? buildFranchiseNavigation({
     required Map<String, dynamic> current,
     required List<Map<String, dynamic>> content,
@@ -62,32 +62,34 @@ class ContentRepository {
       fallback.add(Map<String, dynamic>.from(current));
     }
     fallback.sort((a, b) {
-      final aDate = '${a['release_date'] ?? ''}';
-      final bDate = '${b['release_date'] ?? ''}';
+      final aDate = '${a['release_date'] ?? ''}'.trim();
+      final bDate = '${b['release_date'] ?? ''}'.trim();
+      if (aDate.isEmpty && bDate.isNotEmpty) return 1;
+      if (aDate.isNotEmpty && bDate.isEmpty) return -1;
       final dateCompare = aDate.compareTo(bDate);
       if (dateCompare != 0) return dateCompare;
-      final titleCompare = '${a['title'] ?? ''}'.compareTo('${b['title'] ?? ''}');
+      final titleCompare = '${a['title'] ?? ''}'.trim().compareTo('${b['title'] ?? ''}'.trim());
       if (titleCompare != 0) return titleCompare;
-      return '${a['id'] ?? ''}'.compareTo('${b['id'] ?? ''}');
+      return '${a['id'] ?? ''}'.trim().compareTo('${b['id'] ?? ''}'.trim());
     });
 
     if (timeline.isNotEmpty) {
       final ordered = <Map<String, dynamic>>[];
       for (final row in timeline) {
-        final source = row['external_source']?.toString();
-        final externalId = row['external_id']?.toString();
-        if (source == null || externalId == null) continue;
+        final source = row['external_source']?.toString().trim();
+        final externalId = row['external_id']?.toString().trim();
+        if (source == null || source.isEmpty || externalId == null || externalId.isEmpty) continue;
 
         Map<String, dynamic>? match;
         for (final item in fallback) {
-          if ('${item['external_source'] ?? ''}' == source &&
-              '${item['external_id'] ?? ''}' == externalId) {
+          if ('${item['external_source'] ?? ''}'.trim() == source &&
+              '${item['external_id'] ?? ''}'.trim() == externalId) {
             match = item;
             break;
           }
         }
         if (match != null &&
-            !ordered.any((item) => '${item['id'] ?? ''}' == '${match!['id'] ?? ''}')) {
+            !ordered.any((item) => '${item['id'] ?? ''}'.trim() == '${match!['id'] ?? ''}'.trim())) {
           ordered.add(match);
         }
       }
@@ -156,10 +158,13 @@ class ContentRepository {
   }
 
   Future<List<Map<String, dynamic>>> getRelatedContent(String contentId) async {
+    final normalizedId = contentId.trim();
+    if (normalizedId.isEmpty) return [];
+
     final outgoing = await supabase
         .from('darkestworld_content_relations')
         .select('to_content_id, relation_type, sort_order')
-        .eq('from_content_id', contentId)
+        .eq('from_content_id', normalizedId)
         .order('sort_order');
 
     final ids = [
@@ -190,9 +195,11 @@ class ContentRepository {
     final to = from + pageSize - 1;
 
     var query = supabase.from('storage_assets').select();
-    if (assetType != null) query = query.eq('asset_type', assetType);
+    final normalizedAssetType = assetType?.trim();
+    if (normalizedAssetType != null && normalizedAssetType.isNotEmpty) {
+      query = query.eq('asset_type', normalizedAssetType);
+    }
 
-    // Only assets with a usable public URL belong in the public gallery.
     final response = await query
         .not('public_url', 'is', null)
         .order('title')
