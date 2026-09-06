@@ -14,6 +14,13 @@ class ChatSearchResult {
 }
 
 class ChatSearchRepository {
+  static String escapeIlikeQuery(String value) {
+    return value
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
+  }
+
   Future<List<ChatSearchResult>> search({
     required ChatScope scope,
     required String query,
@@ -30,7 +37,7 @@ class ChatSearchRepository {
       return _searchMessages(scope, normalized, contentId: contentId, limit: limit);
     }
 
-    final safe = normalized
+    final safe = escapeIlikeQuery(normalized)
         .replaceAll(RegExp(r"[,()]"), ' ')
         .replaceAll("'", ' ');
     var request = supabase
@@ -61,11 +68,12 @@ class ChatSearchRepository {
     String? contentId,
     required int limit,
   }) async {
+    final safeQuery = escapeIlikeQuery(query);
     var request = supabase
         .from('darkestworld_chat_messages')
         .select('id, message, content_id, marathon_id, created_at')
         .eq('chat_scope', scope.name)
-        .ilike('message', '%$query%');
+        .ilike('message', '%$safeQuery%');
 
     if (scope == ChatScope.marathon) {
       if (contentId == null) {
