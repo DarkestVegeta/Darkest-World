@@ -52,6 +52,12 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
       if (!mounted) return;
       setState(() {
         _signedIn = data.session != null;
+        _searchResults = [];
+        _searchError = null;
+        _messageStream = null;
+        if (_signedIn) {
+          _resetStream();
+        }
       });
     });
     _resetStream();
@@ -76,7 +82,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
 
   void _resetStream() {
     final active = _activeContext;
-    if (!active.isAvailable) {
+    if (!_signedIn || !active.isAvailable) {
       _messageStream = null;
       return;
     }
@@ -106,6 +112,14 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
       setState(() {
         _searchResults = [];
         _searchError = null;
+      });
+      return;
+    }
+
+    if ((_scope == ChatScope.music || _scope == ChatScope.marathon) && !_signedIn) {
+      setState(() {
+        _searchResults = [];
+        _searchError = 'Log in om in chatberichten te zoeken.';
       });
       return;
     }
@@ -318,6 +332,15 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
       return const Center(child: Text('Marathon Chat is momenteel niet actief.'));
     }
 
+    if (!_signedIn) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('Log in om de chatberichten te bekijken en te plaatsen.'),
+        ),
+      );
+    }
+
     final stream = _messageStream;
     if (stream == null) {
       return const Center(child: Text('Chatverbinding niet beschikbaar.'));
@@ -336,7 +359,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
-              Text(_signedIn ? 'Ingelogd · chatten beschikbaar' : 'Niet ingelogd · lezen is beschikbaar'),
+              const Text('Ingelogd · chatten beschikbaar'),
             ],
           ),
         ),
@@ -394,11 +417,9 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
                   maxLines: 3,
                   minLines: 1,
                   onSubmitted: (_) => _sendMessage(),
-                  decoration: InputDecoration(
-                    hintText: _signedIn
-                        ? 'Typ een bericht...'
-                        : 'Log in om een bericht te plaatsen...',
-                    border: const OutlineInputBorder(),
+                  decoration: const InputDecoration(
+                    hintText: 'Typ een bericht...',
+                    border: OutlineInputBorder(),
                   ),
                 ),
               ),
