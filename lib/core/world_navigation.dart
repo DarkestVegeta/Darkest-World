@@ -4,9 +4,11 @@ enum WorldDestination {
   seriesContent,
   music,
   chat,
+  chatbox,
   events,
   marathons,
   socialMedia,
+  createYourWorld,
   basic,
 }
 
@@ -25,12 +27,16 @@ class WorldNavigation {
         return WorldDestination.music;
       case 'chat':
         return WorldDestination.chat;
+      case 'chatbox':
+        return WorldDestination.chatbox;
       case 'events':
         return WorldDestination.events;
       case 'marathons':
         return WorldDestination.marathons;
       case 'social-media':
         return WorldDestination.socialMedia;
+      case 'create-your-world':
+        return WorldDestination.createYourWorld;
       default:
         return WorldDestination.basic;
     }
