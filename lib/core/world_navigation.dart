@@ -9,6 +9,7 @@ enum WorldDestination {
   marathons,
   socialMedia,
   createYourWorld,
+  timeline,
   basic,
 }
 
@@ -37,6 +38,8 @@ class WorldNavigation {
         return WorldDestination.socialMedia;
       case 'create-your-world':
         return WorldDestination.createYourWorld;
+      case 'timeline':
+        return WorldDestination.timeline;
       default:
         return WorldDestination.basic;
     }
