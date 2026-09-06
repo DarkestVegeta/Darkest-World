@@ -47,16 +47,27 @@ Status: FIXED / TEST ADDED / CI PENDING
 - Added `test/world_navigation_test.dart` covering all 12 current world slugs plus an unknown future slug.
 - This makes accidental routing changes easier to detect and prevents the main page from silently gaining inconsistent routing logic.
 - GitHub commits for this round: `11c4f89ea7176e73c7ea2ebf754d31c066858561`, `a7727c43255966fe166dc07a267785aedfeefb29`, `3d3bc5ef3069134246f30611c660048ccf042bab`.
-- CI lookup for the latest commit currently returned no workflow run, so this round is **not marked CI-passed** yet.
+- CI lookup for the latest commit returned no workflow run, so this round is not marked CI-passed yet.
+
+### Round 4 — fallback-world foundation/data contract
+Status: FIXED / TEST ADDED / CI PENDING
+
+- Audited `BasicSectionPage` and the world-section model used by the fallback worlds.
+- Confirmed fallback pages are intentionally generic and do not fabricate data when their `items` collection is empty.
+- Confirmed `WorldSection.fromMap` already handles nullable `id`, `name`, `slug`, `description`, and `sort_order` with safe defaults.
+- Added `test/world_section_model_test.dart` covering complete rows, nullable values, and numeric sort-order conversion.
+- No dedicated feature pages were added; this round stayed within the foundation scope.
+- No artboxes or stored image data were changed.
+- Commit: `3d2ccfa483aef8cb8b72bdc47219c84964c275e2`.
+- CI lookup is still pending; no green result is claimed without evidence.
 
 ## Current next queue
 
-1. Audit fallback-world foundation behavior and data contracts without adding feature scope.
-2. Audit repository error/null/empty-state handling where not already covered.
-3. Audit navigation contracts between world → browser → detail → related/previous/current/next.
-4. Audit realtime lifecycle/disposal and authenticated session behavior.
-5. Audit CI/test coverage gaps and add only foundation tests that prove real behavior.
-6. Re-run security/data integrity checks after any backend change.
+1. Audit repository error/null/empty-state handling where not already covered.
+2. Audit navigation contracts between world → browser → detail → related/previous/current/next.
+3. Audit realtime lifecycle/disposal and authenticated session behavior.
+4. Audit CI/test coverage gaps and add only foundation tests that prove real behavior.
+5. Re-run security/data integrity checks after any backend change.
 
 ## Latest known repository state
 
@@ -67,7 +78,8 @@ Status: FIXED / TEST ADDED / CI PENDING
 - Required SNES minimum: 890.
 - Content rows currently: 0, so production franchise navigation has no populated content sequence yet.
 - Content-browser boundary tests are present.
-- Explicit world-navigation contract and tests are now present.
+- Explicit world-navigation contract and tests are present.
+- World-section parsing contract now has dedicated tests.
 
 ## Rule for the next `go`
 
