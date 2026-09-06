@@ -17,8 +17,10 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
   final _repository = ContentRepository();
   List<Map<String, dynamic>> _related = const [];
   FranchiseNavigation? _navigation;
-  bool _loading = true;
-  String? _error;
+  bool _relatedLoading = true;
+  bool _navigationLoading = true;
+  String? _relatedError;
+  String? _navigationError;
 
   String get _title => '${widget.item['title'] ?? 'Untitled'}';
   String get _type => '${widget.item['content_type'] ?? ''}';
@@ -28,30 +30,54 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
   @override
   void initState() {
     super.initState();
-    _loadDetails();
+    _loadRelated();
+    _loadNavigation();
   }
 
-  Future<void> _loadDetails() async {
+  Future<void> _loadRelated() async {
     final id = widget.item['id'];
+    if (id == null || '$id'.trim().isEmpty) {
+      if (mounted) {
+        setState(() {
+          _related = const [];
+          _relatedLoading = false;
+          _relatedError = null;
+        });
+      }
+      return;
+    }
+
     try {
-      final results = await Future.wait([
-        id == null
-            ? Future.value(<Map<String, dynamic>>[])
-            : _repository.getRelatedContent('$id'),
-        _repository.getFranchiseNavigation(widget.item),
-      ]);
+      final related = await _repository.getRelatedContent('$id');
       if (!mounted) return;
       setState(() {
-        _related = results[0] as List<Map<String, dynamic>>;
-        _navigation = results[1] as FranchiseNavigation?;
-        _loading = false;
-        _error = null;
+        _related = related;
+        _relatedLoading = false;
+        _relatedError = null;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _loading = false;
-        _error = e.toString();
+        _relatedLoading = false;
+        _relatedError = e.toString();
+      });
+    }
+  }
+
+  Future<void> _loadNavigation() async {
+    try {
+      final navigation = await _repository.getFranchiseNavigation(widget.item);
+      if (!mounted) return;
+      setState(() {
+        _navigation = navigation;
+        _navigationLoading = false;
+        _navigationError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _navigationLoading = false;
+        _navigationError = e.toString();
       });
     }
   }
@@ -108,13 +134,13 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
-          if (_loading)
+          if (_navigationLoading)
             const SizedBox(
               height: 110,
               child: Center(child: CircularProgressIndicator()),
             )
-          else if (_error != null)
-            Text('Franchise-navigatie laden mislukt: $_error')
+          else if (_navigationError != null)
+            Text('Franchise-navigatie laden mislukt: $_navigationError')
           else if (_navigation == null)
             const Text('Geen franchisevolgorde beschikbaar voor dit item.')
           else
@@ -125,13 +151,13 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
-          if (_loading)
+          if (_relatedLoading)
             const Padding(
               padding: EdgeInsets.all(12),
               child: CircularProgressIndicator(),
             )
-          else if (_error != null)
-            Text('Related laden mislukt: $_error')
+          else if (_relatedError != null)
+            Text('Related laden mislukt: $_relatedError')
           else if (_related.isEmpty)
             const Text('Nog geen gekoppelde Related-content.')
           else
