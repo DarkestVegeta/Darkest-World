@@ -18,20 +18,17 @@ void main() {
     expect(section.sortOrder, 10);
   });
 
-  test('uses safe defaults for nullable database values', () {
-    final section = WorldSection.fromMap({
-      'id': null,
-      'name': null,
-      'slug': null,
-      'description': null,
-      'sort_order': null,
-    });
-
-    expect(section.id, '');
-    expect(section.name, 'Untitled');
-    expect(section.slug, '');
-    expect(section.description, '');
-    expect(section.sortOrder, 0);
+  test('rejects rows with missing required fields', () {
+    expect(
+      () => WorldSection.fromMap({
+        'id': null,
+        'name': null,
+        'slug': null,
+        'description': null,
+        'sort_order': null,
+      }),
+      throwsA(isA<FormatException>()),
+    );
   });
 
   test('converts numeric sort order consistently', () {
