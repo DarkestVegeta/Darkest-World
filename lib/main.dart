@@ -13,6 +13,7 @@ import 'screens/music_world_page.dart';
 import 'screens/social_media_world_page.dart';
 import 'screens/suggestions_page.dart';
 import 'screens/test_asset_lab_page.dart';
+import 'screens/timeline_world_page.dart';
 import 'screens/world_status_page.dart';
 import 'widgets/living_world_scene.dart';
 
@@ -184,6 +185,10 @@ class _HomePageState extends State<_HomePage> {
                 ),
                 const SizedBox(height: 12),
                 _SectionButton(
+                  label: 'Timeline / Chronology',
+                  onTap: () => _openTimeline(context),
+                ),
+                _SectionButton(
                   label: 'Suggestions',
                   onTap: () => _openSuggestions(context),
                 ),
@@ -279,10 +284,29 @@ class _HomePageState extends State<_HomePage> {
           ),
         );
         return;
+      case WorldDestination.timeline:
+        _openTimeline(context, title: section.name, description: section.description);
+        return;
       case WorldDestination.basic:
         _openBasic(context, section.name, section.description);
         return;
     }
+  }
+
+  void _openTimeline(
+    BuildContext context, {
+    String title = 'Timeline / Chronology',
+    String description = 'Chronological navigation across connected DarkestWorld content.',
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TimelineWorldPage(
+          title: title,
+          description: description,
+        ),
+      ),
+    );
   }
 
   void _openContent(BuildContext context, String title, String type) {
