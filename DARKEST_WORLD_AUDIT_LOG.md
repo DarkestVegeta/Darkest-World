@@ -169,12 +169,25 @@ Status: FIXED / VERIFIED / CI BLOCKED
 - Commit: `e66697e9cec702d9a350619a742ab820ac83a842`.
 - CI remains blocked/pending because no workflow run is exposed for the current repository commit; the implementation was cross-checked against the current Supabase Dart API documentation.
 
+### Round 15 — chat message model integrity contract
+Status: FIXED / TEST ADDED / CI BLOCKED
+
+- Continued directly with Current next queue #1 and audited the remaining core Chat model contract instead of repeating earlier auth/RLS work.
+- Found that `ChatMessage.fromMap` previously interpolated null/malformed values into strings and silently mapped an unknown `chat_scope` to `ChatScope.games`.
+- Hardened parsing so required `id`, `message`, `chat_scope`, and `created_at` fields must be nonblank after trimming; unknown scopes now throw instead of changing meaning; malformed timestamps now throw a `FormatException` instead of leaking a parse implementation error.
+- Optional author/content/marathon ids are normalized so whitespace-only values become null.
+- Added `test/chat_repository_model_test.dart` covering normalization, malformed required fields, unknown scope rejection, malformed timestamps, and optional-id normalization.
+- Rechecked the live chat table constraints: the database still restricts chat scopes to games/movies/series/music/marathon and enforces the context combination check; no schema change was necessary.
+- Re-fetched both implementation and regression test from `main` after commit to verify the intended source is present.
+- GitHub CI lookup for commit `4a86ae2e3ffb7ae6733e431a83b120ce6aa1ff70` returned no workflow runs, so CI is still blocked/pending rather than claimed passed.
+- No database rows, migrations, artboxes, or stored image data were modified.
+- Commits: `80042c9639c9bf1c02dceac4b8ceb6f554c47a75` (implementation), `4a86ae2e3ffb7ae6733e431a83b120ce6aa1ff70` (test).
+
 ## Current next queue
 
-1. Audit any remaining core repository/model contracts for malformed/null identity and ordering assumptions.
-2. Recheck auth/session behavior across any remaining authenticated or future write surfaces.
-3. Recheck CI execution/coverage when a workflow run becomes available.
-4. Final foundation stabilization audit before feature expansion.
+1. Recheck auth/session behavior across any remaining authenticated or future write surfaces.
+2. Recheck CI execution/coverage when a workflow run becomes available.
+3. Final foundation stabilization audit before feature expansion.
 
 ## Latest known repository state
 
@@ -191,6 +204,7 @@ Status: FIXED / VERIFIED / CI BLOCKED
 - World-section parsing rejects malformed required identity fields.
 - Music category parsing rejects malformed required identity fields.
 - Suggestion parsing rejects malformed required identity fields.
+- Chat message parsing rejects malformed required identity fields and unknown scopes instead of silently defaulting to games.
 - Chat search treats ILIKE wildcard characters in user input literally.
 - Franchise navigation has deterministic timeline/fallback ordering with database-compatible NULL-date handling.
 - Content detail Related and Previous/CURRENT/Next loading are independent.
