@@ -23,18 +23,43 @@ class ChatMessage {
   });
 
   factory ChatMessage.fromMap(Map<String, dynamic> row) {
+    final id = _requiredText(row['id'], 'id');
+    final message = _requiredText(row['message'], 'message');
+    final scopeName = _requiredText(row['chat_scope'], 'chat_scope');
+    final createdAtText = _requiredText(row['created_at'], 'created_at');
+
+    final scope = ChatScope.values.where((value) => value.name == scopeName);
+    if (scope.length != 1) {
+      throw FormatException('Unknown chat scope: $scopeName');
+    }
+
+    final createdAt = DateTime.tryParse(createdAtText);
+    if (createdAt == null) {
+      throw FormatException('Invalid chat timestamp: $createdAtText');
+    }
+
     return ChatMessage(
-      id: '${row['id']}',
-      authorId: row['author_id']?.toString(),
-      message: '${row['message']}',
-      scope: ChatScope.values.firstWhere(
-        (value) => value.name == '${row['chat_scope']}',
-        orElse: () => ChatScope.games,
-      ),
-      contentId: row['content_id']?.toString(),
-      marathonId: row['marathon_id']?.toString(),
-      createdAt: DateTime.parse('${row['created_at']}'),
+      id: id,
+      authorId: _optionalText(row['author_id']),
+      message: message,
+      scope: scope.single,
+      contentId: _optionalText(row['content_id']),
+      marathonId: _optionalText(row['marathon_id']),
+      createdAt: createdAt,
     );
+  }
+
+  static String _requiredText(Object? value, String field) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) {
+      throw FormatException('Missing required chat field: $field');
+    }
+    return text;
+  }
+
+  static String? _optionalText(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
   }
 }
 
