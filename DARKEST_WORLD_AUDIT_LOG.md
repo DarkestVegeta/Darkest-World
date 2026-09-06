@@ -35,8 +35,19 @@ Status: AUTH AUDIT VERIFIED / FIXED / CI RUN TRIGGERED
 - A new CI run is triggered by this fix; final pass/fail is pending.
 - No database migration, rows, artboxes, or stored image data were modified.
 
+### Round 19 — stale WorldSection test contract + final foundation verification
+Status: FIXED / CI GREEN / FOUNDATION VERIFIED
+
+- Corrected the stale `WorldSection` model test: missing required `id`, `name`, and `slug` values are now expected to throw `FormatException`, matching the hardened production parser.
+- Production `WorldSection.fromMap` was not weakened; required-field validation remains intact.
+- Commit: `fc0c165fd4600c78f4311eaf3179b0e462d58270`.
+- GitHub Actions run #139 completed successfully: `flutter analyze` and the full Flutter test suite passed.
+- Final live Supabase foundation security check confirms every exposed `public` table has RLS enabled. `anon` has no INSERT/UPDATE/DELETE privileges; authenticated writes remain limited to chat messages and suggestions with ownership RLS checks.
+- Main application entry still loads the world sections from Supabase and routes sections through the centralized world-navigation layer.
+- No database migration, rows, artboxes, or stored image data were modified.
+
 ## Current next queue
 
-1. Verify the new CI run for Round 18 and resolve any remaining analyzer/test failures.
-2. Final foundation stabilization audit before feature expansion.
-3. Feature expansion only after foundation CI is clean.
+1. Foundation is green and security-verified.
+2. Move from stabilization into the next unfinished feature/foundation-adjacent implementation.
+3. Keep existing artboxes/images/data untouched during all feature work.
