@@ -3,11 +3,12 @@
 ### Round 16 — authenticated suggestion model parser robustness
 Status: FIXED / TEST ADDED / CI BLOCKED
 
-- Hardened `WorldSuggestion.fromMap`: `submitted_at` uses `DateTime.tryParse` and rejects null/blank/invalid timestamps with `FormatException`.
+- Hardened `WorldSuggestion.fromMap`: `submitted_at` now uses `DateTime.tryParse` and rejects null, blank, or invalid timestamps with `FormatException`.
 - `soul_points` accepts null as zero and numeric values via `num.toInt()`, while malformed types throw `FormatException`.
-- Added regression tests for valid timestamps, malformed/missing/blank timestamps, and malformed soul-point types.
+- Added regression tests for valid parsing, malformed/missing/blank timestamps, and malformed soul-point types.
 - No database migration, rows, artboxes, or stored image data were modified.
 - CI remains blocked/pending because no workflow run is exposed.
+- Commit: `40d0b4c4e8ae68d2555dd48e95e94e4a9c6c79ef`.
 
 ## Current next queue
 
