@@ -19,11 +19,24 @@ Status: FIXED / VERIFIED / CI BLOCKED
 - Music/Marathon chat-message search is gated while signed out; public Games/Movies/Series content search remains available.
 - Existing `ChatRepository` validation and authenticated send path remain intact.
 - No database migration, rows, artboxes, or stored image data were modified.
-- CI remains blocked/pending because no workflow run is exposed.
+- CI run was available but failed in `flutter analyze` on pre-existing `WorldStatusRepository` null-aware count warnings; fixed in Round 18.
 - Commit: `c6cb8ea519ab7e80035e8b1948c0861b0f04d207`.
+
+### Round 18 — remaining write-surface and CI audit
+Status: AUTH AUDIT VERIFIED / FIXED / CI RUN TRIGGERED
+
+- Audited the client repository for Supabase write surfaces: the only direct table inserts are chat messages and suggestions.
+- Both repositories require an authenticated `currentUser` before inserting; server-side grants also expose `INSERT` only to `authenticated`, with ownership checks in RLS.
+- Live Data API grants contain no `INSERT`, `UPDATE`, or `DELETE` privileges for `anon`; authenticated write access is limited to `darkestworld_chat_messages` and `darkestworld_suggestions`.
+- Public tables have no remaining RLS-disabled tables in the exposed `public` schema.
+- Public functions are invoker-security trigger functions; no additional client write RPC surface was found.
+- CI is now exposed. The latest Round 17 run failed only because `WorldStatusRepository` used redundant `?? 0` after exact-count calls; removed those seven dead null-aware expressions.
+- Commit: `637fad8fc27bd9d6843e98895670446002cf46f2`.
+- A new CI run is triggered by this fix; final pass/fail is pending.
+- No database migration, rows, artboxes, or stored image data were modified.
 
 ## Current next queue
 
-1. Recheck auth/session behavior across any remaining authenticated or future write surfaces.
-2. Recheck CI execution/coverage when a workflow run becomes available.
-3. Final foundation stabilization audit before feature expansion.
+1. Verify the new CI run for Round 18 and resolve any remaining analyzer/test failures.
+2. Final foundation stabilization audit before feature expansion.
+3. Feature expansion only after foundation CI is clean.
