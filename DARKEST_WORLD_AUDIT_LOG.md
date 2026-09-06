@@ -46,127 +46,146 @@ Status: FIXED / TEST ADDED / CI PENDING
 - Updated `main.dart` to use that contract instead of embedding the slug-routing contract directly in the page.
 - Added `test/world_navigation_test.dart` covering all 12 current world slugs plus an unknown future slug.
 - This makes accidental routing changes easier to detect and prevents the main page from silently gaining inconsistent routing logic.
-- GitHub commits for this round: `11c4f89ea7176e73c7ea2ebf754d31c066858561`, `a7727c43255966fe166dc07a267785aedfeefb29`, `3d3bc5ef3069134246f30611c660048ccf042bab`.
-- CI lookup for the latest commit returned no workflow run, so this round is not marked CI-passed yet.
+- GitHub commits: `11c4f89ea7176e73c7ea2ebf754d31c066858561`, `a7727c43255966fe166dc07a267785aedfeefb29`, `3d3bc5ef3069134246f30611c660048ccf042bab`.
+- CI lookup returned no workflow run, so this round is not marked CI-passed.
 
 ### Round 4 — fallback-world foundation/data contract
 Status: FIXED / TEST ADDED / CI PENDING
 
-- Audited `BasicSectionPage` and the world-section model used by the fallback worlds.
-- Confirmed fallback pages are intentionally generic and do not fabricate data when their `items` collection is empty.
-- Found that `WorldSection.fromMap` silently converted missing/blank required identity fields into an apparently valid section. That could create a broken world entry instead of surfacing malformed data through the existing home-page error state.
-- Tightened the model contract: `id`, `name`, and `slug` must contain usable values; optional `description` is normalized to an empty string; `sort_order` keeps the existing numeric/default behavior.
-- Added `test/world_sections_repository_test.dart` covering valid parsing, nullable description, numeric sort-order conversion, and rejection of missing/blank required fields.
-- No dedicated feature pages were added; this round stayed within the foundation scope.
+- Audited `BasicSectionPage` and the world-section model.
+- Tightened `WorldSection.fromMap`: `id`, `name`, and `slug` must be usable; optional description is normalized; sort order keeps existing numeric/default behavior.
+- Added `test/world_sections_repository_test.dart` for valid parsing and malformed required fields.
 - No artboxes or stored image data were changed.
 - Commits: `3a644ba512c886fd133ca45421faff1ce98e8ae8`, `939475c3c8eaa587edf7b3ad9`.
-- CI workflow is configured for pushes to `main`, but lookup for commit `939475c3c8eaa587edf7b3ad9` returned no workflow run. CI therefore remains **pending**, not green.
+- CI remains pending.
 
 ### Round 5 — world → browser → detail navigation contract
 Status: FIXED / TEST ADDED / CI PENDING
 
 - Audited `content_browser_page.dart`, `content_detail_page.dart`, and `content_repository.dart` as one navigation chain.
-- Confirmed browser cards hand the selected content row directly into the detail page, and detail Previous/CURRENT/Next and Related entries reopen the same detail contract.
-- Found a correctness coupling in the detail page: Related and franchise-navigation were loaded through one `Future.wait`, so a failure in either query caused both UI sections to enter the error state even when the other query succeeded.
-- Split Related and franchise-navigation loading into independent operations with independent loading/error state. A failure in one navigation contract no longer hides a successful result from the other.
-- Hardened franchise navigation around a trimmed current id and extracted the deterministic ordering/selection logic into `ContentRepository.buildFranchiseNavigation` so the core Previous/CURRENT/Next contract can be tested without requiring a live database.
-- Preserved the intended ordering: timeline wins when it identifies the current item; otherwise release date → title → id is the deterministic fallback. If a populated timeline does not contain the current item, fallback ordering remains available.
-- Added `test/content_repository_navigation_test.dart` covering fallback ordering, timeline ordering, timeline-miss fallback, and malformed current-item rejection.
-- Existing artboxes and stored image data were not touched.
+- Split Related and franchise-navigation loading so one failed query cannot hide the other's successful result.
+- Hardened franchise navigation around trimmed current ids and extracted deterministic Previous/CURRENT/Next ordering into `ContentRepository.buildFranchiseNavigation`.
+- Timeline wins when it identifies the current item; otherwise release date → title → id fallback remains available.
+- Added `test/content_repository_navigation_test.dart`.
 - Commits: `c9d0a28266234be1a67049195779607b02afe90c`, `9a95e364073f4fd3b9f00e333c2e88cb73727e8d`, `1fb5c0a60c2942b8fb693839ba4d31cd5c4e0fbd`.
-- CI lookup for the latest commit `1fb5c0a60c2942b8fb693839ba4d31cd5c4e0fbd` returned no workflow run, so this round is **CI pending**, not CI-passed.
+- CI remains pending.
 
 ### Round 6 — realtime lifecycle and authenticated chat session behavior
 Status: FIXED / VERIFIED / CI PENDING
 
-- Audited `ChatWorldPage` and `ChatRepository` for Realtime subscription lifecycle and auth-session behavior.
-- Found that the chat UI only checked `currentUser` at send time. The screen itself did not react to login/logout changes, so the input could remain apparently usable after a session transition until a send attempt failed.
-- Added an explicit `onAuthStateChange` subscription in `ChatWorldPage` and cancel it in `dispose`, so the UI now tracks the live auth session and cannot keep an active send control after logout.
-- Chat remains readable while signed out, while message creation is visibly disabled until an authenticated session exists. The repository still keeps the server-side auth/RLS check as the authoritative protection.
-- Verified the live database contract: `darkestworld_chat_messages` is in the `supabase_realtime` publication and has RLS enabled. Its current policies allow authenticated SELECT and authenticated INSERT only when `auth.uid()` matches `author_id`.
-- No Realtime schema objects were modified.
-- No artboxes or stored image data were touched.
+- Audited Chat Realtime lifecycle and authentication state handling.
+- Added an `onAuthStateChange` subscription to `ChatWorldPage`, canceled in `dispose`.
+- Chat remains readable signed out; message creation is visibly disabled until authentication exists; repository/RLS remain authoritative.
+- Verified live `darkestworld_chat_messages` Realtime publication and authenticated SELECT/INSERT policy contract.
+- No Realtime schema objects or artboxes were changed.
 - Commit: `b9e3ba7353f0df3c32b1b7b8d42938b013372fd9`.
-- CI lookup for `b9e3ba7353f0df3c32b1b7b8d42938b013372fd9` has not produced a workflow run, so CI remains **pending**, not green.
+- CI remains pending.
 
 ### Round 7 — authenticated Suggestions session behavior + CI contract audit
 Status: FIXED / VERIFIED / CI BLOCKED
 
-- Audited `SuggestionsPage` and `SuggestionRepository` as the remaining existing authenticated write surface.
-- Found the same session-state gap that had existed in Chat: SuggestionsPage only evaluated authentication indirectly through repository calls. The screen did not react immediately to login/logout transitions, and the submit button could remain available until a request failed.
-- Added an explicit `onAuthStateChange` subscription to `SuggestionsPage` and cancel it in `dispose`.
-- Suggestions now reload when the authentication session changes, and the submit action is disabled while signed out. The repository remains authoritative and still rejects submission without an authenticated user.
-- Audited the CI workflow: it already runs `flutter analyze` and `flutter test` on pushes to `main` and pull requests. No repository-side mechanism exposed by the current connector can trigger a workflow manually, and commit-specific workflow lookups continue to return no runs. Therefore CI is **blocked/pending**, not passed.
-- Existing foundation tests are present for world navigation, world-section parsing, franchise navigation, chat scope, content-browser boundaries, and the living-world widget. No speculative tests were added solely to inflate coverage.
-- No backend schema change was made in this round, so no new security migration was introduced.
+- Audited SuggestionsPage and SuggestionRepository as the remaining existing authenticated write surface.
+- Added auth-state lifecycle handling and disabled submission while signed out.
+- Audited CI workflow: `flutter analyze` and `flutter test` run on pushes to `main` and pull requests, but no workflow run is exposed for the current commits and no manual dispatch is available through the connector.
 - No artboxes or stored image data were touched.
 - Commit: `75196ca1614b3b077a9c0c448ed833b598905f54`.
 
 ### Round 8 — recommendation row-security gap + suggestion model coverage
 Status: FIXED / TEST ADDED / VERIFIED / CI BLOCKED
 
-- Re-ran the live security/data-integrity audit after the previous foundation work and checked RLS, policies, grants, and constraints across the relevant public tables.
-- Found a concrete RLS correctness gap in `darkestworld_viewer_recommendations` and `darkestworld_viewer_recommendation_ranking`: both had authenticated SELECT grants but no RLS policies, meaning RLS would deny every authenticated read despite the grants.
-- Added authenticated SELECT policies scoped to `auth.uid() = viewer_id` for both recommendation tables. Client roles remain read-only; no anonymous recommendation access was introduced.
-- Re-ran the Supabase security advisor: the recommendation-table no-policy warnings disappeared. The only remaining notice is the private `darkestworld_memory_notes` table having RLS enabled without policies; this is intentional because it also has no anon/authenticated grants and is internal-only.
-- Re-ran the live policy inspection and confirmed both recommendation tables now have authenticated own-viewer SELECT policies.
-- Expanded `supabase/tests/database/001_darkestworld_security.test.sql` from 16 to 18 assertions so the recommendation RLS contract is covered by the repository's database security test suite.
-- Added `test/suggestion_repository_model_test.dart` to cover stored suggestion parsing, nullable image/default soul-points behavior, and the repository's source/content-type allowlists.
-- No artboxes or stored image data were touched.
-- Backend migration: `add_viewer_recommendation_read_policies` applied successfully.
-- GitHub commits: `478b92cd029745cb2660916ca56fc4331ff09db9` (suggestion model test), `fac8e06499b7eeb68dab7f6e5ffd869aea4b9eb1` (database security test update).
-- CI remains **blocked/pending** because GitHub still exposes no workflow run for the current repository commits; no false green status is claimed.
+- Found and fixed the missing authenticated own-viewer SELECT policies on `darkestworld_viewer_recommendations` and `darkestworld_viewer_recommendation_ranking`.
+- Re-ran security inspection: recommendation warnings disappeared; private `darkestworld_memory_notes` remains intentionally internal with no anon/auth grants.
+- Expanded the database security regression suite from 16 to 18 assertions and added suggestion model coverage.
+- Backend migration `add_viewer_recommendation_read_policies` applied successfully.
+- Commits: `478b92cd029745cb2660916ca56fc4331ff09db9`, `fac8e06499b7eeb68dab7f6e5ffd869aea4b9eb1`.
+- CI remains blocked/pending.
 
 ### Round 9 — music category data contract
 Status: FIXED / TEST ADDED / CI BLOCKED
 
-- Started from Current next queue #1 and audited the remaining core data contracts without repeating completed navigation/auth work.
-- Inspected `MusicWorldRepository` and the live `music_world_categories` schema. The database treats `id`, `name`, and `slug` as required identity fields, but the Flutter model previously interpolated missing/null values into strings and accepted blank identity fields as valid.
-- Hardened `MusicWorldCategory.fromMap`: `id`, `name`, and `slug` are now trimmed and must be nonblank; optional `description` is normalized; numeric `sort_order` behavior is preserved.
-- Added `test/music_world_repository_test.dart` covering normalization, nullable description/default sort order, and rejection of missing/blank required identity fields.
-- No database schema/data migration was required because this was a client-side contract hardening change.
-- Existing artboxes and stored image data were not touched.
-- GitHub commits: `977cff35a5bc82afc593a5fa40b34312ae7c80f5` (model hardening), `9baa8902bf88f70f025b37b81e8b794058de6bac` (tests).
-- CI remains **blocked/pending**: no workflow run is available for these commits, so tests are not claimed as CI-passed.
+- Hardened `MusicWorldCategory.fromMap`: required id/name/slug are trimmed and nonblank; description is normalized; sort order is preserved.
+- Added `test/music_world_repository_test.dart` for normalization, nullable description/default sort order, and malformed required identity fields.
+- No database migration or artbox change.
+- Commits: `977cff35a5bc82afc593a5fa40b34312ae7c80f5`, `9baa8902bf88f70f025b37b81e8b794058de6bac`.
+- CI remains blocked/pending.
 
 ### Round 10 — chat search query correctness
 Status: FIXED / TEST ADDED / CI BLOCKED
 
-- Audited `ChatSearchRepository` as the next remaining foundation data/query contract.
-- Found that user search text was passed into ILIKE patterns without escaping `%`, `_`, and `\\`, so those characters were interpreted as SQL LIKE wildcards instead of literal search text. This could return unrelated results for queries containing those characters.
-- Added `ChatSearchRepository.escapeIlikeQuery` and applied it to both content search and chat-message search while preserving the existing surrounding `%` substring matching behavior.
-- Added `test/chat_search_repository_test.dart` covering wildcard escaping and ordinary query preservation.
-- Verified the live chat context constraint before changing search behavior: marathon messages are allowed with `marathon_id` set or null, while music messages require both context IDs null; therefore no database change was necessary for this round.
+- Audited `ChatSearchRepository`.
+- Found that `%`, `_`, and `\\` in user search text could be interpreted as ILIKE wildcards.
+- Hardened search escaping while preserving substring matching and added dedicated tests.
+- Verified the live chat-context constraint before changing the query contract; no DB migration was necessary.
 - No artboxes or stored image data were touched.
-- GitHub commits: `989b26240992cca70a30e94f4e307ea73e161392` (search hardening), `d43c16d6c7cc7d05c6a5f05970961bf437695e7a` (tests).
-- CI remains **blocked/pending**: no workflow run is available for these commits, so tests are not claimed as CI-passed.
+- Commits: `989b26240992cca70a30e94f4e307ea73e161392`, `d43c16d6c7cc7d05c6a5f05970961bf437695e7a`.
+- CI remains blocked/pending.
+
+### Round 11 — suggestion model integrity hardening
+Status: FIXED / TEST ADDED / CI BLOCKED
+
+- Audited the stored `WorldSuggestion` parsing contract more deeply after Round 10.
+- Found that missing/null or whitespace-only required identity fields could be converted into apparently valid strings by interpolation.
+- Hardened `WorldSuggestion.fromMap`: id, source, content type, external id, title, status, and submitter must be usable after trimming; blank image URLs normalize to null.
+- Added regression coverage for whitespace normalization and rejection of malformed required identity fields.
+- No database rows, schema, artboxes, or stored images were modified.
+- Commits: `8a9a0b1b5bdba8949b2bde492842aff8a3e7a009`, `6f78d2aa01797beca101a57f4f00bf8b1ab46709`.
+- CI remains blocked/pending.
+
+### Round 12 — content navigation ordering consistency
+Status: FIXED / TEST ADDED / CI BLOCKED
+
+- Audited `ContentRepository` beyond the existing franchise-navigation tests.
+- Found a subtle ordering mismatch: the database query explicitly places NULL release dates last, while the in-memory fallback previously treated missing dates as empty strings, which sorted them first.
+- Corrected the in-memory comparator so missing release dates stay after dated content, matching the database contract.
+- Also normalized optional type/asset-type filters and made empty content ids return safely instead of issuing meaningless queries.
+- Added regression coverage proving undated content stays after dated content.
+- No database migration and no artbox/storage-image modification.
+- Commit: `f3b3eadb8948e2f28ff18ff2d58097d381897de2` (implementation), `5e08ed32052f95ce9713954d6c5a6a5a103281f8` (test).
+- CI remains blocked/pending.
+
+### Round 13 — deep live database foundation/security audit
+Status: VERIFIED / OPEN FOLLOW-UP
+
+- Audited the live public schema at table, RLS, policy, grant, constraint, index, and namespace level instead of only checking the previously known critical tables.
+- Confirmed all current public base tables have RLS enabled.
+- Confirmed exposed public catalog tables have read policies matching their intended public/authenticated read grants; authenticated user-owned surfaces have own-user policies.
+- Confirmed chat context constraints still enforce the intended games/movies/series/music/marathon combinations.
+- Confirmed `darkestworld_content` required identity columns are NOT NULL and its content type constraint is active.
+- Confirmed current `storage_assets` count is 948 total, 947 `snes_sealed`, and 862 with public URLs; existing artbox data was untouched.
+- No new security vulnerability or correctness regression was found in this live pass, so no speculative migration was created.
+- Important follow-up discovered: `WorldStatusRepository` currently loads full `id` result sets client-side for counts. With 948 storage assets this is still below the common 1000-row API ceiling, but it is a scalability/correctness risk as the collection grows. This is queued for a dedicated count-contract round rather than being changed speculatively here.
+- No artboxes or stored image data were touched.
 
 ## Current next queue
 
-1. Audit the next remaining foundation data contract for a concrete correctness gap.
-2. Recheck auth/session behavior across any remaining authenticated or future write surfaces.
-3. Recheck CI execution/coverage when a workflow run becomes available.
-4. Final foundation stabilization audit before feature expansion.
+1. Replace client-side full-row counting in `WorldStatusRepository` with an exact count contract and regression verification before the asset collection can exceed the API row ceiling.
+2. Audit any remaining core repository/model contracts for malformed/null identity and ordering assumptions.
+3. Recheck auth/session behavior across any remaining authenticated or future write surfaces.
+4. Recheck CI execution/coverage when a workflow run becomes available.
+5. Final foundation stabilization audit before feature expansion.
 
 ## Latest known repository state
 
 - Main app: Flutter PC-first foundation.
 - Supabase project: `abmqcbfwdwzgapvgqifk`.
 - Database sections currently: 12.
-- SNES sealed assets currently documented at: 947.
+- SNES sealed assets currently: 947.
 - Required SNES minimum: 890.
+- Total storage assets currently: 948.
+- Public storage assets currently: 862.
 - Content rows currently: 0, so production franchise navigation has no populated content sequence yet.
 - Content-browser boundary tests are present.
 - Explicit world-navigation contract and tests are present.
-- World-section parsing contract now rejects malformed required identity fields and has dedicated tests.
-- Music category parsing contract now rejects malformed required identity fields and has dedicated tests.
-- Chat search now treats ILIKE wildcard characters in user input literally.
-- Franchise navigation now has a directly testable deterministic contract.
+- World-section parsing rejects malformed required identity fields.
+- Music category parsing rejects malformed required identity fields.
+- Suggestion parsing rejects malformed required identity fields.
+- Chat search treats ILIKE wildcard characters in user input literally.
+- Franchise navigation has deterministic timeline/fallback ordering with database-compatible NULL-date handling.
 - Content detail Related and Previous/CURRENT/Next loading are independent.
-- Chat auth state is lifecycle-aware and the Realtime publication/RLS contract was verified.
+- Chat auth state is lifecycle-aware and the Realtime publication/RLS contract is verified.
 - Suggestions auth state is lifecycle-aware and submission is visibly gated by the live session.
-- Viewer recommendation tables now have row-scoped authenticated read policies matching their authenticated read grants.
-- Database security regression test suite now contains 18 assertions, although pgTAP is not installed in the project and therefore these assertions are not claimed as executed through pgTAP.
+- Viewer recommendation tables have row-scoped authenticated read policies matching their authenticated read grants.
+- Database security regression test suite contains 18 assertions; pgTAP is not installed, so those assertions are not claimed as executed through pgTAP.
 
 ## Rule for the next `go`
 
