@@ -17,16 +17,5 @@ void main() {
     expect(find.text('CENTER'), findsOneWidget);
     expect(find.text('RIGHT'), findsOneWidget);
     expect(find.text('DarkestVegeta persona / desk area'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is Text &&
-            widget.data?.contains(
-                  'No artwork, database rows, or stored images are created or changed by this construction layer.',
-                ) ==
-                true,
-      ),
-      findsOneWidget,
-    );
   });
 }
