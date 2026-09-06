@@ -7,6 +7,7 @@ import 'screens/basic_section_page.dart';
 import 'screens/chat_world_page.dart';
 import 'screens/content_browser_page.dart';
 import 'screens/create_your_world_page.dart';
+import 'screens/darkest_vegeta_visual_hub_page.dart';
 import 'screens/events_world_page.dart';
 import 'screens/marathons_world_page.dart';
 import 'screens/music_world_page.dart';
@@ -185,6 +186,10 @@ class _HomePageState extends State<_HomePage> {
                 ),
                 const SizedBox(height: 12),
                 _SectionButton(
+                  label: 'DarkestVegeta Visual Hub',
+                  onTap: () => _openVisualHub(context),
+                ),
+                _SectionButton(
                   label: 'Timeline / Chronology',
                   onTap: () => _openTimeline(context),
                 ),
@@ -291,6 +296,13 @@ class _HomePageState extends State<_HomePage> {
         _openBasic(context, section.name, section.description);
         return;
     }
+  }
+
+  void _openVisualHub(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const DarkestVegetaVisualHubPage()),
+    );
   }
 
   void _openTimeline(
