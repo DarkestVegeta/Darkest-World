@@ -62,12 +62,26 @@ Status: FIXED / TEST ADDED / CI PENDING
 - Commits: `3a644ba512c886fd133ca45421faff1ce98e8ae8`, `939475c3c8eaa587edf0bd8797b884c9067b3ad9`.
 - CI workflow is configured for pushes to `main`, but lookup for commit `939475c3c8eaa587edf0bd8797b884c9067b3ad9` returned no workflow run. CI therefore remains **pending**, not green.
 
+### Round 5 — world → browser → detail navigation contract
+Status: FIXED / TEST ADDED / CI PENDING
+
+- Audited `content_browser_page.dart`, `content_detail_page.dart`, and `content_repository.dart` as one navigation chain.
+- Confirmed browser cards hand the selected content row directly into the detail page, and detail Previous/CURRENT/Next and Related entries reopen the same detail contract.
+- Found a correctness coupling in the detail page: Related and Previous/CURRENT/Next were loaded through one `Future.wait`, so a failure in either query caused both UI sections to enter the error state even when the other query succeeded.
+- Split Related and franchise-navigation loading into independent operations with independent loading/error state. A failure in one navigation contract no longer hides a successful result from the other.
+- Hardened franchise navigation around a trimmed current id and extracted the deterministic ordering/selection logic into `ContentRepository.buildFranchiseNavigation` so the core Previous/CURRENT/Next contract can be tested without requiring a live database.
+- Preserved the intended ordering: timeline wins when it identifies the current item; otherwise release date → title → id is the deterministic fallback. If a populated timeline does not contain the current item, fallback ordering remains available.
+- Added `test/content_repository_navigation_test.dart` covering fallback ordering, timeline ordering, timeline-miss fallback, and malformed current-item rejection.
+- Existing artboxes and stored image data were not touched.
+- Commits: `c9d0a28266234be1a67049195779607b02afe90c`, `9a95e364073f4fd3b9f00e333c2e88cb73727e8d`, `1fb5c0a60c2942b8fb693839ba4d31cd5c4e0fbd`.
+- CI lookup for the latest commit `1fb5c0a60c2942b8fb693839ba4d31cd5c4e0fbd` returned no workflow run, so this round is **CI pending**, not CI-passed.
+
 ## Current next queue
 
-1. Audit navigation contracts between world → browser → detail → related/previous/current/next.
-2. Audit realtime lifecycle/disposal and authenticated session behavior.
-3. Audit CI/test coverage gaps and add only foundation tests that prove real behavior.
-4. Re-run security/data integrity checks after any backend change.
+1. Audit realtime lifecycle/disposal and authenticated session behavior.
+2. Audit CI/test coverage gaps and add only foundation tests that prove real behavior.
+3. Re-run security/data integrity checks after any backend change.
+4. Recheck world → browser → detail navigation only if a new change/regression/dependency requires it.
 
 ## Latest known repository state
 
@@ -80,6 +94,8 @@ Status: FIXED / TEST ADDED / CI PENDING
 - Content-browser boundary tests are present.
 - Explicit world-navigation contract and tests are present.
 - World-section parsing contract now rejects malformed required identity fields and has dedicated tests.
+- Franchise navigation now has a directly testable deterministic contract.
+- Content detail Related and Previous/CURRENT/Next loading are independent.
 
 ## Rule for the next `go`
 
