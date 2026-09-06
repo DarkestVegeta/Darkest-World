@@ -50,7 +50,7 @@ class WorldStatusRepository {
         .from('darkestworld_sections')
         .select('id')
         .count(CountOption.exact);
-    return response.count ?? 0;
+    return response.count;
   }
 
   Future<int> _countAssets() async {
@@ -58,7 +58,7 @@ class WorldStatusRepository {
         .from('storage_assets')
         .select('id')
         .count(CountOption.exact);
-    return response.count ?? 0;
+    return response.count;
   }
 
   Future<int> _countSnesAssets() async {
@@ -67,7 +67,7 @@ class WorldStatusRepository {
         .select('id')
         .eq('asset_type', 'snes_sealed')
         .count(CountOption.exact);
-    return response.count ?? 0;
+    return response.count;
   }
 
   Future<int> _countPublicAssets() async {
@@ -76,7 +76,7 @@ class WorldStatusRepository {
         .select('id')
         .not('public_url', 'is', null)
         .count(CountOption.exact);
-    return response.count ?? 0;
+    return response.count;
   }
 
   Future<int> _countContent() async {
@@ -84,7 +84,7 @@ class WorldStatusRepository {
         .from('darkestworld_content')
         .select('id')
         .count(CountOption.exact);
-    return response.count ?? 0;
+    return response.count;
   }
 
   Future<int> _countRelations() async {
@@ -92,7 +92,7 @@ class WorldStatusRepository {
         .from('darkestworld_content_relations')
         .select('id')
         .count(CountOption.exact);
-    return response.count ?? 0;
+    return response.count;
   }
 
   Future<int> _countTimeline() async {
@@ -100,6 +100,6 @@ class WorldStatusRepository {
         .from('darkestworld_timeline')
         .select('id')
         .count(CountOption.exact);
-    return response.count ?? 0;
+    return response.count;
   }
 }
