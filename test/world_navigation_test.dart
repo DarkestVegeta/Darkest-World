@@ -14,21 +14,8 @@ void main() {
     expect(WorldNavigation.destinationForSlug('social-media'), WorldDestination.socialMedia);
     expect(WorldNavigation.destinationForSlug('create-your-world'), WorldDestination.createYourWorld);
     expect(WorldNavigation.destinationForSlug('timeline'), WorldDestination.timeline);
-  });
-
-  test('keeps unrelated current world slugs on the safe foundation page', () {
-    const fallbackSlugs = [
-      'identity-world',
-      'dark-core',
-    ];
-
-    for (final slug in fallbackSlugs) {
-      expect(
-        WorldNavigation.destinationForSlug(slug),
-        WorldDestination.basic,
-        reason: 'Unexpected dedicated routing for $slug',
-      );
-    }
+    expect(WorldNavigation.destinationForSlug('identity-world'), WorldDestination.identityWorld);
+    expect(WorldNavigation.destinationForSlug('dark-core'), WorldDestination.darkCore);
   });
 
   test('unknown slugs fail safely to the foundation page', () {
