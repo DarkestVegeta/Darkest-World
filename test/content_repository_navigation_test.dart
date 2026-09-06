@@ -34,6 +34,22 @@ void main() {
       expect(navigation?.next?['id'], '3');
     });
 
+    test('keeps missing release dates after dated content like the database order', () {
+      final current = item('2', 'Second', '2001-01-01');
+      final navigation = ContentRepository.buildFranchiseNavigation(
+        current: current,
+        content: [
+          {'id': '4', 'title': 'Undated', 'release_date': null},
+          current,
+          item('1', 'First', '2000-01-01'),
+        ],
+        timeline: const [],
+      );
+
+      expect(navigation?.previous?['id'], '1');
+      expect(navigation?.next?['id'], '4');
+    });
+
     test('uses timeline order when the timeline identifies the current item', () {
       final first = item('1', 'First', '2000-01-01', source: 'igdb', externalId: 'a');
       final current = item('2', 'Current', '2001-01-01', source: 'igdb', externalId: 'b');
