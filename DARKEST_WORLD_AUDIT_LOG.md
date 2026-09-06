@@ -55,12 +55,12 @@ Status: FIXED / TEST ADDED / CI PENDING
 - Audited `BasicSectionPage` and the world-section model used by the fallback worlds.
 - Confirmed fallback pages are intentionally generic and do not fabricate data when their `items` collection is empty.
 - Found that `WorldSection.fromMap` silently converted missing/blank required identity fields into an apparently valid section. That could create a broken world entry instead of surfacing malformed data through the existing home-page error state.
-- Tightened the model contract: `id`, `name`, and `slug` must now contain usable values; optional `description` is normalized to an empty string; `sort_order` keeps the existing numeric/default behavior.
+- Tightened the model contract: `id`, `name`, and `slug` must contain usable values; optional `description` is normalized to an empty string; `sort_order` keeps the existing numeric/default behavior.
 - Added `test/world_sections_repository_test.dart` covering valid parsing, nullable description, numeric sort-order conversion, and rejection of missing/blank required fields.
 - No dedicated feature pages were added; this round stayed within the foundation scope.
 - No artboxes or stored image data were changed.
-- Commits: `3a644ba512c886fd133ca45421faff1ce98e8ae8`, `939475c3c8eaa587edf0bd8797b884c9067b3ad9`.
-- CI workflow is configured for pushes to `main`, but lookup for commit `939475c3c8eaa587edf0bd8797b884c9067b3ad9` returned no workflow run. CI therefore remains **pending**, not green.
+- Commits: `3a644ba512c886fd133ca45421faff1ce98e8ae8`, `939475c3c8eaa587edf7b3ad9`.
+- CI workflow is configured for pushes to `main`, but lookup for commit `939475c3c8eaa587edf7b3ad9` returned no workflow run. CI therefore remains **pending**, not green.
 
 ### Round 5 — world → browser → detail navigation contract
 Status: FIXED / TEST ADDED / CI PENDING
@@ -102,10 +102,25 @@ Status: FIXED / VERIFIED / CI BLOCKED
 - No artboxes or stored image data were touched.
 - Commit: `75196ca1614b3b077a9c0c448ed833b598905f54`.
 
+### Round 8 — recommendation row-security gap + suggestion model coverage
+Status: FIXED / TEST ADDED / VERIFIED / CI BLOCKED
+
+- Re-ran the live security/data-integrity audit after the previous foundation work and checked RLS, policies, grants, and constraints across the relevant public tables.
+- Found a concrete RLS correctness gap in `darkestworld_viewer_recommendations` and `darkestworld_viewer_recommendation_ranking`: both had authenticated SELECT grants but no RLS policies, meaning RLS would deny every authenticated read despite the grants.
+- Added authenticated SELECT policies scoped to `auth.uid() = viewer_id` for both recommendation tables. Client roles remain read-only; no anonymous recommendation access was introduced.
+- Re-ran the Supabase security advisor: the recommendation-table no-policy warnings disappeared. The only remaining notice is the private `darkestworld_memory_notes` table having RLS enabled without policies; this is intentional because it also has no anon/authenticated grants and is internal-only.
+- Re-ran the live policy inspection and confirmed both recommendation tables now have authenticated own-viewer SELECT policies.
+- Expanded `supabase/tests/database/001_darkestworld_security.test.sql` from 16 to 18 assertions so the recommendation RLS contract is covered by the repository's database security test suite.
+- Added `test/suggestion_repository_model_test.dart` to cover stored suggestion parsing, nullable image/default soul-points behavior, and the repository's source/content-type allowlists.
+- No artboxes or stored image data were touched.
+- Backend migration: `add_viewer_recommendation_read_policies` applied successfully.
+- GitHub commits: `478b92cd029745cb2660916ca56fc4331ff09db9` (suggestion model test), `fac8e06499b7eeb68dab7f6e5ffd869aea4b9eb1` (database security test update).
+- CI remains **blocked/pending** because GitHub still exposes no workflow run for the current repository commits; no false green status is claimed.
+
 ## Current next queue
 
-1. Re-run security/data integrity checks after any backend change; otherwise audit the remaining foundation data contracts for concrete correctness gaps.
-2. Inspect the remaining authenticated/future write surfaces for the same server-authoritative session pattern.
+1. Audit the remaining foundation data contracts for concrete correctness gaps while CI execution is unavailable.
+2. Recheck auth/session behavior across any remaining authenticated or future write surfaces.
 3. Recheck CI execution/coverage when a workflow run becomes available.
 4. Recheck world → browser → detail navigation only if a new change/regression/dependency requires it.
 
@@ -124,6 +139,8 @@ Status: FIXED / VERIFIED / CI BLOCKED
 - Content detail Related and Previous/CURRENT/Next loading are independent.
 - Chat auth state is lifecycle-aware and the Realtime publication/RLS contract was verified.
 - Suggestions auth state is now lifecycle-aware and submission is visibly gated by the live session.
+- Viewer recommendation tables now have row-scoped authenticated read policies matching their authenticated read grants.
+- Database security regression test suite now contains 18 assertions, although pgTAP is not installed in the project and therefore these assertions are not claimed as executed through pgTAP.
 
 ## Rule for the next `go`
 
