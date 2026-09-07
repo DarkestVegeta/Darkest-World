@@ -13,6 +13,18 @@ class FranchiseNavigation {
   });
 }
 
+class TypedFranchiseNavigation {
+  final ContentItem? previous;
+  final ContentItem current;
+  final ContentItem? next;
+
+  const TypedFranchiseNavigation({
+    required this.previous,
+    required this.current,
+    required this.next,
+  });
+}
+
 class ContentRepository {
   static const int pageSize = 36;
   static const int testAssetCount = 10;
@@ -171,6 +183,38 @@ class ContentRepository {
     );
   }
 
+  Future<TypedFranchiseNavigation?> getTypedFranchiseNavigation(
+    ContentItem current,
+  ) async {
+    final rawNavigation = await getFranchiseNavigation(_contentItemToRow(current));
+    if (rawNavigation == null) return null;
+    return TypedFranchiseNavigation(
+      previous: rawNavigation.previous == null
+          ? null
+          : ContentItem.fromRow(rawNavigation.previous!),
+      current: ContentItem.fromRow(rawNavigation.current),
+      next: rawNavigation.next == null
+          ? null
+          : ContentItem.fromRow(rawNavigation.next!),
+    );
+  }
+
+  Map<String, dynamic> _contentItemToRow(ContentItem item) {
+    return {
+      'id': item.id,
+      'content_type': item.type.name,
+      'title': item.title,
+      'slug': item.slug,
+      'original_title': item.originalTitle,
+      'release_date': item.releaseDate?.toIso8601String(),
+      'description': item.description,
+      'franchise': item.franchise,
+      'external_source': item.externalSource,
+      'external_id': item.externalId,
+      'metadata': item.metadata,
+    };
+  }
+
   Future<List<Map<String, dynamic>>> getRelatedContent(String contentId) async {
     final normalizedId = contentId.trim();
     if (normalizedId.isEmpty) return [];
@@ -197,6 +241,11 @@ class ContentRepository {
     };
 
     return [for (final id in ids) if (byId.containsKey(id)) byId[id]!];
+  }
+
+  Future<List<ContentItem>> getRelatedContentItems(String contentId) async {
+    final rows = await getRelatedContent(contentId);
+    return [for (final row in rows) ContentItem.fromRow(row)];
   }
 
   Future<List<Map<String, dynamic>>> getAssetPage({
