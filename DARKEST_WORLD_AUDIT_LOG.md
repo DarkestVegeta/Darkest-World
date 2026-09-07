@@ -191,20 +191,31 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - Final GitHub Actions run #207 (`34084420229`) completed successfully: Flutter analyze and all 78 Flutter tests passed.
 - Live Supabase content tables remain empty; no database migration or rows were changed. Existing artboxes and stored images remain untouched.
 
+### Round 32 — typed storage asset contract / readiness layer
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
+
+- Added typed `StorageAsset` model corresponding to the verified live `storage_assets` contract, including UUID identity, Dropbox path, asset type, optional title/public URL, JSON metadata, timestamps, and test-asset flag.
+- Added read-only `StorageAssetRepository` over the existing `storage_assets` table with pagination, asset-type filtering, public-URL/test-asset access, and no write/import behavior.
+- Added regression tests covering typed parsing/validation, metadata and date parsing, and optional fields.
+- GitHub Actions run #211 (`34161926729`) completed successfully on head `1b119c400e1ef16a68f2527eb0ebf0571f8c33b1`: Flutter analyze and the full Flutter test suite passed.
+- No database migration or rows were changed. Existing artboxes and stored images remain untouched.
+
 ## Current next queue
 
 1. Foundation remains green and security-verified.
 2. Marathons World is complete and CI-green.
 3. Social Media World is complete and CI-green.
 4. Chatbox / Create Your World construction layer is complete and CI-green.
-5. Round 24 SNES import security flaw is fixed in the live function.
-6. Round 25 private memory-note RLS advisor finding is fixed; security advisor is clean.
+5. Round 24 SNES import security flaw is fixed in the live function; the import itself remains untouched.
+6. Round 25 private memory-note RLS hardening is complete and Security Advisor is clean.
 7. Round 26 Timeline / Chronology construction layer is complete and CI-green.
-8. Round 27 Visual Hub construction layer is complete and CI-green on head `311d771b0b676afe459025c0b0e446d3af964149` (GitHub Actions run #186).
-9. Round 28 Identity World + Dark Core construction layers are complete and CI-green on head `0cd68c22b2334863195997bd58e5c87f24dceedc` (GitHub Actions run #195).
-10. Round 29 typed DarkestWorld content contract is complete and CI-green on head `0df73d7b44f738260f23d65cf9df6f71a7993ce0` (GitHub Actions run #199).
-11. Round 30 typed Timeline contract / repository foundation is complete and CI-green on head `d4ac086fa484058a3fd19dec75452023048610f7` (GitHub Actions run #200).
-12. Round 31 unified typed content catalog / readiness layer is complete and CI-green on head `5614c2adde7fa52b06070d0ae0f45c78abdac0fb` (GitHub Actions run #207).
-13. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
-14. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
-15. Do not select DarkestWall as the next feature merely because it is an open concept; its implementation remains intentionally deferred.
+8. Round 27 Visual Hub construction layer is complete and CI-green.
+9. Round 28 Identity World + Dark Core construction layers are complete and CI-green.
+10. Round 29 typed DarkestWorld content contract is complete and CI-green.
+11. Round 30 typed Timeline contract/repository foundation is complete and CI-green.
+12. Round 31 unified typed content catalog/readiness layer is complete and CI-green.
+13. Round 32 typed storage asset contract/readiness layer is complete and CI-green.
+14. Next round must begin with a fresh read-only control of the current GitHub and Supabase state and must preserve existing data, artboxes, stored images, and the SNES Dropbox import/security architecture.
+15. Do not reopen Notion unless a concrete unresolved design or decision requires verification.
+16. Do not choose DarkestWall merely because it is open; it remains intentionally deferred.
+17. Avoid duplicate work and looping: every proposed round must address a verified open gap and be marked DONE / OPEN / BLOCKED / NOT NEEDED.
