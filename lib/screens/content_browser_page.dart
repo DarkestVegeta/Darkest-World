@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/chat_scope.dart';
 import '../core/content_browser_layout.dart';
+import '../core/content_models.dart';
 import '../core/content_repository.dart';
 import 'chatbox.dart';
 import 'content_detail_page.dart';
@@ -23,7 +24,7 @@ class ContentBrowserPage extends StatefulWidget {
 class _ContentBrowserPageState extends State<ContentBrowserPage> {
   final _repository = ContentRepository();
   final _scrollController = ScrollController();
-  final _items = <Map<String, dynamic>>[];
+  final _items = <ContentItem>[];
   bool _loading = false;
   bool _hasMore = true;
   bool _initialCenterApplied = false;
@@ -69,7 +70,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     });
 
     try {
-      final page = await _repository.getContentPage(
+      final page = await _repository.getContentItemsPage(
         type: widget.contentType,
         page: _page,
       );
@@ -151,8 +152,8 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     final item = index >= 0 && index < _items.length ? _items[index] : null;
     return ChatContext(
       scope: scope,
-      contentId: item?['id']?.toString(),
-      contentTitle: item?['title']?.toString(),
+      contentId: item?.id,
+      contentTitle: item?.title,
     );
   }
 
@@ -275,7 +276,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     );
   }
 
-  void _openDetail(Map<String, dynamic> item) {
+  void _openDetail(ContentItem item) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)),
@@ -299,7 +300,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 }
 
 class _ContentCard extends StatelessWidget {
-  final Map<String, dynamic> item;
+  final ContentItem item;
   final double width;
   final double height;
   final bool highlighted;
@@ -313,12 +314,10 @@ class _ContentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = '${item['title'] ?? 'Untitled'}';
-    final metadata = item['metadata'] is Map
-        ? Map<String, dynamic>.from(item['metadata'] as Map)
-        : <String, dynamic>{};
+    final title = item.title;
+    final metadata = item.metadata;
     final imageUrl =
-        '${item['public_url'] ?? metadata['public_url'] ?? metadata['image_url'] ?? ''}';
+        '${metadata['public_url'] ?? metadata['image_url'] ?? ''}'.trim();
 
     return Container(
       width: width,
