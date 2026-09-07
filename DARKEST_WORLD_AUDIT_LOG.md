@@ -171,6 +171,26 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - Verified CI head: `0df73d7b44f738260f23d65cf9df6f71a7993ce0`.
 - No database migration or rows were changed. Existing artboxes and stored images remain untouched.
 
+### Round 30 — typed Timeline contract / repository foundation
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
+
+- Added the typed `TimelineItem` contract for Games, Movies, and Series with validated identity/content type and safe optional chronology metadata.
+- Added `TimelineRepository` backed by `darkestworld_timeline`, with pagination and optional content-type/franchise filtering while preserving deterministic chronology ordering.
+- Added typed timeline model regression tests covering complete rows, optional fields, required-field failures, unsupported content types, malformed dates, and malformed chronology values.
+- GitHub Actions run `34083566903` completed successfully: Flutter analyze and the full Flutter test suite passed.
+- No database migration or rows were changed. Existing artboxes and stored images remain untouched.
+
+### Round 31 — unified typed content catalog / readiness layer
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
+
+- Added `ContentCatalog` as the unified typed in-memory contract for content items and relations.
+- Added deterministic lookup, relation ordering, related-item resolution, and `Previous | CURRENT | Next`-compatible franchise navigation for matching content type and franchise.
+- Added `ContentCatalogRepository` as the read-only Supabase bridge using `darkestworld_content` and `darkestworld_content_relations` without performing any writes or imports.
+- Added regression coverage for empty catalog behavior, relation ordering, franchise navigation, and raw-row conversion.
+- First CI run #206 failed in `flutter analyze` because the new test omitted the existing `content_models.dart` import; fixed in commit `5614c2adde7fa52b06070d0ae0f45c78abdac0fb` without changing production code.
+- Final GitHub Actions run #207 (`34084420229`) completed successfully: Flutter analyze and all 78 Flutter tests passed.
+- Live Supabase content tables remain empty; no database migration or rows were changed. Existing artboxes and stored images remain untouched.
+
 ## Current next queue
 
 1. Foundation remains green and security-verified.
@@ -183,6 +203,8 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 8. Round 27 Visual Hub construction layer is complete and CI-green on head `311d771b0b676afe459025c0b0e446d3af964149` (GitHub Actions run #186).
 9. Round 28 Identity World + Dark Core construction layers are complete and CI-green on head `0cd68c22b2334863195997bd58e5c87f24dceedc` (GitHub Actions run #195).
 10. Round 29 typed DarkestWorld content contract is complete and CI-green on head `0df73d7b44f738260f23d65cf9df6f71a7993ce0` (GitHub Actions run #199).
-11. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
-12. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
-13. Do not select DarkestWall as the next feature merely because it is an open concept; its implementation remains intentionally deferred.
+11. Round 30 typed Timeline contract / repository foundation is complete and CI-green on head `d4ac086fa484058a3fd19dec75452023048610f7` (GitHub Actions run #200).
+12. Round 31 unified typed content catalog / readiness layer is complete and CI-green on head `5614c2adde7fa52b06070d0ae0f45c78abdac0fb` (GitHub Actions run #207).
+13. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
+14. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
+15. Do not select DarkestWall as the next feature merely because it is an open concept; its implementation remains intentionally deferred.
