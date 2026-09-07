@@ -116,8 +116,7 @@ void main() {
     final current = item(id: 'current', title: 'Current');
     final next = item(id: 'next', title: 'Next');
 
-    const navigation = TypedFranchiseNavigation;
-    final typed = navigation(
+    final typed = TypedFranchiseNavigation(
       previous: previous,
       current: current,
       next: next,
