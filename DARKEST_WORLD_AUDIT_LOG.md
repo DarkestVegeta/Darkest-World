@@ -18,7 +18,6 @@ Status: FIXED / VERIFIED / CI BLOCKED
 - Signed-out chat panel now explicitly requires login instead of claiming that reading is available.
 - Music/Marathon chat-message search is gated while signed out; public Games/Movies/Series content search remains available.
 - Existing `ChatRepository` validation and authenticated send path remain intact.
-- No database migration, rows, artboxes, or stored image data were modified.
 - CI run was available but failed in `flutter analyze` on pre-existing `WorldStatusRepository` null-aware count warnings; fixed in Round 18.
 - Commit: `c6cb8ea519ab7e80035e8b1948c0861b0f04d207`.
 
@@ -161,6 +160,17 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - GitHub Actions run #195 (`34067349425`) completed successfully: Flutter analyze and the full Flutter test suite passed.
 - No database migration, rows, artboxes, or stored images were modified.
 
+### Round 29 — typed DarkestWorld content contract
+Status: IMPLEMENTED / TEST ADDED / CI GREEN
+
+- Added a typed `ContentType` contract for `game`, `movie`, and `series` content, with safe unknown-value handling.
+- Added typed `ContentItem` and `ContentRelation` models with required-field validation and safe parsing for dates, metadata, and relation ordering.
+- Connected the typed content contract to `ContentRepository` through paged content and ID lookup methods while preserving all existing repository APIs and behavior.
+- Added regression tests covering type mapping, complete parsing, required-field failures, relation parsing, metadata, and sort order.
+- GitHub Actions run #199 (`34069275169`) completed successfully: Flutter analyze and the full Flutter test suite passed.
+- Verified CI head: `0df73d7b44f738260f23d65cf9df6f71a7993ce0`.
+- No database migration or rows were changed. Existing artboxes and stored images remain untouched.
+
 ## Current next queue
 
 1. Foundation remains green and security-verified.
@@ -172,6 +182,7 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 7. Round 26 Timeline / Chronology construction layer is complete and CI-green.
 8. Round 27 Visual Hub construction layer is complete and CI-green on head `311d771b0b676afe459025c0b0e446d3af964149` (GitHub Actions run #186).
 9. Round 28 Identity World + Dark Core construction layers are complete and CI-green on head `0cd68c22b2334863195997bd58e5c87f24dceedc` (GitHub Actions run #195).
-10. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
-11. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
-12. Do not select DarkestWall as the next feature merely because it is an open concept; its implementation remains intentionally deferred.
+10. Round 29 typed DarkestWorld content contract is complete and CI-green on head `0df73d7b44f738260f23d65cf9df6f71a7993ce0` (GitHub Actions run #199).
+11. Next feature round must begin with a fresh read-only control check and must preserve the existing data model and existing artboxes/images.
+12. Keep the SNES Dropbox import flow untouched unless a dedicated import-security task is explicitly being performed.
+13. Do not select DarkestWall as the next feature merely because it is an open concept; its implementation remains intentionally deferred.
