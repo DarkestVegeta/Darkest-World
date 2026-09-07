@@ -1,3 +1,4 @@
+import 'content_models.dart';
 import 'supabase_client.dart';
 
 class FranchiseNavigation {
@@ -35,6 +36,14 @@ class ContentRepository {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  Future<List<ContentItem>> getContentItemsPage({
+    String? type,
+    int page = 0,
+  }) async {
+    final rows = await getContentPage(type: type, page: page);
+    return [for (final row in rows) ContentItem.fromRow(row)];
+  }
+
   Future<Map<String, dynamic>?> getContentById(String id) async {
     final normalizedId = id.trim();
     if (normalizedId.isEmpty) return null;
@@ -45,6 +54,11 @@ class ContentRepository {
         .eq('id', normalizedId)
         .maybeSingle();
     return response == null ? null : Map<String, dynamic>.from(response);
+  }
+
+  Future<ContentItem?> getContentItemById(String id) async {
+    final row = await getContentById(id);
+    return row == null ? null : ContentItem.fromRow(row);
   }
 
   static FranchiseNavigation? buildFranchiseNavigation({
