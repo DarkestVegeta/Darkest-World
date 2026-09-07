@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:darkest_world/core/content_catalog.dart';
 import 'package:darkest_world/core/content_models.dart';
+import 'package:darkest_world/core/content_repository.dart';
 
 void main() {
   ContentItem item({
@@ -108,5 +109,22 @@ void main() {
     expect(catalog.items.single, isA<ContentItem>());
     expect(catalog.items.single.type, ContentType.game);
     expect(catalog.relations.single.relationType, 'related');
+  });
+
+  test('typed navigation contract keeps previous, current and next strongly typed', () {
+    final previous = item(id: 'previous', title: 'Previous');
+    final current = item(id: 'current', title: 'Current');
+    final next = item(id: 'next', title: 'Next');
+
+    const navigation = TypedFranchiseNavigation;
+    final typed = navigation(
+      previous: previous,
+      current: current,
+      next: next,
+    );
+
+    expect(typed.previous?.title, 'Previous');
+    expect(typed.current.title, 'Current');
+    expect(typed.next?.title, 'Next');
   });
 }
