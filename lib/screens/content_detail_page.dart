@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../core/chat_scope.dart';
+import '../core/content_models.dart';
 import '../core/content_repository.dart';
 import 'chatbox.dart';
 
 class ContentDetailPage extends StatefulWidget {
-  final Map<String, dynamic> item;
+  final ContentItem item;
 
   const ContentDetailPage({super.key, required this.item});
 
@@ -15,17 +16,17 @@ class ContentDetailPage extends StatefulWidget {
 
 class _ContentDetailPageState extends State<ContentDetailPage> {
   final _repository = ContentRepository();
-  List<Map<String, dynamic>> _related = const [];
-  FranchiseNavigation? _navigation;
+  List<ContentItem> _related = const [];
+  TypedFranchiseNavigation? _navigation;
   bool _relatedLoading = true;
   bool _navigationLoading = true;
   String? _relatedError;
   String? _navigationError;
 
-  String get _title => '${widget.item['title'] ?? 'Untitled'}';
-  String get _type => '${widget.item['content_type'] ?? ''}';
-  String get _franchise => '${widget.item['franchise'] ?? ''}';
-  String get _description => '${widget.item['description'] ?? ''}';
+  String get _title => widget.item.title;
+  String get _type => widget.item.type.name;
+  String get _franchise => widget.item.franchise ?? '';
+  String get _description => widget.item.description ?? '';
 
   @override
   void initState() {
@@ -35,20 +36,8 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
   }
 
   Future<void> _loadRelated() async {
-    final id = widget.item['id'];
-    if (id == null || '$id'.trim().isEmpty) {
-      if (mounted) {
-        setState(() {
-          _related = const [];
-          _relatedLoading = false;
-          _relatedError = null;
-        });
-      }
-      return;
-    }
-
     try {
-      final related = await _repository.getRelatedContent('$id');
+      final related = await _repository.getRelatedContentItems(widget.item.id);
       if (!mounted) return;
       setState(() {
         _related = related;
@@ -66,7 +55,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
 
   Future<void> _loadNavigation() async {
     try {
-      final navigation = await _repository.getFranchiseNavigation(widget.item);
+      final navigation = await _repository.getTypedFranchiseNavigation(widget.item);
       if (!mounted) return;
       setState(() {
         _navigation = navigation;
@@ -99,7 +88,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
     }
     return ChatContext(
       scope: scope,
-      contentId: widget.item['id']?.toString(),
+      contentId: widget.item.id,
       contentTitle: _title,
     );
   }
@@ -120,7 +109,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
             spacing: 10,
             runSpacing: 8,
             children: [
-              if (_type.isNotEmpty) Chip(label: Text(_type.toUpperCase())),
+              if (_type != 'unknown') Chip(label: Text(_type.toUpperCase())),
               if (_franchise.isNotEmpty) Chip(label: Text(_franchise)),
             ],
           ),
@@ -170,7 +159,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
                     width: 220,
                     child: Card(
                       child: ListTile(
-                        title: Text('${item['title'] ?? 'Untitled'}'),
+                        title: Text(item.title),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -228,11 +217,11 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
 
   Widget _navigationCard(
     BuildContext context,
-    Map<String, dynamic>? item,
+    ContentItem? item,
     String label,
     bool current,
   ) {
-    final title = item == null ? '—' : '${item['title'] ?? 'Untitled'}';
+    final title = item == null ? '—' : item.title;
     final enabled = item != null;
     return Card(
       elevation: current ? 8 : 2,
