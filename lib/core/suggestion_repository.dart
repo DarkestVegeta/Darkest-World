@@ -124,6 +124,23 @@ class SuggestionRepository {
   static const allowedSources = {'igdb', 'tmdb'};
   static const allowedContentTypes = {'game', 'movie', 'series'};
 
+  static void _validateSourceContentType(String source, String contentType) {
+    if (!allowedSources.contains(source)) {
+      throw ArgumentError.value(source, 'source', 'Ongeldige externe bron.');
+    }
+    if (!allowedContentTypes.contains(contentType)) {
+      throw ArgumentError.value(contentType, 'contentType', 'Ongeldig contenttype.');
+    }
+    switch ((source, contentType)) {
+      case ('igdb', 'game'):
+      case ('tmdb', 'movie'):
+      case ('tmdb', 'series'):
+        return;
+      default:
+        throw ArgumentError('Bron en type passen niet bij elkaar.');
+    }
+  }
+
   Future<List<WorldSuggestion>> getMySuggestions() async {
     final user = supabase.auth.currentUser;
     if (user == null) return [];
@@ -145,12 +162,7 @@ class SuggestionRepository {
     required String contentType,
     required String query,
   }) async {
-    if (!allowedSources.contains(source)) {
-      throw ArgumentError.value(source, 'source', 'Ongeldige externe bron.');
-    }
-    if (!allowedContentTypes.contains(contentType)) {
-      throw ArgumentError.value(contentType, 'contentType', 'Ongeldig contenttype.');
-    }
+    _validateSourceContentType(source, contentType);
     final cleanQuery = query.trim();
     if (cleanQuery.isEmpty) return [];
 
@@ -158,7 +170,7 @@ class SuggestionRepository {
       ('igdb', 'game') => 'igdb',
       ('tmdb', 'movie') => 'tmdb_movie',
       ('tmdb', 'series') => 'tmdb_tv',
-      _ => throw ArgumentError('Bron en type passen niet bij elkaar.'),
+      _ => throw StateError('Validated source/content type became invalid.'),
     };
 
     final response = await supabase.functions.invoke(
@@ -195,12 +207,7 @@ class SuggestionRepository {
     if (user == null) {
       throw AuthException('Je moet ingelogd zijn om een suggestie te sturen.');
     }
-    if (!allowedSources.contains(source)) {
-      throw ArgumentError.value(source, 'source', 'Ongeldige externe bron.');
-    }
-    if (!allowedContentTypes.contains(contentType)) {
-      throw ArgumentError.value(contentType, 'contentType', 'Ongeldig contenttype.');
-    }
+    _validateSourceContentType(source, contentType);
     if (title.trim().isEmpty) {
       throw ArgumentError.value(title, 'title', 'Titel mag niet leeg zijn.');
     }
