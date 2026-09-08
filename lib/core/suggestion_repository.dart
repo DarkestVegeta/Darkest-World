@@ -124,7 +124,7 @@ class SuggestionRepository {
   static const allowedSources = {'igdb', 'tmdb'};
   static const allowedContentTypes = {'game', 'movie', 'series'};
 
-  static void _validateSourceContentType(String source, String contentType) {
+  static void validateSourceContentType(String source, String contentType) {
     if (!allowedSources.contains(source)) {
       throw ArgumentError.value(source, 'source', 'Ongeldige externe bron.');
     }
@@ -162,7 +162,7 @@ class SuggestionRepository {
     required String contentType,
     required String query,
   }) async {
-    _validateSourceContentType(source, contentType);
+    validateSourceContentType(source, contentType);
     final cleanQuery = query.trim();
     if (cleanQuery.isEmpty) return [];
 
@@ -207,7 +207,7 @@ class SuggestionRepository {
     if (user == null) {
       throw AuthException('Je moet ingelogd zijn om een suggestie te sturen.');
     }
-    _validateSourceContentType(source, contentType);
+    validateSourceContentType(source, contentType);
     if (title.trim().isEmpty) {
       throw ArgumentError.value(title, 'title', 'Titel mag niet leeg zijn.');
     }
