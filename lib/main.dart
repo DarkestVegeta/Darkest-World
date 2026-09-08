@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/access_policy.dart';
 import 'core/world_navigation.dart';
 import 'core/world_sections_repository.dart';
 import 'screens/asset_gallery_page.dart';
@@ -10,6 +11,7 @@ import 'screens/create_your_world_page.dart';
 import 'screens/dark_core_page.dart';
 import 'screens/darkest_vegeta_visual_hub_page.dart';
 import 'screens/events_world_page.dart';
+import 'screens/guest_mode_page.dart';
 import 'screens/identity_world_page.dart';
 import 'screens/marathons_world_page.dart';
 import 'screens/music_world_page.dart';
@@ -50,7 +52,7 @@ class DarkestWorldApp extends StatelessWidget {
       theme: ThemeData.dark(useMaterial3: true),
       home: configurationMissing
           ? const _ConfigurationMissingPage()
-          : const _HomePage(),
+          : const _AccessControlledHome(),
     );
   }
 }
@@ -63,6 +65,42 @@ class _ConfigurationMissingPage extends StatelessWidget {
     return const Scaffold(
       body: Center(child: Text('DarkestWorld configuration is missing.')),
     );
+  }
+}
+
+class _AccessControlledHome extends StatefulWidget {
+  const _AccessControlledHome();
+
+  @override
+  State<_AccessControlledHome> createState() => _AccessControlledHomeState();
+}
+
+class _AccessControlledHomeState extends State<_AccessControlledHome> {
+  late bool _signedIn;
+  late final StreamSubscription<AuthState> _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _signedIn = Supabase.instance.client.auth.currentUser != null;
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (!mounted) return;
+      setState(() => _signedIn = data.session != null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (DarkestWorldAccessPolicy.canEnterGalaxy(signedIn: _signedIn)) {
+      return const _HomePage();
+    }
+    return const GuestModePage();
   }
 }
 
