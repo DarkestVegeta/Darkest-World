@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../core/content_repository.dart';
+
+import '../core/asset_models.dart';
+import '../core/asset_repository.dart';
 
 class AssetGalleryPage extends StatefulWidget {
   final String title;
@@ -16,9 +18,9 @@ class AssetGalleryPage extends StatefulWidget {
 }
 
 class _AssetGalleryPageState extends State<AssetGalleryPage> {
-  final _repository = ContentRepository();
+  final _repository = StorageAssetRepository();
   final _scrollController = ScrollController();
-  final _items = <Map<String, dynamic>>[];
+  final _items = <StorageAsset>[];
   bool _loading = false;
   bool _hasMore = true;
   int _page = 0;
@@ -48,7 +50,7 @@ class _AssetGalleryPageState extends State<AssetGalleryPage> {
     });
 
     try {
-      final page = await _repository.getAssetPage(
+      final page = await _repository.getAssetsPage(
         assetType: widget.assetType,
         page: _page,
       );
@@ -56,7 +58,7 @@ class _AssetGalleryPageState extends State<AssetGalleryPage> {
       setState(() {
         _items.addAll(page);
         _page++;
-        _hasMore = page.length == ContentRepository.pageSize;
+        _hasMore = page.length == StorageAssetRepository.pageSize;
         _loading = false;
       });
     } catch (e) {
@@ -141,7 +143,7 @@ class _AssetGalleryPageState extends State<AssetGalleryPage> {
             childAspectRatio: 1.0,
           ),
           itemCount: _items.length,
-          itemBuilder: (context, index) => _AssetTile(item: _items[index]),
+          itemBuilder: (context, index) => _AssetTile(asset: _items[index]),
         );
       },
     );
@@ -157,18 +159,15 @@ class _AssetGalleryPageState extends State<AssetGalleryPage> {
 }
 
 class _AssetTile extends StatelessWidget {
-  final Map<String, dynamic> item;
+  final StorageAsset asset;
 
-  const _AssetTile({required this.item});
+  const _AssetTile({required this.asset});
 
   @override
   Widget build(BuildContext context) {
-    final title = '${item['title'] ?? 'Untitled'}';
-    final metadata = item['metadata'] is Map
-        ? Map<String, dynamic>.from(item['metadata'] as Map)
-        : <String, dynamic>{};
-    final imageUrl =
-        '${item['public_url'] ?? metadata['public_url'] ?? metadata['image_url'] ?? ''}';
+    final title = asset.title ?? 'Untitled';
+    final imageUrl = asset.publicUrl ??
+        '${asset.metadata['public_url'] ?? asset.metadata['image_url'] ?? ''}'.trim();
 
     return Card(
       clipBehavior: Clip.antiAlias,
