@@ -4,6 +4,7 @@ enum ChatScope {
   series,
   music,
   marathon,
+  chatbox,
 }
 
 class ChatContext {
@@ -31,6 +32,8 @@ class ChatContext {
         return 'Music Chat';
       case ChatScope.marathon:
         return 'Marathon Chat';
+      case ChatScope.chatbox:
+        return 'Chatbox';
     }
   }
 
@@ -49,6 +52,8 @@ class ChatAccessPolicy {
         return ChatScope.series;
       case 'music-world':
         return ChatScope.music;
+      case 'chatbox':
+        return ChatScope.chatbox;
       default:
         return null;
     }
