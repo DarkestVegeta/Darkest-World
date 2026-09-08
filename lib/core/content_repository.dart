@@ -27,7 +27,6 @@ class TypedFranchiseNavigation {
 
 class ContentRepository {
   static const int pageSize = 36;
-  static const int testAssetCount = 10;
 
   Future<List<Map<String, dynamic>>> getContentPage({
     String? type,
