@@ -124,7 +124,7 @@ Status: FIXED / SECURITY ADVISOR CLEAN / CI GREEN
 ### Round 26 — Timeline / Chronology construction layer
 Status: IMPLEMENTED / TEST ADDED / CI GREEN
 
-- Fresh control check was completed before implementation; the Round 25 CI chain was green and the existing architecture was preserved.
+- Fresh read-only control was completed before implementation; the Round 25 CI chain was green and the existing architecture was preserved.
 - Added a dedicated `Timeline` navigation destination without changing the existing world-section database rows.
 - Added `TimelineWorldPage` as the first construction layer for the Notion-defined Timeline / Chronology concept.
 - The page documents cross-media chronology such as `Game → Game → Movie → Series → Game`, supporting Games, Movies, Series, franchise timelines and related content.
@@ -241,6 +241,31 @@ Status: IMPLEMENTED / TEST ADDED / CI PENDING
 - Supabase Security Advisor remains clean with zero findings.
 - GitHub currently exposes no workflow run or commit status for the Round 35 head, so CI is pending/unobservable rather than being claimed green.
 
+### Round 38 — viewer IGDB/TMDB lookup and suggestion selection
+Status: IMPLEMENTED / READ-ONLY EXTERNAL LOOKUP / CI GREEN
+
+- Confirmed the project rule: Games, Movies, and Series are never automatically added to `darkestworld_content`; the user must explicitly approve a suggestion before content is added.
+- Repurposed the existing `darkestworld-content-import` Edge Function into a read-only viewer lookup endpoint. It now queries IGDB or TMDB, normalizes results, and does not write to `darkestworld_content`.
+- Preserved JWT verification on the Edge Function; the external API credentials remain server-side.
+- Added typed `ViewerContentResult` handling to `SuggestionRepository` and mapped IGDB Games, TMDB Films, and TMDB Series to the lookup endpoint.
+- Reworked the Suggestions UI so a viewer searches by title, selects an external result, and sends that result as a suggestion rather than manually entering external IDs or Soul Points.
+- User-facing suggestion submission sends `soulPoints: 0`; the viewer does not control Soul Points.
+- Existing authenticated-only suggestion RLS remains unchanged: viewers must be signed in to insert/read their own suggestions.
+- No content rows were added, no bulk import was performed, and existing artboxes/storage/Dropbox import security were untouched.
+
+### Round 39 — public viewer lookup alignment
+Status: IMPLEMENTED / TEST ADDED / CI PENDING
+
+- Fresh read-only control was completed before this round across the current GitHub head, recent commit history, CI workflow state, audit log, relevant suggestion code/tests, Supabase public schema, RLS policies, migrations, row counts, and active Edge Functions.
+- Confirmed current live head before modification was `378d53cb9e8214cd61636fe12700c7b7d470f716` and GitHub Actions run #231 for that head completed successfully.
+- Confirmed all exposed public tables have RLS enabled. `darkestworld_content`, relations, and timeline are public read-only; `darkestworld_suggestions` permits INSERT/SELECT only for authenticated users with ownership checks.
+- Confirmed live counts remain: 12 sections, 948 storage assets, 8 active social profiles, and 0 rows in content, relations, timeline, events, marathons, social posts, and suggestions.
+- Confirmed `darkestworld-content-import` is active at version 2 with JWT verification enabled and is strictly read-only toward `darkestworld_content`.
+- Aligned the Suggestions UI with the viewer rule that IGDB/TMDB lookup is viewer-facing: signed-out visitors can now open the lookup dialog and search Games, Films, and Series without logging in.
+- Suggestion submission remains authenticated-only because the existing database contract and RLS require `submitted_by` ownership; the UI now clearly communicates that login is needed only for sending the selected suggestion.
+- Added regression coverage for complete and incomplete `ViewerContentResult` parsing, including the TMDB source fallback.
+- No database migration, database row, stored image, Dropbox source, artbox, Edge Function, or security policy was modified.
+
 ## Current next queue
 
 1. Foundation remains green and security-verified.
@@ -259,7 +284,9 @@ Status: IMPLEMENTED / TEST ADDED / CI PENDING
 14. Round 33 typed content navigation/UI migration is implemented; its CI status remains unobservable.
 15. Round 34 completes the storage-asset UI migration; its CI status remains pending/unobservable.
 16. Round 35 makes Timeline World live against the existing typed chronology repository; CI status remains pending/unobservable.
-17. Next round must again begin with a fresh read-only control of the current GitHub and Supabase state and must preserve existing data, artboxes, stored images, and the SNES Dropbox import/security architecture.
-18. Do not reopen Notion unless a concrete unresolved design or decision requires verification.
-19. Do not choose DarkestWall merely because it is open; it remains intentionally deferred.
-20. Avoid duplicate work and looping: every proposed round must address a verified open gap and be marked DONE / OPEN / BLOCKED / NOT NEEDED.
+17. Round 38 implements the viewer-only IGDB/TMDB lookup and explicit suggestion flow; no automatic content import is allowed.
+18. Round 39 makes viewer lookup available before login while preserving authenticated-only suggestion writes.
+19. Next round must again begin with a fresh read-only control of the current GitHub and Supabase state and must preserve existing data, artboxes, stored images, and the SNES Dropbox import/security architecture.
+20. Do not reopen Notion unless a concrete unresolved design or decision requires verification.
+21. Do not choose DarkestWall merely because it is open; it remains intentionally deferred.
+22. Avoid duplicate work and looping: every proposed round must address a verified open gap and be marked DONE / OPEN / BLOCKED / NOT NEEDED.
