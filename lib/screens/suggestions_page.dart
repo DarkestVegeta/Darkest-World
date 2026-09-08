@@ -95,8 +95,8 @@ class _SuggestionsPageState extends State<SuggestionsPage> {
               const SizedBox(height: 8),
               Text(
                 _signedIn
-                    ? 'Zoek games, films of series op IGDB/TMDB. Darkest-World bewaart alleen de minimale gegevens van wat je wilt voorstellen.'
-                    : 'Log in om suggesties te bekijken en in te dienen. Darkest-World bewaart alleen de minimale gegevens van wat je wilt voorstellen.',
+                    ? 'Zoek games, films of series via IGDB/TMDB en stuur alleen een suggestie. Een suggestie wordt nooit automatisch aan Darkest-World toegevoegd.'
+                    : 'Log in om een suggestie te sturen. Een suggestie wordt nooit automatisch aan Darkest-World toegevoegd.',
               ),
               const SizedBox(height: 18),
               FilledButton.icon(
@@ -139,7 +139,7 @@ class _SuggestionsPageState extends State<SuggestionsPage> {
                             ),
                       title: Text(suggestion.title),
                       subtitle: Text(
-                        '${suggestion.contentType} • ${suggestion.source.toUpperCase()} • ${suggestion.soulPoints} Zielen • ${suggestion.status}',
+                        '${suggestion.contentType} • ${suggestion.source.toUpperCase()} • ${suggestion.status}',
                       ),
                     ),
                   ),
@@ -160,46 +160,89 @@ class _SubmitSuggestionDialog extends StatefulWidget {
 
 class _SubmitSuggestionDialogState extends State<_SubmitSuggestionDialog> {
   final _repository = SuggestionRepository();
-  final _formKey = GlobalKey<FormState>();
-  final _externalId = TextEditingController();
-  final _title = TextEditingController();
-  final _imageUrl = TextEditingController();
-  final _soulPoints = TextEditingController(text: '0');
+  final _queryController = TextEditingController();
+  List<ViewerContentResult> _results = const [];
+  ViewerContentResult? _selected;
   String _source = 'igdb';
   String _contentType = 'game';
+  bool _searching = false;
   bool _saving = false;
+  String? _error;
 
   @override
   void dispose() {
-    _externalId.dispose();
-    _title.dispose();
-    _imageUrl.dispose();
-    _soulPoints.dispose();
+    _queryController.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (_saving || !(_formKey.currentState?.validate() ?? false)) return;
-    setState(() => _saving = true);
+  Future<void> _search() async {
+    if (_searching || _saving) return;
+    final query = _queryController.text.trim();
+    if (query.isEmpty) {
+      setState(() => _error = 'Vul eerst een titel in om te zoeken.');
+      return;
+    }
+
+    setState(() {
+      _searching = true;
+      _error = null;
+      _selected = null;
+      _results = const [];
+    });
+
     try {
-      await _repository.submit(
+      final results = await _repository.searchViewerContent(
         source: _source,
         contentType: _contentType,
-        externalId: _externalId.text,
-        title: _title.text,
-        imageUrl: _imageUrl.text,
-        soulPoints: int.parse(_soulPoints.text.trim()),
+        query: query,
+      );
+      if (!mounted) return;
+      setState(() => _results = results);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = 'Zoeken mislukt: $e');
+    } finally {
+      if (mounted) setState(() => _searching = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    final selected = _selected;
+    if (_saving || selected == null) return;
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      await _repository.submit(
+        source: selected.source,
+        contentType: selected.contentType,
+        externalId: selected.externalId,
+        title: selected.title,
+        imageUrl: selected.imageUrl,
+        soulPoints: 0,
       );
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Suggestie indienen mislukt: $e')),
-      );
+      setState(() => _error = 'Suggestie indienen mislukt: $e');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  void _changeSource(String value) {
+    final contentType = value == 'igdb' ? 'game' : 'movie';
+    setState(() {
+      _source = value;
+      _contentType = contentType;
+      _results = const [];
+      _selected = null;
+      _error = null;
+    });
   }
 
   @override
@@ -207,62 +250,130 @@ class _SubmitSuggestionDialogState extends State<_SubmitSuggestionDialog> {
     return AlertDialog(
       title: const Text('Nieuwe suggestie'),
       content: SizedBox(
-        width: 520,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: _source,
-                  decoration: const InputDecoration(labelText: 'Bron'),
-                  items: const [
-                    DropdownMenuItem(value: 'igdb', child: Text('IGDB')),
-                    DropdownMenuItem(value: 'tmdb', child: Text('TMDB')),
+        width: 620,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Zoek eerst de officiële titel. Alleen het door jou gekozen resultaat wordt als suggestie verstuurd.',
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _source,
+                      decoration: const InputDecoration(labelText: 'Bron'),
+                      items: const [
+                        DropdownMenuItem(value: 'igdb', child: Text('IGDB — Games')),
+                        DropdownMenuItem(value: 'tmdb', child: Text('TMDB — Films/Series')),
+                      ],
+                      onChanged: _searching || _saving
+                          ? null
+                          : (value) => _changeSource(value!),
+                    ),
+                  ),
+                  if (_source == 'tmdb') ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _contentType,
+                        decoration: const InputDecoration(labelText: 'Type'),
+                        items: const [
+                          DropdownMenuItem(value: 'movie', child: Text('Film')),
+                          DropdownMenuItem(value: 'series', child: Text('Serie')),
+                        ],
+                        onChanged: _searching || _saving
+                            ? null
+                            : (value) => setState(() {
+                                  _contentType = value!;
+                                  _results = const [];
+                                  _selected = null;
+                                }),
+                      ),
+                    ),
                   ],
-                  onChanged: _saving ? null : (value) => setState(() => _source = value!),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _queryController,
+                enabled: !_searching && !_saving,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => _search(),
+                decoration: InputDecoration(
+                  labelText: 'Zoek op titel',
+                  hintText: _contentType == 'game' ? 'Bijv. Halo' : 'Bijv. Alien',
+                  suffixIcon: IconButton(
+                    tooltip: 'Zoeken',
+                    onPressed: _searching || _saving ? null : _search,
+                    icon: _searching
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.search),
+                  ),
                 ),
-                DropdownButtonFormField<String>(
-                  initialValue: _contentType,
-                  decoration: const InputDecoration(labelText: 'Type'),
-                  items: const [
-                    DropdownMenuItem(value: 'game', child: Text('Game')),
-                    DropdownMenuItem(value: 'movie', child: Text('Movie')),
-                    DropdownMenuItem(value: 'series', child: Text('Series')),
-                  ],
-                  onChanged: _saving ? null : (value) => setState(() => _contentType = value!),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ],
+              if (!_searching && _results.isEmpty && _queryController.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text('Geen resultaten gevonden.'),
+              ],
+              if (_results.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Kies een resultaat',
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
-                TextFormField(
-                  controller: _externalId,
-                  decoration: const InputDecoration(labelText: 'IGDB/TMDB ID'),
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Externe ID is verplicht.'
-                      : null,
-                ),
-                TextFormField(
-                  controller: _title,
-                  decoration: const InputDecoration(labelText: 'Titel'),
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Titel is verplicht.'
-                      : null,
-                ),
-                TextFormField(
-                  controller: _imageUrl,
-                  decoration: const InputDecoration(labelText: 'Afbeelding URL (optioneel)'),
-                ),
-                TextFormField(
-                  controller: _soulPoints,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Zielenpunten'),
-                  validator: (value) {
-                    final parsed = int.tryParse(value?.trim() ?? '');
-                    if (parsed == null || parsed < 0) return 'Gebruik 0 of een positief getal.';
-                    return null;
-                  },
+                const SizedBox(height: 8),
+                for (final result in _results)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      selected: identical(_selected, result),
+                      leading: result.imageUrl == null
+                          ? const Icon(Icons.movie_outlined)
+                          : Image.network(
+                              result.imageUrl!,
+                              width: 48,
+                              height: 64,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),
+                            ),
+                      title: Text(result.title),
+                      subtitle: Text(
+                        [
+                          result.releaseDate,
+                          result.description,
+                        ].whereType<String>().where((value) => value.isNotEmpty).join(' • '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: identical(_selected, result)
+                          ? const Icon(Icons.check_circle)
+                          : null,
+                      onTap: _saving ? null : () => setState(() => _selected = result),
+                    ),
+                  ),
+              ],
+              if (_selected != null) ...[
+                const SizedBox(height: 8),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text('Gekozen: ${_selected!.title}'),
+                  ),
                 ),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -271,15 +382,16 @@ class _SubmitSuggestionDialogState extends State<_SubmitSuggestionDialog> {
           onPressed: _saving ? null : () => Navigator.pop(context),
           child: const Text('Annuleren'),
         ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
+        FilledButton.icon(
+          onPressed: _saving || _selected == null ? null : _submit,
+          icon: _saving
               ? const SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Indienen'),
+              : const Icon(Icons.send),
+          label: const Text('Suggestie sturen'),
         ),
       ],
     );
