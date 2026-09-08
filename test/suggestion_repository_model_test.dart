@@ -66,6 +66,32 @@ void main() {
     expect(SuggestionRepository.allowedContentTypes, containsAll(['game', 'movie', 'series']));
   });
 
+  test('enforces valid source and content type pairings', () {
+    for (final pair in [
+      ('igdb', 'game'),
+      ('tmdb', 'movie'),
+      ('tmdb', 'series'),
+    ]) {
+      expect(
+        () => SuggestionRepository.validateSourceContentType(pair.$1, pair.$2),
+        returnsNormally,
+      );
+    }
+
+    for (final pair in [
+      ('igdb', 'movie'),
+      ('igdb', 'series'),
+      ('tmdb', 'game'),
+      ('other', 'game'),
+      ('tmdb', 'other'),
+    ]) {
+      expect(
+        () => SuggestionRepository.validateSourceContentType(pair.$1, pair.$2),
+        throwsA(isA<ArgumentError>()),
+      );
+    }
+  });
+
   test('parses a complete viewer game lookup result', () {
     final result = ViewerContentResult.fromMap({
       'external_source': 'igdb',
