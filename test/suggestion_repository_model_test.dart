@@ -119,4 +119,46 @@ void main() {
       expect(() => ViewerContentResult.fromMap(row), throwsA(isA<FormatException>()));
     }
   });
+
+  test('returns no viewer lookup results for a blank query without calling the network', () async {
+    final results = await SuggestionRepository().searchViewerContent(
+      source: 'igdb',
+      contentType: 'game',
+      query: '   ',
+    );
+    expect(results, isEmpty);
+  });
+
+  test('rejects unsupported viewer lookup sources before calling the network', () async {
+    expect(
+      () => SuggestionRepository().searchViewerContent(
+        source: 'other',
+        contentType: 'game',
+        query: 'Halo',
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+  });
+
+  test('rejects unsupported viewer lookup content types before calling the network', () async {
+    expect(
+      () => SuggestionRepository().searchViewerContent(
+        source: 'igdb',
+        contentType: 'movie',
+        query: 'Halo',
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+  });
+
+  test('rejects mismatched viewer lookup source and content type before calling the network', () async {
+    expect(
+      () => SuggestionRepository().searchViewerContent(
+        source: 'tmdb',
+        contentType: 'game',
+        query: 'Halo',
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+  });
 }
