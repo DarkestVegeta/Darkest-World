@@ -36,6 +36,9 @@ class ChatSearchRepository {
     if (scope == ChatScope.music || scope == ChatScope.marathon) {
       return _searchMessages(scope, normalized, contentId: contentId, limit: limit);
     }
+    if (scope == ChatScope.chatbox) {
+      return [];
+    }
 
     final safe = escapeIlikeQuery(normalized)
         .replaceAll(RegExp(r"[,()]"), ' ')
@@ -108,6 +111,7 @@ class ChatSearchRepository {
         return 'series';
       case ChatScope.music:
       case ChatScope.marathon:
+      case ChatScope.chatbox:
         throw ArgumentError('This scope does not map to content.');
     }
   }
