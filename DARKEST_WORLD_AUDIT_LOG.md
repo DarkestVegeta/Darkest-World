@@ -128,7 +128,6 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - Added a dedicated `Timeline` navigation destination without changing the existing world-section database rows.
 - Added `TimelineWorldPage` as the first construction layer for the Notion-defined Timeline / Chronology concept.
 - The page documents cross-media chronology such as `Game → Game → Movie → Series → Game`, supporting Games, Movies, Series, franchise timelines and related content.
-- Added a navigation regression test and a widget regression test.
 - The page is explicitly read-only and does not create or modify timeline data.
 - Supabase live SQL access was unavailable during this round, so no database migration or timeline schema change was attempted; this avoids guessing the existing timeline table contract.
 - No database rows, artboxes, or stored images were changed.
@@ -200,6 +199,33 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 - GitHub Actions run #211 (`34161926729`) completed successfully on head `1b119c400e1ef16a68f2527eb0ebf0571f8c33b1`: Flutter analyze and the full Flutter test suite passed.
 - No database migration or rows were changed. Existing artboxes and stored images remain untouched.
 
+### Round 33 — typed content navigation and UI migration
+Status: IMPLEMENTED / CI NOT EXPOSED
+
+- Added the typed `TypedFranchiseNavigation` bridge in `ContentRepository` while preserving the existing map-based navigation API.
+- Migrated `ContentBrowserPage` to `ContentItem` and migrated `ContentDetailPage` to typed content/navigation/related items.
+- Preserved the established `Previous | CURRENT | Next` layout, with CURRENT visually larger, and kept `Related` separate.
+- Added a regression test for the typed navigation bridge.
+- Current head after the Round 33 test correction is `4b02439edebd6eb935f5b32bcab3a037196150a9`.
+- GitHub workflow/status lookup exposes no run or status for this push, so Round 33 is not being marked CI-green.
+- No database migration or rows were changed. Existing artboxes, stored images, and the SNES import/security architecture remain untouched.
+
+### Round 34 — complete typed storage-asset UI migration
+Status: IMPLEMENTED / SECURITY VERIFIED / CI PENDING
+
+- Fresh read-only control was completed before implementation across the current GitHub tree, recent commit history, audit log, Flutter CI workflow, Supabase schema/migrations, RLS policies, write grants, Edge Functions, and Security Advisor.
+- Confirmed current GitHub head before implementation was `4b02439edebd6eb935f5b32bcab3a037196150a9`; Round 33 remains unchanged.
+- Confirmed live Supabase `storage_assets` contains 948 rows: 947 `snes_sealed` assets, 1 generic `image` asset, 862 public `snes_sealed` URLs, and exactly 10 fixed test assets.
+- Confirmed live `darkestworld_content`, `darkestworld_content_relations`, and `darkestworld_timeline` remain empty, so no production content data was fabricated or imported.
+- Confirmed Supabase Security Advisor currently reports zero security findings.
+- Confirmed anonymous `INSERT/UPDATE/DELETE` grants are absent; authenticated inserts remain limited to chat messages and suggestions. Public asset reads remain restricted to rows with `public_url IS NOT NULL`.
+- Confirmed the existing `snes-sealed-import` remains active at version 13 with its custom internal token security and was not modified or triggered.
+- Migrated `AssetGalleryPage` from the legacy map-based `ContentRepository` asset calls to the typed `StorageAssetRepository` / `StorageAsset` layer.
+- Migrated `TestAssetLabPage` to the same typed storage layer while preserving the fixed 10-artbox test set and its non-destructive behavior.
+- Moved the fixed test-set count into `StorageAssetRepository` and removed the obsolete asset read/test methods from `ContentRepository`, completing the separation between content access and storage-asset access.
+- No database migration, database row, stored image, Dropbox source, artbox, Edge Function, or security policy was modified.
+- CI workflow configuration remains unchanged. GitHub currently exposes no workflow run or commit status for the new head `40612b43a491ad695951bd5b1e4b73a488f6fda0`, so CI is pending/unobservable rather than being claimed green.
+
 ## Current next queue
 
 1. Foundation remains green and security-verified.
@@ -215,7 +241,8 @@ Status: IMPLEMENTED / TEST ADDED / CI GREEN
 11. Round 30 typed Timeline contract/repository foundation is complete and CI-green.
 12. Round 31 unified typed content catalog/readiness layer is complete and CI-green.
 13. Round 32 typed storage asset contract/readiness layer is complete and CI-green.
-14. Next round must begin with a fresh read-only control of the current GitHub and Supabase state and must preserve existing data, artboxes, stored images, and the SNES Dropbox import/security architecture.
-15. Do not reopen Notion unless a concrete unresolved design or decision requires verification.
-16. Do not choose DarkestWall merely because it is open; it remains intentionally deferred.
-17. Avoid duplicate work and looping: every proposed round must address a verified open gap and be marked DONE / OPEN / BLOCKED / NOT NEEDED.
+14. Round 33 typed content navigation/UI migration is implemented; its CI status remains unobservable.
+15. Round 34 completes the storage-asset UI migration; its CI status remains pending/unobservable.
+16. Next round must again begin with a fresh read-only control of the current GitHub and Supabase state and must preserve existing data, artboxes, stored images, and the SNES Dropbox import/security architecture.
+17. Do not reopen Notion unless a concrete unresolved design or decision requires verification.
+18. Do not choose DarkestWall merely because it is open; it remains intentionally deferred.
