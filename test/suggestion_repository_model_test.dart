@@ -65,4 +65,58 @@ void main() {
     expect(SuggestionRepository.allowedSources, containsAll(['igdb', 'tmdb']));
     expect(SuggestionRepository.allowedContentTypes, containsAll(['game', 'movie', 'series']));
   });
+
+  test('parses a complete viewer game lookup result', () {
+    final result = ViewerContentResult.fromMap({
+      'external_source': 'igdb',
+      'content_type': 'game',
+      'external_id': '12345',
+      'title': 'Test Game',
+      'image_url': 'https://example.com/game.jpg',
+      'release_date': '2026-01-02',
+      'description': 'A test game.',
+    });
+
+    expect(result.source, 'igdb');
+    expect(result.contentType, 'game');
+    expect(result.externalId, '12345');
+    expect(result.title, 'Test Game');
+    expect(result.imageUrl, 'https://example.com/game.jpg');
+    expect(result.releaseDate, '2026-01-02');
+    expect(result.description, 'A test game.');
+  });
+
+  test('parses a complete viewer TMDB result using source fallback', () {
+    final result = ViewerContentResult.fromMap({
+      'source': 'tmdb',
+      'content_type': 'series',
+      'external_id': '67890',
+      'title': 'Test Series',
+      'image_url': null,
+      'release_date': null,
+      'description': null,
+    });
+
+    expect(result.source, 'tmdb');
+    expect(result.contentType, 'series');
+    expect(result.externalId, '67890');
+    expect(result.title, 'Test Series');
+    expect(result.imageUrl, isNull);
+    expect(result.releaseDate, isNull);
+    expect(result.description, isNull);
+  });
+
+  test('rejects incomplete viewer lookup results', () {
+    final base = <String, dynamic>{
+      'external_source': 'igdb',
+      'content_type': 'game',
+      'external_id': '12345',
+      'title': 'Test Game',
+    };
+
+    for (final key in ['external_source', 'content_type', 'external_id', 'title']) {
+      final row = {...base, key: '   '};
+      expect(() => ViewerContentResult.fromMap(row), throwsA(isA<FormatException>()));
+    }
+  });
 }
