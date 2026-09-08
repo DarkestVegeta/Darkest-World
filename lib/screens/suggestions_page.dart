@@ -44,7 +44,6 @@ class _SuggestionsPageState extends State<SuggestionsPage> {
   }
 
   Future<void> _openSubmitForm() async {
-    if (!_signedIn) return;
     final submitted = await showDialog<bool>(
       context: context,
       builder: (_) => const _SubmitSuggestionDialog(),
@@ -96,53 +95,55 @@ class _SuggestionsPageState extends State<SuggestionsPage> {
               Text(
                 _signedIn
                     ? 'Zoek games, films of series via IGDB/TMDB en stuur alleen een suggestie. Een suggestie wordt nooit automatisch aan Darkest-World toegevoegd.'
-                    : 'Log in om een suggestie te sturen. Een suggestie wordt nooit automatisch aan Darkest-World toegevoegd.',
+                    : 'Zoek games, films of series via IGDB/TMDB zonder in te loggen. Log in wanneer je het gekozen resultaat als suggestie wilt versturen. Een suggestie wordt nooit automatisch aan Darkest-World toegevoegd.',
               ),
               const SizedBox(height: 18),
               FilledButton.icon(
-                onPressed: _signedIn ? _openSubmitForm : null,
+                onPressed: _openSubmitForm,
                 icon: const Icon(Icons.add),
-                label: const Text('Suggestie indienen'),
+                label: const Text('Zoeken / suggestie indienen'),
               ),
               const SizedBox(height: 28),
-              const Text(
-                'Mijn suggesties',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              if (suggestions.isEmpty)
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text('Nog geen suggesties ingediend.'),
-                  ),
-                )
-              else
-                for (final suggestion in suggestions)
-                  Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      leading: suggestion.imageUrl == null
-                          ? const SizedBox(
-                              width: 56,
-                              child: Icon(Icons.image_outlined),
-                            )
-                          : Image.network(
-                              suggestion.imageUrl!,
-                              width: 56,
-                              height: 72,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const SizedBox(
+              if (_signedIn) ...[
+                const Text(
+                  'Mijn suggesties',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                if (suggestions.isEmpty)
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text('Nog geen suggesties ingediend.'),
+                    ),
+                  )
+                else
+                  for (final suggestion in suggestions)
+                    Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: suggestion.imageUrl == null
+                            ? const SizedBox(
                                 width: 56,
-                                child: Icon(Icons.broken_image_outlined),
+                                child: Icon(Icons.image_outlined),
+                              )
+                            : Image.network(
+                                suggestion.imageUrl!,
+                                width: 56,
+                                height: 72,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const SizedBox(
+                                  width: 56,
+                                  child: Icon(Icons.broken_image_outlined),
+                                ),
                               ),
-                            ),
-                      title: Text(suggestion.title),
-                      subtitle: Text(
-                        '${suggestion.contentType} • ${suggestion.source.toUpperCase()} • ${suggestion.status}',
+                        title: Text(suggestion.title),
+                        subtitle: Text(
+                          '${suggestion.contentType} • ${suggestion.source.toUpperCase()} • ${suggestion.status}',
+                        ),
                       ),
                     ),
-                  ),
+              ],
             ],
           );
         },
@@ -247,6 +248,8 @@ class _SubmitSuggestionDialogState extends State<_SubmitSuggestionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final signedIn = supabase.auth.currentUser != null;
+
     return AlertDialog(
       title: const Text('Nieuwe suggestie'),
       content: SizedBox(
@@ -256,8 +259,10 @@ class _SubmitSuggestionDialogState extends State<_SubmitSuggestionDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Zoek eerst de officiële titel. Alleen het door jou gekozen resultaat wordt als suggestie verstuurd.',
+              Text(
+                signedIn
+                    ? 'Zoek eerst de officiële titel. Alleen het door jou gekozen resultaat wordt als suggestie verstuurd.'
+                    : 'Zoek hier vrij naar een game, film of serie. Je hoeft niet ingelogd te zijn om te zoeken; inloggen is nodig om het gekozen resultaat als suggestie te versturen.',
               ),
               const SizedBox(height: 16),
               Row(
@@ -383,7 +388,7 @@ class _SubmitSuggestionDialogState extends State<_SubmitSuggestionDialog> {
           child: const Text('Annuleren'),
         ),
         FilledButton.icon(
-          onPressed: _saving || _selected == null ? null : _submit,
+          onPressed: _saving || _selected == null || !signedIn ? null : _submit,
           icon: _saving
               ? const SizedBox(
                   width: 18,
@@ -391,7 +396,7 @@ class _SubmitSuggestionDialogState extends State<_SubmitSuggestionDialog> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.send),
-          label: const Text('Suggestie sturen'),
+          label: Text(signedIn ? 'Suggestie sturen' : 'Log in om te sturen'),
         ),
       ],
     );
