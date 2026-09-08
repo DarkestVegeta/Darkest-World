@@ -74,6 +74,52 @@ class WorldSuggestion {
   }
 }
 
+class ViewerContentResult {
+  final String source;
+  final String contentType;
+  final String externalId;
+  final String title;
+  final String? imageUrl;
+  final String? releaseDate;
+  final String? description;
+
+  const ViewerContentResult({
+    required this.source,
+    required this.contentType,
+    required this.externalId,
+    required this.title,
+    required this.imageUrl,
+    required this.releaseDate,
+    required this.description,
+  });
+
+  factory ViewerContentResult.fromMap(Map<String, dynamic> row) {
+    final source = '${row['external_source'] ?? row['source'] ?? ''}'.trim();
+    final contentType = '${row['content_type'] ?? ''}'.trim();
+    final externalId = '${row['external_id'] ?? ''}'.trim();
+    final title = '${row['title'] ?? ''}'.trim();
+    if (source.isEmpty || externalId.isEmpty || title.isEmpty || contentType.isEmpty) {
+      throw const FormatException('Viewer content result is incomplete.');
+    }
+
+    return ViewerContentResult(
+      source: source,
+      contentType: contentType,
+      externalId: externalId,
+      title: title,
+      imageUrl: row['image_url']?.toString().trim().isEmpty == true
+          ? null
+          : row['image_url']?.toString().trim(),
+      releaseDate: row['release_date']?.toString().trim().isEmpty == true
+          ? null
+          : row['release_date']?.toString().trim(),
+      description: row['description']?.toString().trim().isEmpty == true
+          ? null
+          : row['description']?.toString().trim(),
+    );
+  }
+}
+
 class SuggestionRepository {
   static const allowedSources = {'igdb', 'tmdb'};
   static const allowedContentTypes = {'game', 'movie', 'series'};
@@ -91,6 +137,49 @@ class SuggestionRepository {
     return [
       for (final row in response)
         WorldSuggestion.fromMap(Map<String, dynamic>.from(row)),
+    ];
+  }
+
+  Future<List<ViewerContentResult>> searchViewerContent({
+    required String source,
+    required String contentType,
+    required String query,
+  }) async {
+    if (!allowedSources.contains(source)) {
+      throw ArgumentError.value(source, 'source', 'Ongeldige externe bron.');
+    }
+    if (!allowedContentTypes.contains(contentType)) {
+      throw ArgumentError.value(contentType, 'contentType', 'Ongeldig contenttype.');
+    }
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) return [];
+
+    final functionSource = switch ((source, contentType)) {
+      ('igdb', 'game') => 'igdb',
+      ('tmdb', 'movie') => 'tmdb_movie',
+      ('tmdb', 'series') => 'tmdb_tv',
+      _ => throw ArgumentError('Bron en type passen niet bij elkaar.'),
+    };
+
+    final response = await supabase.functions.invoke(
+      'darkestworld-content-import',
+      body: {'source': functionSource, 'query': cleanQuery},
+    );
+
+    final data = response.data;
+    if (data is! Map) {
+      throw const FormatException('Externe zoekopdracht gaf geen geldig antwoord.');
+    }
+    if (data['ok'] != true) {
+      throw Exception('${data['error'] ?? 'Externe zoekopdracht mislukt.'}');
+    }
+
+    final rawItems = data['items'];
+    if (rawItems is! List) return [];
+    return [
+      for (final row in rawItems)
+        if (row is Map)
+          ViewerContentResult.fromMap(Map<String, dynamic>.from(row)),
     ];
   }
 
