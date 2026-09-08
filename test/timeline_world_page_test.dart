@@ -60,8 +60,15 @@ void main() {
 
     expect(find.text('Live chronology'), findsOneWidget);
     expect(find.text('Game One'), findsOneWidget);
-    expect(find.text('Movie One'), findsOneWidget);
     expect(find.text('GAME'), findsOneWidget);
+    expect(find.text('MOVIE'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('Movie One'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Movie One'), findsOneWidget);
     expect(find.text('MOVIE'), findsOneWidget);
     expect(find.text('Construction layer'), findsNothing);
   });
