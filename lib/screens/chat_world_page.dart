@@ -11,11 +11,13 @@ import '../core/supabase_client.dart';
 class ChatWorldPage extends StatefulWidget {
   final ChatContext? context;
   final bool marathonChatActive;
+  final bool guestMode;
 
   const ChatWorldPage({
     super.key,
     this.context,
     this.marathonChatActive = false,
+    this.guestMode = false,
   });
 
   @override
@@ -23,6 +25,8 @@ class ChatWorldPage extends StatefulWidget {
 }
 
 class _ChatWorldPageState extends State<ChatWorldPage> {
+  static const _guestMessageLimit = 100;
+
   final _repository = ChatRepository();
   final _searchRepository = ChatSearchRepository();
   final _messageController = TextEditingController();
@@ -37,6 +41,8 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
   String? _searchError;
   String? _selectedContentId;
   String? _selectedContentTitle;
+  late final String _guestName;
+  int _guestMessagesSent = 0;
 
   @override
   void initState() {
@@ -45,8 +51,12 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
     if (_scope == ChatScope.marathon && !widget.marathonChatActive) {
       _scope = ChatScope.games;
     }
+    if (widget.guestMode) {
+      _scope = ChatScope.chatbox;
+    }
     _selectedContentId = widget.context?.contentId;
     _selectedContentTitle = widget.context?.contentTitle;
+    _guestName = ChatRepository.createGuestName();
     _signedIn = supabase.auth.currentUser != null;
     _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
       if (!mounted) return;
@@ -55,9 +65,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
         _searchResults = [];
         _searchError = null;
         _messageStream = null;
-        if (_signedIn) {
-          _resetStream();
-        }
+        _resetStream();
       });
     });
     _resetStream();
@@ -82,7 +90,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
 
   void _resetStream() {
     final active = _activeContext;
-    if (!_signedIn || !active.isAvailable) {
+    if ((!_signedIn && !widget.guestMode) || !active.isAvailable) {
       _messageStream = null;
       return;
     }
@@ -116,10 +124,12 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
       return;
     }
 
-    if ((_scope == ChatScope.music || _scope == ChatScope.marathon) && !_signedIn) {
+    if (widget.guestMode ||
+        ((_scope == ChatScope.music || _scope == ChatScope.marathon) &&
+            !_signedIn)) {
       setState(() {
         _searchResults = [];
-        _searchError = 'Log in om in chatberichten te zoeken.';
+        _searchError = 'Zoeken in chatberichten is niet beschikbaar voor Guests.';
       });
       return;
     }
@@ -166,7 +176,29 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
   }
 
   Future<void> _sendMessage() async {
-    if (_sending || !_signedIn) return;
+    if (_sending) return;
+    if (widget.guestMode) {
+      if (_guestMessagesSent >= _guestMessageLimit) return;
+      setState(() => _sending = true);
+      try {
+        await _repository.sendGuestMessage(
+          guestName: _guestName,
+          message: _messageController.text,
+        );
+        _messageController.clear();
+        if (mounted) setState(() => _guestMessagesSent++);
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Bericht versturen mislukt: $e')),
+        );
+      } finally {
+        if (mounted) setState(() => _sending = false);
+      }
+      return;
+    }
+
+    if (!_signedIn) return;
     final active = _activeContext;
     if (!active.isAvailable) return;
 
@@ -189,22 +221,25 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scopes = ChatAccessPolicy.allowedScopesForFullscreen(
-      marathonChatActive: widget.marathonChatActive,
-    );
+    final scopes = widget.guestMode
+        ? const <ChatScope>[ChatScope.chatbox]
+        : ChatAccessPolicy.allowedScopesForFullscreen(
+            marathonChatActive: widget.marathonChatActive,
+          );
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_title),
         actions: [
-          PopupMenuButton<ChatScope>(
-            tooltip: 'Chat kiezen',
-            onSelected: _selectScope,
-            itemBuilder: (_) => [
-              for (final scope in scopes)
-                PopupMenuItem(value: scope, child: Text(_scopeLabel(scope))),
-            ],
-          ),
+          if (!widget.guestMode)
+            PopupMenuButton<ChatScope>(
+              tooltip: 'Chat kiezen',
+              onSelected: _selectScope,
+              itemBuilder: (_) => [
+                for (final scope in scopes)
+                  PopupMenuItem(value: scope, child: Text(_scopeLabel(scope))),
+              ],
+            ),
         ],
       ),
       body: Row(
@@ -218,6 +253,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
   }
 
   String get _title {
+    if (widget.guestMode) return 'Chatbox';
     final contentTitle = _activeContext.contentTitle;
     if (contentTitle != null && contentTitle.trim().isNotEmpty) {
       return '${_scopeLabel(_scope)} · $contentTitle';
@@ -226,6 +262,38 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
   }
 
   Widget _browsePanel(List<ChatScope> scopes) {
+    if (widget.guestMode) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Guest Chatbox',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Je bent $_guestName. Je kunt als Guest maximaal $_guestMessageLimit berichten sturen per bezoek.',
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '${_guestMessageLimit - _guestMessagesSent} berichten over',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: _guestMessagesSent / _guestMessageLimit,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'De Guest-teller begint opnieuw wanneer de site opnieuw wordt geladen.',
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
@@ -294,13 +362,6 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ],
-        if (_searchController.text.trim().isNotEmpty &&
-            !_searching &&
-            _searchError == null &&
-            _searchResults.isEmpty) ...[
-          const SizedBox(height: 12),
-          const Text('Geen resultaten gevonden.'),
-        ],
         if (_searchResults.isNotEmpty) ...[
           const SizedBox(height: 12),
           for (final result in _searchResults)
@@ -332,7 +393,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
       return const Center(child: Text('Marathon Chat is momenteel niet actief.'));
     }
 
-    if (!_signedIn) {
+    if (!_signedIn && !widget.guestMode) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
@@ -359,7 +420,9 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
-              const Text('Ingelogd · chatten beschikbaar'),
+              Text(widget.guestMode
+                  ? 'Guest · $_guestName'
+                  : 'Ingelogd · chatten beschikbaar'),
             ],
           ),
         ),
@@ -392,7 +455,7 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            message.authorId ?? 'Onbekend',
+                            message.guestName ?? message.authorId ?? 'Onbekend',
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 4),
@@ -413,19 +476,27 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
               Expanded(
                 child: TextField(
                   controller: _messageController,
-                  enabled: _signedIn && !_sending,
+                  enabled: widget.guestMode
+                      ? _guestMessagesSent < _guestMessageLimit && !_sending
+                      : _signedIn && !_sending,
                   maxLines: 3,
                   minLines: 1,
                   onSubmitted: (_) => _sendMessage(),
-                  decoration: const InputDecoration(
-                    hintText: 'Typ een bericht...',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: widget.guestMode
+                        ? 'Typ een bericht als $_guestName...'
+                        : 'Typ een bericht...',
+                    border: const OutlineInputBorder(),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               FilledButton(
-                onPressed: _signedIn && !_sending ? _sendMessage : null,
+                onPressed: widget.guestMode
+                    ? (_guestMessagesSent < _guestMessageLimit && !_sending
+                        ? _sendMessage
+                        : null)
+                    : (_signedIn && !_sending ? _sendMessage : null),
                 child: _sending
                     ? const SizedBox(
                         width: 18,
@@ -453,6 +524,8 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
         return 'Music';
       case ChatScope.marathon:
         return 'Marathon';
+      case ChatScope.chatbox:
+        return 'Chatbox';
     }
   }
 
@@ -468,6 +541,8 @@ class _ChatWorldPageState extends State<ChatWorldPage> {
         return Icons.music_note;
       case ChatScope.marathon:
         return Icons.directions_run;
+      case ChatScope.chatbox:
+        return Icons.chat_bubble_outline;
     }
   }
 }
