@@ -4,6 +4,7 @@ import 'supabase_client.dart';
 
 class StorageAssetRepository {
   static const int pageSize = ContentRepository.pageSize;
+  static const int testAssetCount = 10;
 
   Future<List<StorageAsset>> getAssetsPage({
     String? assetType,
@@ -39,7 +40,7 @@ class StorageAssetRepository {
         .eq('asset_type', 'snes_sealed')
         .not('public_url', 'is', null)
         .order('title')
-        .limit(ContentRepository.testAssetCount);
+        .limit(testAssetCount);
 
     return [
       for (final row in response)
