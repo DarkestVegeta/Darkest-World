@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'chat_scope.dart';
@@ -6,6 +8,7 @@ import 'supabase_client.dart';
 class ChatMessage {
   final String id;
   final String? authorId;
+  final String? guestName;
   final String message;
   final ChatScope scope;
   final String? contentId;
@@ -15,6 +18,7 @@ class ChatMessage {
   const ChatMessage({
     required this.id,
     required this.authorId,
+    required this.guestName,
     required this.message,
     required this.scope,
     required this.contentId,
@@ -41,6 +45,7 @@ class ChatMessage {
     return ChatMessage(
       id: id,
       authorId: _optionalText(row['author_id']),
+      guestName: _optionalText(row['guest_name']),
       message: message,
       scope: scope.single,
       contentId: _optionalText(row['content_id']),
@@ -142,6 +147,46 @@ class ChatRepository {
       throw AuthException('Je moet ingelogd zijn om te chatten.');
     }
 
+    final trimmed = _validateMessage(message);
+    if (!context.isAvailable) {
+      throw StateError('Marathon Chat is momenteel niet actief.');
+    }
+
+    await supabase.from('darkestworld_chat_messages').insert({
+      'author_id': user.id,
+      'guest_name': null,
+      'message': trimmed,
+      'chat_scope': context.scope.name,
+      'content_id': context.scope == ChatScope.marathon
+          ? null
+          : context.contentId,
+      'marathon_id': context.scope == ChatScope.marathon
+          ? context.contentId
+          : null,
+    });
+  }
+
+  Future<void> sendGuestMessage({
+    required String guestName,
+    required String message,
+  }) async {
+    final name = guestName.trim();
+    if (!RegExp(r'^Guest\d{3}$').hasMatch(name)) {
+      throw ArgumentError.value(guestName, 'guestName', 'Invalid guest name.');
+    }
+
+    final trimmed = _validateMessage(message);
+    await supabase.from('darkestworld_chat_messages').insert({
+      'author_id': null,
+      'guest_name': name,
+      'message': trimmed,
+      'chat_scope': ChatScope.chatbox.name,
+      'content_id': null,
+      'marathon_id': null,
+    });
+  }
+
+  String _validateMessage(String message) {
     final trimmed = message.trim();
     if (trimmed.isEmpty) {
       throw ArgumentError.value(message, 'message', 'Bericht mag niet leeg zijn.');
@@ -153,20 +198,11 @@ class ChatRepository {
         'Een bericht mag maximaal 2000 tekens bevatten.',
       );
     }
-    if (!context.isAvailable) {
-      throw StateError('Marathon Chat is momenteel niet actief.');
-    }
+    return trimmed;
+  }
 
-    await supabase.from('darkestworld_chat_messages').insert({
-      'author_id': user.id,
-      'message': trimmed,
-      'chat_scope': context.scope.name,
-      'content_id': context.scope == ChatScope.marathon
-          ? null
-          : context.contentId,
-      'marathon_id': context.scope == ChatScope.marathon
-          ? context.contentId
-          : null,
-    });
+  static String createGuestName() {
+    final number = Random().nextInt(1000);
+    return 'Guest${number.toString().padLeft(3, '0')}';
   }
 }
