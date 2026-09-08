@@ -214,7 +214,7 @@ Status: IMPLEMENTED / CI NOT EXPOSED
 Status: IMPLEMENTED / SECURITY VERIFIED / CI PENDING
 
 - Fresh read-only control was completed before implementation across the current GitHub tree, recent commit history, audit log, Flutter CI workflow, Supabase schema/migrations, RLS policies, write grants, Edge Functions, and Security Advisor.
-- Confirmed current GitHub head before implementation was `4b02439edebd6eb935f5b32bcab3a037196150a9`; Round 33 remains unchanged.
+- Confirmed current GitHub head before implementation was `4b02439edeb6eb935f5b32bcab3a037196150a9`; Round 33 remains unchanged.
 - Confirmed live Supabase `storage_assets` contains 948 rows: 947 `snes_sealed` assets, 1 generic `image` asset, 862 public `snes_sealed` URLs, and exactly 10 fixed test assets.
 - Confirmed live `darkestworld_content`, `darkestworld_content_relations`, and `darkestworld_timeline` remain empty, so no production content data was fabricated or imported.
 - Confirmed Supabase Security Advisor currently reports zero security findings.
@@ -224,7 +224,22 @@ Status: IMPLEMENTED / SECURITY VERIFIED / CI PENDING
 - Migrated `TestAssetLabPage` to the same typed storage layer while preserving the fixed 10-artbox test set and its non-destructive behavior.
 - Moved the fixed test-set count into `StorageAssetRepository` and removed the obsolete asset read/test methods from `ContentRepository`, completing the separation between content access and storage-asset access.
 - No database migration, database row, stored image, Dropbox source, artbox, Edge Function, or security policy was modified.
-- CI workflow configuration remains unchanged. GitHub currently exposes no workflow run or commit status for the new head `40612b43a491ad695951bd5b1e4b73a488f6fda0`, so CI is pending/unobservable rather than being claimed green.
+- CI workflow configuration remains unchanged. GitHub currently exposes no workflow run or commit status for the new head, so CI is pending/unobservable rather than being claimed green.
+
+### Round 35 — live Timeline World integration
+Status: IMPLEMENTED / TEST ADDED / CI PENDING
+
+- Fresh read-only control was completed before implementation across the current GitHub state, audit log, CI workflow, relevant typed content/storage/timeline layers, live Supabase tables, RLS state, write grants, Security Advisor, and active Edge Functions.
+- Confirmed the existing typed `TimelineRepository` was already the correct read-only source for `darkestworld_timeline`; the live timeline table currently contains 0 rows.
+- Promoted `TimelineWorldPage` from a construction-only screen to a live read-only chronology view backed by `TimelineRepository`.
+- Added live loading, error, refresh, empty-state behavior, and Games / Movies / Series filters.
+- Timeline entries now render their chronology order, title, content type, franchise, release date, and description when available.
+- Made `TimelineRepository` explicitly constructible as a `const` dependency so the page can keep its existing const call sites while allowing repository injection in widget tests.
+- Replaced the old construction-layer widget test with coverage for live item rendering and the empty state using a fake repository; no production timeline data is created by tests.
+- No database migration, database row, stored image, Dropbox source, artbox, Edge Function, or security policy was modified.
+- The existing `darkestworld-content-import` function remains active with JWT verification enabled; it was not triggered. The existing `snes-sealed-import` remains active at version 13 and was not modified or triggered.
+- Supabase Security Advisor remains clean with zero findings.
+- GitHub currently exposes no workflow run or commit status for the Round 35 head, so CI is pending/unobservable rather than being claimed green.
 
 ## Current next queue
 
@@ -243,6 +258,8 @@ Status: IMPLEMENTED / SECURITY VERIFIED / CI PENDING
 13. Round 32 typed storage asset contract/readiness layer is complete and CI-green.
 14. Round 33 typed content navigation/UI migration is implemented; its CI status remains unobservable.
 15. Round 34 completes the storage-asset UI migration; its CI status remains pending/unobservable.
-16. Next round must again begin with a fresh read-only control of the current GitHub and Supabase state and must preserve existing data, artboxes, stored images, and the SNES Dropbox import/security architecture.
-17. Do not reopen Notion unless a concrete unresolved design or decision requires verification.
-18. Do not choose DarkestWall merely because it is open; it remains intentionally deferred.
+16. Round 35 makes Timeline World live against the existing typed chronology repository; CI status remains pending/unobservable.
+17. Next round must again begin with a fresh read-only control of the current GitHub and Supabase state and must preserve existing data, artboxes, stored images, and the SNES Dropbox import/security architecture.
+18. Do not reopen Notion unless a concrete unresolved design or decision requires verification.
+19. Do not choose DarkestWall merely because it is open; it remains intentionally deferred.
+20. Avoid duplicate work and looping: every proposed round must address a verified open gap and be marked DONE / OPEN / BLOCKED / NOT NEEDED.
