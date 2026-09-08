@@ -7,6 +7,7 @@ void main() {
     expect(ChatAccessPolicy.scopeForWorldSlug('cinema-world'), ChatScope.movies);
     expect(ChatAccessPolicy.scopeForWorldSlug('series-world'), ChatScope.series);
     expect(ChatAccessPolicy.scopeForWorldSlug('music-world'), ChatScope.music);
+    expect(ChatAccessPolicy.scopeForWorldSlug('chatbox'), ChatScope.chatbox);
     expect(ChatAccessPolicy.scopeForWorldSlug('dark-core'), isNull);
   });
 
@@ -25,6 +26,11 @@ void main() {
         ChatScope.marathon,
       ],
     );
+  });
+
+  test('chatbox is a dedicated guest-capable scope', () {
+    expect(const ChatContext(scope: ChatScope.chatbox).isAvailable, isTrue);
+    expect(const ChatContext(scope: ChatScope.chatbox).label, 'Chatbox');
   });
 
   test('marathon chat depends on chat presence, not streaming status', () {
