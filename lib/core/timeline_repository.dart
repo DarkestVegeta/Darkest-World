@@ -4,6 +4,8 @@ import 'timeline_models.dart';
 class TimelineRepository {
   static const int pageSize = 36;
 
+  const TimelineRepository();
+
   Future<List<Map<String, dynamic>>> getTimelinePage({
     String? contentType,
     String? franchise,
