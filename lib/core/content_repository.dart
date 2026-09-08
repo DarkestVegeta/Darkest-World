@@ -248,48 +248,7 @@ class ContentRepository {
     return [for (final row in rows) ContentItem.fromRow(row)];
   }
 
-  Future<List<Map<String, dynamic>>> getAssetPage({
-    String? assetType,
-    int page = 0,
-  }) async {
-    if (page < 0) throw ArgumentError.value(page, 'page', 'Cannot be negative.');
-
-    final from = page * pageSize;
-    final to = from + pageSize - 1;
-
-    var query = supabase.from('storage_assets').select();
-    final normalizedAssetType = assetType?.trim();
-    if (normalizedAssetType != null && normalizedAssetType.isNotEmpty) {
-      query = query.eq('asset_type', normalizedAssetType);
-    }
-
-    final response = await query
-        .not('public_url', 'is', null)
-        .order('title')
-        .order('id')
-        .range(from, to);
-
-    return List<Map<String, dynamic>>.from(response);
-  }
-
-  Future<List<Map<String, dynamic>>> getTestAssets() async {
-    final response = await supabase
-        .from('storage_assets')
-        .select()
-        .eq('is_test_asset', true)
-        .eq('asset_type', 'snes_sealed')
-        .not('public_url', 'is', null)
-        .order('title')
-        .limit(testAssetCount);
-
-    return List<Map<String, dynamic>>.from(response);
-  }
-
   Future<List<Map<String, dynamic>>> getContent({String? type}) {
     return getContentPage(type: type, page: 0);
-  }
-
-  Future<List<Map<String, dynamic>>> getAssets({String? assetType}) {
-    return getAssetPage(assetType: assetType, page: 0);
   }
 }
