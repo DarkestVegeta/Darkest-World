@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../core/content_repository.dart';
+
+import '../core/asset_models.dart';
+import '../core/asset_repository.dart';
 
 class TestAssetLabPage extends StatefulWidget {
   const TestAssetLabPage({super.key});
@@ -9,8 +11,8 @@ class TestAssetLabPage extends StatefulWidget {
 }
 
 class _TestAssetLabPageState extends State<TestAssetLabPage> {
-  final _repository = ContentRepository();
-  late Future<List<Map<String, dynamic>>> _future;
+  final _repository = StorageAssetRepository();
+  late Future<List<StorageAsset>> _future;
 
   @override
   void initState() {
@@ -38,7 +40,7 @@ class _TestAssetLabPageState extends State<TestAssetLabPage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
+      body: FutureBuilder<List<StorageAsset>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -49,7 +51,7 @@ class _TestAssetLabPageState extends State<TestAssetLabPage> {
             return Center(child: Text('Test assets laden mislukt: ${snapshot.error}'));
           }
 
-          final items = snapshot.data ?? const [];
+          final items = snapshot.data ?? const <StorageAsset>[];
           if (items.isEmpty) {
             return const Center(child: Text('Geen test-artboxen gevonden.'));
           }
@@ -67,7 +69,7 @@ class _TestAssetLabPageState extends State<TestAssetLabPage> {
               ),
               const SizedBox(height: 24),
               for (var index = 0; index < items.length; index++)
-                _TestAssetCard(index: index + 1, item: items[index]),
+                _TestAssetCard(index: index + 1, asset: items[index]),
             ],
           );
         },
@@ -78,14 +80,14 @@ class _TestAssetLabPageState extends State<TestAssetLabPage> {
 
 class _TestAssetCard extends StatelessWidget {
   final int index;
-  final Map<String, dynamic> item;
+  final StorageAsset asset;
 
-  const _TestAssetCard({required this.index, required this.item});
+  const _TestAssetCard({required this.index, required this.asset});
 
   @override
   Widget build(BuildContext context) {
-    final title = '${item['title'] ?? 'Untitled'}';
-    final url = '${item['public_url'] ?? ''}';
+    final title = asset.title ?? 'Untitled';
+    final url = asset.publicUrl ?? '';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 18),
@@ -118,7 +120,7 @@ class _TestAssetCard extends StatelessWidget {
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
-                    const Text('SNES sealed asset • fixed test asset'),
+                    Text('${asset.assetType} • fixed test asset'),
                     const SizedBox(height: 18),
                     const Text('Basis-test: image loading, sizing, card layout en data-binding.'),
                   ],
