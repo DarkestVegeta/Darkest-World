@@ -3,8 +3,8 @@ import '../core/world_sections_repository.dart';
 import '../widgets/darkest_galaxy.dart';
 import 'basic_section_page.dart';
 import 'content_browser_page.dart';
-import 'create_your_world_page.dart';
 import 'dark_core_page.dart';
+import 'game_world_page.dart';
 import 'identity_world_page.dart';
 import 'music_world_page.dart';
 
@@ -49,10 +49,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
               padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
               child: Row(
                 children: [
-                  const Text(
-                    'DARKESTWORLD',
-                    style: TextStyle(fontSize: 19, letterSpacing: 5.2, fontWeight: FontWeight.w400),
-                  ),
+                  const Text('DARKESTWORLD', style: TextStyle(fontSize: 19, letterSpacing: 5.2, fontWeight: FontWeight.w400)),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
@@ -61,10 +58,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: Colors.white.withValues(alpha: .10)),
                     ),
-                    child: Text(
-                      'GALAXY',
-                      style: TextStyle(fontSize: 9, letterSpacing: 3, color: Colors.white.withValues(alpha: .46)),
-                    ),
+                    child: Text('GALAXY', style: TextStyle(fontSize: 9, letterSpacing: 3, color: Colors.white.withValues(alpha: .46))),
                   ),
                 ],
               ),
@@ -75,10 +69,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 15),
-                child: Text(
-                  'EXPLORE  •  DISCOVER  •  CREATE',
-                  style: TextStyle(fontSize: 9, letterSpacing: 3.8, color: Colors.white.withValues(alpha: .28)),
-                ),
+                child: Text('EXPLORE  •  DISCOVER  •  CREATE', style: TextStyle(fontSize: 9, letterSpacing: 3.8, color: Colors.white.withValues(alpha: .28))),
               ),
             ),
           ),
@@ -91,9 +82,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
     return _fallback.map((fallback) {
       final match = source.where((s) => _matches(s, fallback));
       final section = match.isEmpty ? null : match.first;
-      return section == null
-          ? fallback
-          : GalaxyWorld(fallback.title, section.description, fallback.kind);
+      return section == null ? fallback : GalaxyWorld(fallback.title, section.description, fallback.kind);
     }).toList();
   }
 
@@ -115,7 +104,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   void _openWorld(GalaxyWorld world) {
     switch (world.kind) {
       case GalaxyWorldKind.game:
-        _push(ContentBrowserPage(title: 'GAME-WORLD', contentType: 'game'));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GameWorldPage()));
         return;
       case GalaxyWorldKind.music:
         _push(MusicWorldPage(title: 'MUSIC-WORLD', description: world.description));
