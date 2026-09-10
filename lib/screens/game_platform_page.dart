@@ -63,7 +63,7 @@ class _GroupCard extends StatelessWidget {
         const SizedBox(height: 5),
         Text(group.subtitle, style: TextStyle(color: Colors.white.withValues(alpha: .35), fontSize: 10)),
         const SizedBox(height: 14),
-        Wrap(spacing: 9, runSpacing: 9, children: group.platforms.map((platform) => _PlatformButton(territory: territory, platform: platform)).toList()),
+        Wrap(spacing: 9, runSpacing: 9, children: group.platforms.map((platform) => _PlatformButton(territory: territory, platform: platform, siblings: group.platforms)).toList()),
       ]),
     ),
   );
@@ -72,7 +72,8 @@ class _GroupCard extends StatelessWidget {
 class _PlatformButton extends StatelessWidget {
   final String territory;
   final GamePlatform platform;
-  const _PlatformButton({required this.territory, required this.platform});
+  final List<GamePlatform> siblings;
+  const _PlatformButton({required this.territory, required this.platform, required this.siblings});
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -81,6 +82,8 @@ class _PlatformButton extends StatelessWidget {
       territory: territory,
       platform: platform.name,
       externalPlatformIds: platform.externalPlatformIds,
+      navigationPlatforms: siblings,
+      navigationIndex: siblings.indexOf(platform),
     ))),
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
