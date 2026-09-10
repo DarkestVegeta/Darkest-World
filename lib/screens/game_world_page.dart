@@ -253,8 +253,8 @@ class _GameWorldPainter extends CustomPainter {
     final star = Paint();
     for (var i = 0; i < 170; i++) {
       final seed = i * 47.17;
-      final x = (seed.sin().abs()) * size.width;
-      final y = ((seed * 1.37).sin().abs()) * size.height;
+      final x = math.sin(seed).abs() * size.width;
+      final y = math.sin(seed * 1.37).abs() * size.height;
       final twinkle = .25 + .35 * ((math.sin(t * math.pi * 2 + i) + 1) / 2);
       star.color = Colors.white.withValues(alpha: twinkle);
       canvas.drawCircle(Offset(x, y), i % 9 == 0 ? 1.25 : .55, star);
