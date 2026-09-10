@@ -9,6 +9,8 @@ class GameWorldPage extends StatefulWidget {
   State<GameWorldPage> createState() => _GameWorldPageState();
 }
 
+const _territoryAccents = [0xFF9A72FF, 0xFF4F86FF, 0xFF776BFF, 0xFF58A5FF, 0xFFB084FF];
+
 class _GameWorldPageState extends State<GameWorldPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
@@ -327,7 +329,7 @@ class _TerritoryLinesPainter extends CustomPainter {
       final p = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = i == selected ? 1.5 : .7
-        ..color = Color(territories[i].accent).withValues(
+        ..color = Color(_territoryAccents[i]).withValues(
           alpha: i == selected ? .24 : .09,
         );
       canvas.drawLine(center, end, p);
