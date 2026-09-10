@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'content_browser_page.dart';
 
 class GameWorldPage extends StatefulWidget {
   const GameWorldPage({super.key});
@@ -34,6 +35,18 @@ class _GameWorldPageState extends State<GameWorldPage>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _openTerritory(int index) {
+    setState(() => selected = index);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ContentBrowserPage(
+          title: '${territories[index].name} • GAME-WORLD',
+          contentType: 'game',
+        ),
+      ),
+    );
   }
 
   @override
@@ -86,7 +99,7 @@ class _GameWorldPageState extends State<GameWorldPage>
                               left: p.dx - size / 2,
                               top: p.dy - size / 2,
                               child: GestureDetector(
-                                onTap: () => setState(() => selected = index),
+                                onTap: () => _openTerritory(index),
                                 child: _TerritoryOrb(
                                   size: size,
                                   accent: Color(territories[index].accent),
@@ -129,7 +142,7 @@ class _GameWorldPageState extends State<GameWorldPage>
                         ),
                         const SizedBox(height: 15),
                         Text(
-                          'SELECT TERRITORY',
+                          'ENTER TERRITORY',
                           style: TextStyle(letterSpacing: 3.2, fontSize: 9, color: Colors.white.withValues(alpha: .28)),
                         ),
                       ],
