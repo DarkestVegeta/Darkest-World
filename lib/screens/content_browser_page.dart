@@ -25,7 +25,9 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   String? _error;
 
   bool get _external => ['game','movie','series'].contains(widget.contentType);
+  bool get _gameBrowser => widget.contentType == 'game';
   String get _source => widget.contentType == 'game' ? 'igdb' : widget.contentType == 'movie' ? 'tmdb_movie' : 'tmdb_tv';
+  String get _displayTitle => widget.title.replaceFirst(RegExp(r'\s*•\s*GAMES\s*$', caseSensitive: false), '').trim();
   List<int> get _platformIds {
     if (widget.platformIds.isNotEmpty) return widget.platformIds;
     final t = widget.title.toUpperCase();
@@ -74,8 +76,10 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   ChatContext? get _chatContext{if(_searching)return null;final scope=switch(widget.contentType){'game'=>ChatScope.games,'movie'=>ChatScope.movies,'series'=>ChatScope.series,_=>null};if(scope==null)return null;final item=_items.isEmpty?null:_items[_focus.clamp(0,_items.length-1)];return ChatContext(scope:scope,contentId:item?.id,contentTitle:item?.title);}
 
   @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text(widget.title),actions:[IconButton(onPressed:_loading?null:_refresh,icon:const Icon(Icons.refresh))]),floatingActionButton:_chatContext==null?null:Chatbox(contextData:_chatContext!),body:Column(children:[
+    if(_gameBrowser)Padding(padding:const EdgeInsets.fromLTRB(24,12,24,0),child:Text('GAME-WORLD  ›  ${_displayTitle.toUpperCase()}  ›  GAMES',style:TextStyle(fontSize:9,letterSpacing:2.1,color:Colors.white.withValues(alpha:.28)))),
     if(_external)Padding(padding:const EdgeInsets.fromLTRB(24,18,24,4),child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:760),child:TextField(controller:_search,textInputAction:TextInputAction.search,onSubmitted:(_)=>_searchExternal(),decoration:InputDecoration(hintText:widget.contentType=='game'?'Zoek een game':widget.contentType=='movie'?'Zoek een film':'Zoek een serie',prefixIcon:const Icon(Icons.search),suffixIcon:IconButton(onPressed:_loading?null:_searchExternal,icon:const Icon(Icons.arrow_forward)),border:const OutlineInputBorder())))),
-    if(_searching)Padding(padding:const EdgeInsets.only(top:8),child:Text('Live ${_source.toUpperCase()} • niet opgeslagen',style:TextStyle(fontSize:11,color:Colors.white.withValues(alpha:.42)))),Expanded(child:_body())]));
+    if(_searching)Padding(padding:const EdgeInsets.only(top:8),child:Text('LIVE ${_source.toUpperCase()} • NIET OPGESLAGEN',style:TextStyle(fontSize:11,color:Colors.white.withValues(alpha:.42)))),
+    Expanded(child:_body())]));
 
   Widget _body(){
     if(_error!=null&&_items.isEmpty)return Center(child:Column(mainAxisSize:MainAxisSize.min,children:[Text('Laden mislukt: $_error'),const SizedBox(height:12),OutlinedButton(onPressed:_searching?_searchExternal:_load,child:const Text('Opnieuw'))]));
