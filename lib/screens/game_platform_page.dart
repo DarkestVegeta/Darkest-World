@@ -41,8 +41,10 @@ class GamePlatformGroup {
 
 class GamePlatform {
   final String name;
-  final List<int> igdbIds;
-  const GamePlatform(this.name, this.igdbIds);
+  // Technical bridge used only when the visitor chooses live external search.
+  // It does not define or populate DarkestWorld's own game hierarchy/database.
+  final List<int> externalPlatformIds;
+  const GamePlatform(this.name, this.externalPlatformIds);
 }
 
 class _GroupCard extends StatelessWidget {
@@ -73,7 +75,7 @@ class _PlatformButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     borderRadius: BorderRadius.circular(12),
-    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentBrowserPage(title: '${platform.name} • GAME-WORLD', contentType: 'game', platformIds: platform.igdbIds))),
+    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentBrowserPage(title: '${platform.name} • GAME-WORLD', contentType: 'game', platformIds: platform.externalPlatformIds))),
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF8D7BFF).withValues(alpha: .16)), gradient: const LinearGradient(colors: [Color(0xFF11102A), Color(0xFF080812)])),
