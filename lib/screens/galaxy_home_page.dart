@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import '../core/world_sections_repository.dart';
 import '../widgets/darkest_galaxy.dart';
 import 'basic_section_page.dart';
-import 'content_browser_page.dart';
+import 'cinema_world_page.dart';
 import 'dark_core_page.dart';
+import 'family_world_page.dart';
 import 'game_world_page.dart';
 import 'identity_world_page.dart';
 import 'music_world_page.dart';
 
 class GalaxyHomePage extends StatefulWidget {
   const GalaxyHomePage({super.key});
-
   @override
   State<GalaxyHomePage> createState() => _GalaxyHomePageState();
 }
@@ -35,56 +35,39 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF010106),
-      body: Stack(
-        children: [
-          FutureBuilder<List<WorldSection>>(
-            future: sections,
-            builder: (context, snapshot) => DarkestGalaxy(
-              worlds: _mapWorlds(snapshot.data ?? const []),
-              onWorldTap: _openWorld,
-            ),
+      body: Stack(children: [
+        FutureBuilder<List<WorldSection>>(
+          future: sections,
+          builder: (context, snapshot) => DarkestGalaxy(
+            worlds: _mapWorlds(snapshot.data ?? const []),
+            onWorldTap: _openWorld,
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
-              child: Row(
-                children: [
-                  const Text('DARKESTWORLD', style: TextStyle(fontSize: 19, letterSpacing: 5.2, fontWeight: FontWeight.w400)),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: .22),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.white.withValues(alpha: .10)),
-                    ),
-                    child: Text('GALAXY', style: TextStyle(fontSize: 9, letterSpacing: 3, color: Colors.white.withValues(alpha: .46))),
-                  ),
-                ],
-              ),
+        ),
+        SafeArea(child: Padding(
+          padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
+          child: Row(children: [
+            const Text('DARKESTWORLD', style: TextStyle(fontSize: 19, letterSpacing: 5.2, fontWeight: FontWeight.w400)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+              decoration: BoxDecoration(color: Colors.black.withValues(alpha: .22), borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withValues(alpha: .10))),
+              child: Text('GALAXY', style: TextStyle(fontSize: 9, letterSpacing: 3, color: Colors.white.withValues(alpha: .46))),
             ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 15),
-                child: Text('EXPLORE  •  DISCOVER  •  CREATE', style: TextStyle(fontSize: 9, letterSpacing: 3.8, color: Colors.white.withValues(alpha: .28))),
-              ),
-            ),
-          ),
-        ],
-      ),
+          ]),
+        )),
+        Align(alignment: Alignment.bottomCenter, child: SafeArea(child: Padding(
+          padding: const EdgeInsets.only(bottom: 15),
+          child: Text('EXPLORE  •  DISCOVER  •  CREATE', style: TextStyle(fontSize: 9, letterSpacing: 3.8, color: Colors.white.withValues(alpha: .28))),
+        ))),
+      ]),
     );
   }
 
-  List<GalaxyWorld> _mapWorlds(List<WorldSection> source) {
-    return _fallback.map((fallback) {
-      final match = source.where((s) => _matches(s, fallback));
-      final section = match.isEmpty ? null : match.first;
-      return section == null ? fallback : GalaxyWorld(fallback.title, section.description, fallback.kind);
-    }).toList();
-  }
+  List<GalaxyWorld> _mapWorlds(List<WorldSection> source) => _fallback.map((fallback) {
+    final matches = source.where((s) => _matches(s, fallback));
+    final section = matches.isEmpty ? null : matches.first;
+    return section == null ? fallback : GalaxyWorld(fallback.title, section.description, fallback.kind);
+  }).toList();
 
   bool _matches(WorldSection section, GalaxyWorld world) {
     final text = '${section.name} ${section.slug}'.toLowerCase();
@@ -103,37 +86,17 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
 
   void _openWorld(GalaxyWorld world) {
     switch (world.kind) {
-      case GalaxyWorldKind.game:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GameWorldPage()));
-        return;
-      case GalaxyWorldKind.music:
-        _push(MusicWorldPage(title: 'MUSIC-WORLD', description: world.description));
-        return;
-      case GalaxyWorldKind.identity:
-        _push(IdentityWorldPage(title: 'DARKEST-IDENTITY', description: world.description));
-        return;
-      case GalaxyWorldKind.family:
-        _push(BasicSectionPage(title: 'DARKESTFAMILY', description: world.description));
-        return;
-      case GalaxyWorldKind.cinema:
-        _push(ContentBrowserPage(title: 'CINEMA-WORLD', contentType: 'movie'));
-        return;
-      case GalaxyWorldKind.creation:
-        _push(BasicSectionPage(title: 'CREATION-WORLD', description: world.description));
-        return;
-      case GalaxyWorldKind.archive:
-        _push(BasicSectionPage(title: 'ARCHIVE-WORLD', description: world.description));
-        return;
-      case GalaxyWorldKind.comingSoon:
-        _push(BasicSectionPage(title: 'COMING SOON', description: world.description));
-        return;
-      case GalaxyWorldKind.vegeta:
-        _push(DarkCorePage(title: 'VEGETA WORLD', description: world.description));
-        return;
+      case GalaxyWorldKind.game: _push(const GameWorldPage()); return;
+      case GalaxyWorldKind.music: _push(MusicWorldPage(title: 'MUSIC-WORLD', description: world.description)); return;
+      case GalaxyWorldKind.identity: _push(IdentityWorldPage(title: 'DARKEST-IDENTITY', description: world.description)); return;
+      case GalaxyWorldKind.family: _push(FamilyWorldPage(title: 'DARKESTFAMILY', description: world.description)); return;
+      case GalaxyWorldKind.cinema: _push(CinemaWorldPage(title: 'CINEMA-WORLD', description: world.description)); return;
+      case GalaxyWorldKind.creation: _push(BasicSectionPage(title: 'CREATION-WORLD', description: world.description)); return;
+      case GalaxyWorldKind.archive: _push(BasicSectionPage(title: 'ARCHIVE-WORLD', description: world.description)); return;
+      case GalaxyWorldKind.comingSoon: _push(BasicSectionPage(title: 'COMING SOON', description: world.description)); return;
+      case GalaxyWorldKind.vegeta: _push(DarkCorePage(title: 'VEGETA WORLD', description: world.description)); return;
     }
   }
 
-  void _push(Widget page) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
-  }
+  void _push(Widget page) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 }
