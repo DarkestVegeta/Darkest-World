@@ -58,7 +58,9 @@ class _GameWorldPageState extends State<GameWorldPage>
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _controller,
-              builder: (_, __) => CustomPaint(painter: _GameWorldPainter(_controller.value)),
+              builder: (_, __) => CustomPaint(
+                painter: _GameWorldPainter(_controller.value),
+              ),
             ),
           ),
           SafeArea(
@@ -73,7 +75,10 @@ class _GameWorldPageState extends State<GameWorldPage>
                         icon: const Icon(Icons.arrow_back_ios_new, size: 17),
                       ),
                       const SizedBox(width: 10),
-                      const Text('GAME-WORLD', style: TextStyle(letterSpacing: 4.5, fontSize: 18)),
+                      const Text(
+                        'GAME-WORLD',
+                        style: TextStyle(letterSpacing: 4.5, fontSize: 18),
+                      ),
                     ],
                   ),
                 ),
@@ -87,23 +92,53 @@ class _GameWorldPageState extends State<GameWorldPage>
                         children: [
                           Positioned.fill(
                             child: CustomPaint(
-                              painter: _TerritoryLinesPainter(center: center, selected: selected),
+                              painter: _TerritoryLinesPainter(
+                                center: center,
+                                selected: selected,
+                              ),
                             ),
                           ),
                           ...List.generate(territories.length, (index) {
                             final angle = -math.pi / 2 + index * (math.pi * 2 / 5);
                             final radius = math.min(constraints.maxWidth * .29, 260.0);
                             final size = index == selected ? 116.0 : 92.0;
-                            final p = center + Offset(math.cos(angle) * radius, math.sin(angle) * radius);
+                            final p = center + Offset(
+                              math.cos(angle) * radius,
+                              math.sin(angle) * radius,
+                            );
                             return Positioned(
                               left: p.dx - size / 2,
                               top: p.dy - size / 2,
-                              child: GestureDetector(
-                                onTap: () => _openTerritory(index),
-                                child: _TerritoryOrb(
-                                  size: size,
-                                  accent: Color(territories[index].accent),
-                                  selected: index == selected,
+                              child: SizedBox(
+                                width: size,
+                                height: size + 34,
+                                child: GestureDetector(
+                                  onTap: () => _openTerritory(index),
+                                  child: Column(
+                                    children: [
+                                      _TerritoryOrb(
+                                        size: size,
+                                        accent: Color(territories[index].accent),
+                                        selected: index == selected,
+                                      ),
+                                      const SizedBox(height: 7),
+                                      FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          territories[index].name,
+                                          style: TextStyle(
+                                            color: Color(territories[index].accent)
+                                                .withValues(alpha: index == selected ? .9 : .5),
+                                            fontSize: 10,
+                                            letterSpacing: 2.1,
+                                            fontWeight: index == selected
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
@@ -138,12 +173,19 @@ class _GameWorldPageState extends State<GameWorldPage>
                         Text(
                           territories[selected].description,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white.withValues(alpha: .48), fontSize: 12),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .48),
+                            fontSize: 12,
+                          ),
                         ),
                         const SizedBox(height: 15),
                         Text(
                           'ENTER TERRITORY',
-                          style: TextStyle(letterSpacing: 3.2, fontSize: 9, color: Colors.white.withValues(alpha: .28)),
+                          style: TextStyle(
+                            letterSpacing: 3.2,
+                            fontSize: 9,
+                            color: Colors.white.withValues(alpha: .28),
+                          ),
                         ),
                       ],
                     ),
@@ -167,6 +209,7 @@ class _Territory {
 
 class _CoreOrb extends StatelessWidget {
   const _CoreOrb();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -174,11 +217,23 @@ class _CoreOrb extends StatelessWidget {
       height: 124,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const RadialGradient(colors: [Color(0xFF24204A), Color(0xFF090817), Color(0xFF020208)]),
-        boxShadow: [BoxShadow(color: const Color(0xFF7258FF).withValues(alpha: .35), blurRadius: 38, spreadRadius: 4)],
-        border: Border.all(color: const Color(0xFF9B7CFF).withValues(alpha: .35)),
+        gradient: const RadialGradient(
+          colors: [Color(0xFF24204A), Color(0xFF090817), Color(0xFF020208)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF7258FF).withValues(alpha: .35),
+            blurRadius: 38,
+            spreadRadius: 4,
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFF9B7CFF).withValues(alpha: .35),
+        ),
       ),
-      child: const Center(child: Text('GAME', style: TextStyle(letterSpacing: 4, fontSize: 14))),
+      child: const Center(
+        child: Text('GAME', style: TextStyle(letterSpacing: 4, fontSize: 14)),
+      ),
     );
   }
 }
@@ -187,7 +242,12 @@ class _TerritoryOrb extends StatelessWidget {
   final double size;
   final Color accent;
   final bool selected;
-  const _TerritoryOrb({required this.size, required this.accent, required this.selected});
+
+  const _TerritoryOrb({
+    required this.size,
+    required this.accent,
+    required this.selected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -197,14 +257,31 @@ class _TerritoryOrb extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(colors: [accent.withValues(alpha: .34), const Color(0xFF0B0B16), const Color(0xFF030309)]),
-        border: Border.all(color: accent.withValues(alpha: selected ? .72 : .27), width: selected ? 1.6 : 1),
-        boxShadow: [BoxShadow(color: accent.withValues(alpha: selected ? .30 : .10), blurRadius: selected ? 30 : 15)],
+        gradient: RadialGradient(
+          colors: [
+            accent.withValues(alpha: .34),
+            const Color(0xFF0B0B16),
+            const Color(0xFF030309),
+          ],
+        ),
+        border: Border.all(
+          color: accent.withValues(alpha: selected ? .72 : .27),
+          width: selected ? 1.6 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: selected ? .30 : .10),
+            blurRadius: selected ? 30 : 15,
+          ),
+        ],
       ),
       child: Center(
         child: Text(
           selected ? '●' : '○',
-          style: TextStyle(color: accent.withValues(alpha: .75), fontSize: selected ? 13 : 10),
+          style: TextStyle(
+            color: accent.withValues(alpha: .75),
+            fontSize: selected ? 13 : 10,
+          ),
         ),
       ),
     );
@@ -214,6 +291,7 @@ class _TerritoryOrb extends StatelessWidget {
 class _TerritoryLinesPainter extends CustomPainter {
   final Offset center;
   final int selected;
+
   const _TerritoryLinesPainter({required this.center, required this.selected});
 
   @override
@@ -223,22 +301,42 @@ class _TerritoryLinesPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
       ..color = const Color(0xFF806CFF).withValues(alpha: .13);
-    canvas.drawOval(Rect.fromCenter(center: center, width: radius * 2.25, height: radius * 1.65), orbit);
-    canvas.drawOval(Rect.fromCenter(center: center, width: radius * 1.62, height: radius * 1.18), orbit..color = const Color(0xFF4C8FFF).withValues(alpha: .10));
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: center,
+        width: radius * 2.25,
+        height: radius * 1.65,
+      ),
+      orbit,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: center,
+        width: radius * 1.62,
+        height: radius * 1.18,
+      ),
+      orbit..color = const Color(0xFF4C8FFF).withValues(alpha: .10),
+    );
 
     for (var i = 0; i < 5; i++) {
       final angle = -math.pi / 2 + i * (math.pi * 2 / 5);
-      final end = center + Offset(math.cos(angle) * radius, math.sin(angle) * radius);
+      final end = center + Offset(
+        math.cos(angle) * radius,
+        math.sin(angle) * radius,
+      );
       final p = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = i == selected ? 1.5 : .7
-        ..color = Color(territories[i].accent).withValues(alpha: i == selected ? .24 : .09);
+        ..color = Color(territories[i].accent).withValues(
+          alpha: i == selected ? .24 : .09,
+        );
       canvas.drawLine(center, end, p);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _TerritoryLinesPainter oldDelegate) => oldDelegate.selected != selected;
+  bool shouldRepaint(covariant _TerritoryLinesPainter oldDelegate) =>
+      oldDelegate.selected != selected;
 }
 
 class _GameWorldPainter extends CustomPainter {
@@ -257,9 +355,11 @@ class _GameWorldPainter extends CustomPainter {
 
     final nebula = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 55);
     for (var i = 0; i < 6; i++) {
-      final x = size.width * (.18 + i * .14) + math.sin(t * math.pi * 2 + i) * 35;
+      final x = size.width * (.18 + i * .14) +
+          math.sin(t * math.pi * 2 + i) * 35;
       final y = size.height * (.26 + (i % 3) * .22);
-      nebula.color = (i.isEven ? const Color(0xFF694CFF) : const Color(0xFF397BFF)).withValues(alpha: .035);
+      nebula.color = (i.isEven ? const Color(0xFF694CFF) : const Color(0xFF397BFF))
+          .withValues(alpha: .035);
       canvas.drawCircle(Offset(x, y), 105 + i * 15, nebula);
     }
 
@@ -268,9 +368,14 @@ class _GameWorldPainter extends CustomPainter {
       final seed = i * 47.17;
       final x = math.sin(seed).abs() * size.width;
       final y = math.sin(seed * 1.37).abs() * size.height;
-      final twinkle = .25 + .35 * ((math.sin(t * math.pi * 2 + i) + 1) / 2);
+      final twinkle = .25 +
+          .35 * ((math.sin(t * math.pi * 2 + i) + 1) / 2);
       star.color = Colors.white.withValues(alpha: twinkle);
-      canvas.drawCircle(Offset(x, y), i % 9 == 0 ? 1.25 : .55, star);
+      canvas.drawCircle(
+        Offset(x, y),
+        i % 9 == 0 ? 1.25 : .55,
+        star,
+      );
     }
   }
 
