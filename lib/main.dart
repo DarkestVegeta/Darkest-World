@@ -23,6 +23,7 @@ import 'screens/test_asset_lab_page.dart';
 import 'screens/timeline_world_page.dart';
 import 'screens/world_status_page.dart';
 import 'widgets/living_world_scene.dart';
+import 'screens/galaxy_home_page.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabasePublishableKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -100,7 +101,7 @@ class _AccessControlledHomeState extends State<_AccessControlledHome> {
   @override
   Widget build(BuildContext context) {
     if (DarkestWorldAccessPolicy.canEnterGalaxy(signedIn: _signedIn)) {
-      return const _HomePage();
+      return const GalaxyHomePage();
     }
     return const GuestModePage();
   }
