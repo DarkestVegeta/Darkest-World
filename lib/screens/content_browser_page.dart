@@ -225,6 +225,8 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   }
 
   ChatContext? get _chatContext {
+    if (_searching) return null;
+
     ChatScope? scope;
     switch (widget.contentType) {
       case 'game':
