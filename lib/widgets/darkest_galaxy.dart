@@ -35,9 +35,7 @@ class _DarkestGalaxyState extends State<DarkestGalaxy>
           fit: StackFit.expand,
           children: [
             RepaintBoundary(
-              child: CustomPaint(
-                painter: _GalaxyPainter(_controller),
-              ),
+              child: CustomPaint(painter: _GalaxyPainter(_controller)),
             ),
             Center(
               child: ConstrainedBox(
@@ -96,9 +94,10 @@ class _DarkestGalaxyState extends State<DarkestGalaxy>
       child: GestureDetector(
         onTap: () => setState(() => selected = index),
         child: SizedBox(
-          width: size + 80,
-          height: size + 80,
+          width: size + 125,
+          height: size + 100,
           child: Stack(
+            clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
               if (isSelected)
@@ -145,28 +144,11 @@ class _DarkestGalaxyState extends State<DarkestGalaxy>
                 ),
               ),
               Positioned(
-                bottom: 2,
-                child: Column(
-                  children: [
-                    Text(
-                      world.title,
-                      style: TextStyle(
-                        fontSize: central ? 11 : 9,
-                        letterSpacing: central ? 3.2 : 2.0,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white.withValues(alpha: isSelected ? .92 : .62),
-                      ),
-                    ),
-                    if (central || isSelected)
-                      Text(
-                        'WORLD',
-                        style: TextStyle(
-                          fontSize: 7,
-                          letterSpacing: 3,
-                          color: Colors.white.withValues(alpha: .34),
-                        ),
-                      ),
-                  ],
+                left: size + 10,
+                top: size * .50 - 14,
+                child: _WorldLabel(
+                  title: world.title,
+                  active: isSelected || central,
                 ),
               ),
             ],
@@ -192,7 +174,7 @@ class _DarkestGalaxyState extends State<DarkestGalaxy>
   List<Color> _planetColors(GalaxyWorldKind kind) {
     switch (kind) {
       case GalaxyWorldKind.vegeta:
-        return const [Color(0xFF3E315E), Color(0xFF171226), Color(0xFF050309)];
+        return const [Color(0xFF4B376E), Color(0xFF19152A), Color(0xFF050309)];
       case GalaxyWorldKind.game:
         return const [Color(0xFF5A3D8C), Color(0xFF251744), Color(0xFF07040E)];
       case GalaxyWorldKind.music:
@@ -210,6 +192,30 @@ class _DarkestGalaxyState extends State<DarkestGalaxy>
       case GalaxyWorldKind.comingSoon:
         return const [Color(0xFF8A67C4), Color(0xFF32204E), Color(0xFF09050F)];
     }
+  }
+}
+
+class _WorldLabel extends StatelessWidget {
+  final String title;
+  final bool active;
+  const _WorldLabel({required this.title, required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Text(
+        title,
+        maxLines: 2,
+        overflow: TextOverflow.visible,
+        style: TextStyle(
+          fontSize: active ? 10 : 8.5,
+          letterSpacing: active ? 2.4 : 1.8,
+          fontWeight: FontWeight.w400,
+          color: Colors.white.withValues(alpha: active ? .86 : .54),
+          shadows: const [Shadow(blurRadius: 12, color: Colors.black)],
+        ),
+      ),
+    );
   }
 }
 
