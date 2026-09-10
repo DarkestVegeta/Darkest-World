@@ -27,12 +27,25 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
   String get _type => widget.item.type.name;
   String get _franchise => widget.item.franchise ?? '';
   String get _description => widget.item.description ?? '';
+  bool get _isExternal =>
+      widget.item.externalSource != null && widget.item.externalId != null;
+  String get _externalSource =>
+      (widget.item.externalSource ?? '').toUpperCase();
+  String? get _imageUrl {
+    final value = widget.item.metadata['image_url'];
+    return value is String && value.isNotEmpty ? value : null;
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadRelated();
-    _loadNavigation();
+    if (_isExternal) {
+      _relatedLoading = false;
+      _navigationLoading = false;
+    } else {
+      _loadRelated();
+      _loadNavigation();
+    }
   }
 
   Future<void> _loadRelated() async {
@@ -72,6 +85,8 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
   }
 
   ChatContext? get _chatContext {
+    if (_isExternal) return null;
+
     ChatScope? scope;
     switch (_type) {
       case 'game':
@@ -111,66 +126,105 @@ class _ContentDetailPageState extends State<ContentDetailPage> {
             children: [
               if (_type != 'unknown') Chip(label: Text(_type.toUpperCase())),
               if (_franchise.isNotEmpty) Chip(label: Text(_franchise)),
+              if (_isExternal)
+                Chip(label: Text('LIVE • $_externalSource • NIET OPGESLAGEN')),
             ],
           ),
+          if (_imageUrl != null) ...[
+            const SizedBox(height: 24),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(
+                _imageUrl!,
+                height: 360,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
+          if (widget.item.originalTitle != null &&
+              widget.item.originalTitle!.isNotEmpty &&
+              widget.item.originalTitle != _title) ...[
+            const SizedBox(height: 18),
+            Text(
+              'Original title: ${widget.item.originalTitle}',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ],
+          if (widget.item.releaseDate != null) ...[
+            const SizedBox(height: 8),
+            Text('Release: ${widget.item.releaseDate!.toIso8601String().split('T').first}'),
+          ],
           if (_description.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text(_description, style: Theme.of(context).textTheme.bodyLarge),
           ],
-          const SizedBox(height: 36),
-          const Text(
-            'Previous | CURRENT | Next',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          if (_navigationLoading)
-            const SizedBox(
-              height: 110,
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_navigationError != null)
-            Text('Franchise-navigatie laden mislukt: $_navigationError')
-          else if (_navigation == null)
-            const Text('Geen franchisevolgorde beschikbaar voor dit item.')
-          else
-            _navigationRow(context),
-          const SizedBox(height: 36),
-          const Text(
-            'Related',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          if (_relatedLoading)
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: CircularProgressIndicator(),
-            )
-          else if (_relatedError != null)
-            Text('Related laden mislukt: $_relatedError')
-          else if (_related.isEmpty)
-            const Text('Nog geen gekoppelde Related-content.')
-          else
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final item in _related)
-                  SizedBox(
-                    width: 220,
-                    child: Card(
-                      child: ListTile(
-                        title: Text(item.title),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ContentDetailPage(item: item),
+          if (_isExternal) ...[
+            const SizedBox(height: 36),
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(18),
+                child: Text(
+                  'Live extern resultaat. Dit item komt rechtstreeks van de externe bron en wordt niet toegevoegd aan de DarkestWorld-database.',
+                ),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 36),
+            const Text(
+              'Previous | CURRENT | Next',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            if (_navigationLoading)
+              const SizedBox(
+                height: 110,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_navigationError != null)
+              Text('Franchise-navigatie laden mislukt: $_navigationError')
+            else if (_navigation == null)
+              const Text('Geen franchisevolgorde beschikbaar voor dit item.')
+            else
+              _navigationRow(context),
+            const SizedBox(height: 36),
+            const Text(
+              'Related',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            if (_relatedLoading)
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(),
+              )
+            else if (_relatedError != null)
+              Text('Related laden mislukt: $_relatedError')
+            else if (_related.isEmpty)
+              const Text('Nog geen gekoppelde Related-content.')
+            else
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final item in _related)
+                    SizedBox(
+                      width: 220,
+                      child: Card(
+                        child: ListTile(
+                          title: Text(item.title),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ContentDetailPage(item: item),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
+          ],
         ],
       ),
       floatingActionButton: _chatContext == null
