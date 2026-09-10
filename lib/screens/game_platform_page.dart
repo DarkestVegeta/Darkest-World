@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'content_browser_page.dart';
+import 'game_list_page.dart';
 
 class GamePlatformPage extends StatelessWidget {
   final String territory;
@@ -24,7 +24,7 @@ class GamePlatformPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text('PLATFORMS & GENERATIONS', textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: .35), fontSize: 9, letterSpacing: 3)),
             const SizedBox(height: 30),
-            ...groups.map((group) => _GroupCard(group: group)),
+            ...groups.map((group) => _GroupCard(territory: territory, group: group)),
           ])),
         ])),
       ]),
@@ -48,8 +48,9 @@ class GamePlatform {
 }
 
 class _GroupCard extends StatelessWidget {
+  final String territory;
   final GamePlatformGroup group;
-  const _GroupCard({required this.group});
+  const _GroupCard({required this.territory, required this.group});
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -62,20 +63,25 @@ class _GroupCard extends StatelessWidget {
         const SizedBox(height: 5),
         Text(group.subtitle, style: TextStyle(color: Colors.white.withValues(alpha: .35), fontSize: 10)),
         const SizedBox(height: 14),
-        Wrap(spacing: 9, runSpacing: 9, children: group.platforms.map((platform) => _PlatformButton(platform: platform)).toList()),
+        Wrap(spacing: 9, runSpacing: 9, children: group.platforms.map((platform) => _PlatformButton(territory: territory, platform: platform)).toList()),
       ]),
     ),
   );
 }
 
 class _PlatformButton extends StatelessWidget {
+  final String territory;
   final GamePlatform platform;
-  const _PlatformButton({required this.platform});
+  const _PlatformButton({required this.territory, required this.platform});
 
   @override
   Widget build(BuildContext context) => InkWell(
     borderRadius: BorderRadius.circular(12),
-    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentBrowserPage(title: '${platform.name} • GAME-WORLD', contentType: 'game', platformIds: platform.externalPlatformIds))),
+    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GameListPage(
+      territory: territory,
+      platform: platform.name,
+      externalPlatformIds: platform.externalPlatformIds,
+    ))),
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF8D7BFF).withValues(alpha: .16)), gradient: const LinearGradient(colors: [Color(0xFF11102A), Color(0xFF080812)])),
