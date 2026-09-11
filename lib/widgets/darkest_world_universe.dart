@@ -35,29 +35,56 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> {
   });
 }
 
+class _WorldPlacement {
+  final Offset anchor;
+  final double scale;
+  const _WorldPlacement(this.anchor, this.scale);
+}
+
 class _PlanetField extends StatelessWidget {
   final List<GalaxyWorld> worlds; final Size size; final bool compact; final GalaxyWorldKind? hovered, selected;
   final ValueChanged<GalaxyWorldKind?> onHover; final ValueChanged<GalaxyWorld> onSelect;
   const _PlanetField({required this.worlds, required this.size, required this.compact, required this.hovered, required this.selected, required this.onHover, required this.onSelect});
   @override Widget build(BuildContext context) {
     final b = math.min(size.width, size.height);
-    final pos = <GalaxyWorldKind, Offset>{
-      GalaxyWorldKind.vegeta: Offset(size.width*.50,size.height*.51),
-      GalaxyWorldKind.identity: Offset(size.width*.17,size.height*.30), GalaxyWorldKind.game: Offset(size.width*.79,size.height*.29),
-      GalaxyWorldKind.cinema: Offset(size.width*.82,size.height*.71), GalaxyWorldKind.creation: Offset(size.width*.20,size.height*.73),
-      GalaxyWorldKind.music: Offset(size.width*.53,size.height*.85), GalaxyWorldKind.family: Offset(size.width*.50,size.height*.15),
-      GalaxyWorldKind.archive: Offset(size.width*.075,size.height*.53), GalaxyWorldKind.comingSoon: Offset(size.width*.925,size.height*.53),
+    // Deliberately asymmetric: this is a spatial world, not a radial menu or a ring of equal nodes.
+    final placements = <GalaxyWorldKind, _WorldPlacement>{
+      GalaxyWorldKind.vegeta: const _WorldPlacement(Offset(.50, .52), 1.00),
+      GalaxyWorldKind.game: const _WorldPlacement(Offset(.78, .25), .96),
+      GalaxyWorldKind.identity: const _WorldPlacement(Offset(.18, .34), .88),
+      GalaxyWorldKind.cinema: const _WorldPlacement(Offset(.87, .59), .79),
+      GalaxyWorldKind.creation: const _WorldPlacement(Offset(.20, .72), .82),
+      GalaxyWorldKind.music: const _WorldPlacement(Offset(.61, .82), .68),
+      GalaxyWorldKind.family: const _WorldPlacement(Offset(.39, .15), .64),
+      GalaxyWorldKind.archive: const _WorldPlacement(Offset(.065, .56), .53),
+      GalaxyWorldKind.comingSoon: const _WorldPlacement(Offset(.965, .79), .48),
     };
-    final sz = <GalaxyWorldKind,double>{
+    final base = <GalaxyWorldKind,double>{
       GalaxyWorldKind.vegeta:b*(compact?.29:.33), GalaxyWorldKind.identity:b*(compact?.125:.145), GalaxyWorldKind.game:b*(compact?.135:.155),
       GalaxyWorldKind.cinema:b*(compact?.115:.13), GalaxyWorldKind.creation:b*(compact?.115:.13), GalaxyWorldKind.music:b*(compact?.095:.11),
       GalaxyWorldKind.family:b*(compact?.085:.10), GalaxyWorldKind.archive:b*(compact?.06:.07), GalaxyWorldKind.comingSoon:b*(compact?.055:.065),
     };
-    return Stack(clipBehavior: Clip.none, children: [for (final w in worlds) if (pos.containsKey(w.kind))
-      Positioned(left: pos[w.kind]!.dx-sz[w.kind]!/2, top: pos[w.kind]!.dy-sz[w.kind]!/2,
-        child: _PlanetInteraction(world:w,size:sz[w.kind]!,central:w.kind==GalaxyWorldKind.vegeta,
-          active:hovered==w.kind||selected==w.kind,onHover:(v)=>onHover(v?w.kind:null),onTap:()=>onSelect(w)))
+    return Stack(clipBehavior: Clip.none, children: [for (final w in worlds) if (placements.containsKey(w.kind))
+      _place(w, placements[w.kind]!, base[w.kind]!),
     ]);
+  }
+
+  Widget _place(GalaxyWorld world, _WorldPlacement placement, double baseSize) {
+    final center = Offset(size.width * placement.anchor.dx, size.height * placement.anchor.dy);
+    final planetSize = baseSize * placement.scale;
+    final active = hovered == world.kind || selected == world.kind;
+    return Positioned(
+      left: center.dx - planetSize / 2,
+      top: center.dy - planetSize / 2,
+      child: _PlanetInteraction(
+        world: world,
+        size: planetSize,
+        central: world.kind == GalaxyWorldKind.vegeta,
+        active: active,
+        onHover: (v) => onHover(v ? world.kind : null),
+        onTap: () => onSelect(world),
+      ),
+    );
   }
 }
 
@@ -92,9 +119,13 @@ class _UniversePainter extends CustomPainter {
     }
     final haze=Rect.fromCenter(center:Offset(s.width*.50,s.height*.50),width:s.width*.84,height:s.height*.68);
     c.drawOval(haze,Paint()..shader=RadialGradient(colors:[const Color(0xFF69568F).withValues(alpha:.045),const Color(0xFF40536F).withValues(alpha:.016),Colors.transparent]).createShader(haze));
-    // A restrained, broad dust glow gives depth without turning the background into a busy galaxy map.
     final dust=Rect.fromCenter(center:Offset(s.width*.50,s.height*.53),width:s.width*.76,height:s.height*.22);
     c.drawOval(dust,Paint()..shader=RadialGradient(colors:[const Color(0xFF8B70B2).withValues(alpha:.018),Colors.transparent]).createShader(dust));
+    // Two extremely broad depth fields create a sense of distance without drawing orbit rings.
+    final far=Rect.fromCenter(center:Offset(s.width*.26,s.height*.30),width:s.width*.46,height:s.height*.34);
+    c.drawOval(far,Paint()..shader=RadialGradient(colors:[const Color(0xFF53677B).withValues(alpha:.012),Colors.transparent]).createShader(far));
+    final near=Rect.fromCenter(center:Offset(s.width*.76,s.height*.64),width:s.width*.42,height:s.height*.32);
+    c.drawOval(near,Paint()..shader=RadialGradient(colors:[const Color(0xFF715A91).withValues(alpha:.010),Colors.transparent]).createShader(near));
   }
   @override bool shouldRepaint(covariant _UniversePainter old)=>false;
 }
@@ -153,7 +184,6 @@ class _PlanetPainter extends CustomPainter {
   }
 
   void _terrain(Canvas c,Offset o,double r,math.Random q,_PlanetPalette p){
-    // Dense but extremely subtle micro-terrain replaces the old obvious globe/grid look.
     for(var i=0;i<120;i++){
       final a=q.nextDouble()*math.pi*2, d=math.sqrt(q.nextDouble())*r*.91;
       final at=o+Offset(math.cos(a)*d,math.sin(a)*d);
