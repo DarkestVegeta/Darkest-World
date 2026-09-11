@@ -5,7 +5,7 @@ import 'basic_section_page.dart';
 import 'cinema_world_page.dart';
 import 'dark_core_page.dart';
 import 'family_world_page.dart';
-import 'game_world_page.dart';
+import 'game_world_planet_page.dart';
 import 'identity_world_page.dart';
 import 'music_world_page.dart';
 
@@ -83,7 +83,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   void _openWorld(GalaxyWorld world) {
     switch (world.kind) {
       case GalaxyWorldKind.game:
-        _push(const GameWorldPage());
+        _push(const GameWorldPlanetPage());
         return;
       case GalaxyWorldKind.music:
         _push(MusicWorldPage(title: 'MUSIC-WORLD', description: world.description));
