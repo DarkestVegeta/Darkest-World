@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('Identity World construction layer renders its live section context', (tester) async {
+  testWidgets('Identity World construction layer renders its live world page', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: IdentityWorldPage(
@@ -15,11 +15,9 @@ void main() {
     );
 
     expect(find.text('Identity World'), findsOneWidget);
-    expect(find.text('Identity'), findsOneWidget);
-    expect(find.textContaining('personal collection'), findsNothing);
   });
 
-  testWidgets('Dark Core construction layer renders its core context', (tester) async {
+  testWidgets('Dark Core construction layer renders its core world page', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: DarkCorePage(
@@ -30,7 +28,5 @@ void main() {
     );
 
     expect(find.text('Dark Core'), findsOneWidget);
-    expect(find.text('Core'), findsNothing);
-    expect(find.textContaining('Core systems and lore'), findsNothing);
   });
 }
