@@ -31,14 +31,7 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> {
       final current = selected == null ? null : find(selected!);
       return Stack(fit: StackFit.expand, children: [
         const Positioned.fill(child: CustomPaint(painter: _UniversePainter())),
-        Positioned.fill(
-          child: _PlanetField(
-            worlds: widget.worlds,
-            selected: selected,
-            compact: compact,
-            onSelect: (world) => setState(() => selected = selected == world.kind ? null : world.kind),
-          ),
-        ),
+        Positioned.fill(child: _PlanetField(worlds: widget.worlds, selected: selected, compact: compact, onSelect: (world) => setState(() => selected = selected == world.kind ? null : world.kind))),
         Positioned(left: compact ? 18 : 34, top: compact ? 18 : 28, child: const _UniverseTitle()),
         if (current != null) _SelectionPanel(world: current, compact: compact, onClose: () => setState(() => selected = null), onEnter: () => widget.onWorldTap?.call(current)),
       ]);
@@ -53,43 +46,35 @@ class _PlanetField extends StatelessWidget {
   final ValueChanged<GalaxyWorld> onSelect;
   const _PlanetField({required this.worlds, required this.selected, required this.compact, required this.onSelect});
 
+  static const positions = <GalaxyWorldKind, Offset>{
+    GalaxyWorldKind.vegeta: Offset(.50, .52), GalaxyWorldKind.game: Offset(.78, .25),
+    GalaxyWorldKind.identity: Offset(.18, .34), GalaxyWorldKind.cinema: Offset(.87, .59),
+    GalaxyWorldKind.creation: Offset(.20, .72), GalaxyWorldKind.music: Offset(.61, .82),
+    GalaxyWorldKind.family: Offset(.39, .15), GalaxyWorldKind.archive: Offset(.065, .56),
+    GalaxyWorldKind.comingSoon: Offset(.965, .79),
+  };
+
+  static const factors = <GalaxyWorldKind, double>{
+    GalaxyWorldKind.vegeta: .30, GalaxyWorldKind.game: .155, GalaxyWorldKind.identity: .145,
+    GalaxyWorldKind.cinema: .13, GalaxyWorldKind.creation: .13, GalaxyWorldKind.music: .11,
+    GalaxyWorldKind.family: .10, GalaxyWorldKind.archive: .07, GalaxyWorldKind.comingSoon: .065,
+  };
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final base = math.min(size.width, size.height);
-    const positions = <GalaxyWorldKind, Offset>{
-      GalaxyWorldKind.vegeta: Offset(.50, .52), GalaxyWorldKind.game: Offset(.78, .25),
-      GalaxyWorldKind.identity: Offset(.18, .34), GalaxyWorldKind.cinema: Offset(.87, .59),
-      GalaxyWorldKind.creation: Offset(.20, .72), GalaxyWorldKind.music: Offset(.61, .82),
-      GalaxyWorldKind.family: Offset(.39, .15), GalaxyWorldKind.archive: Offset(.065, .56),
-      GalaxyWorldKind.comingSoon: Offset(.965, .79),
-    };
-    const factors = <GalaxyWorldKind, double>{
-      GalaxyWorldKind.vegeta: .30, GalaxyWorldKind.game: .155, GalaxyWorldKind.identity: .145,
-      GalaxyWorldKind.cinema: .13, GalaxyWorldKind.creation: .13, GalaxyWorldKind.music: .11,
-      GalaxyWorldKind.family: .10, GalaxyWorldKind.archive: .07, GalaxyWorldKind.comingSoon: .065,
-    };
-    final sorted = worlds.where((w) => positions.containsKey(w.kind)).toList()
-      ..sort((a, b) => factors[a.kind]!.compareTo(factors[b.kind]!));
     return Stack(clipBehavior: Clip.none, children: [
-      for (final world in sorted)
+      for (final world in worlds.where((w) => positions.containsKey(w.kind)))
         Positioned(
-          left: size.width * positions[world.kind]!.dx - _planetSize(base, world.kind, compact) / 2,
-          top: size.height * positions[world.kind]!.dy - _planetSize(base, world.kind, compact) / 2,
-          child: _Planet(world: world, size: _planetSize(base, world.kind, compact), muted: selected != null && selected != world.kind, onTap: () => onSelect(world)),
+          left: size.width * positions[world.kind]!.dx - _planetSize(base, world.kind) / 2,
+          top: size.height * positions[world.kind]!.dy - _planetSize(base, world.kind) / 2,
+          child: _Planet(world: world, size: _planetSize(base, world.kind), muted: selected != null && selected != world.kind, onTap: () => onSelect(world)),
         ),
     ]);
   }
 
-  double _planetSize(double base, GalaxyWorldKind kind, bool compact) {
-    const factors = <GalaxyWorldKind, double>{
-      GalaxyWorldKind.vegeta: .30, GalaxyWorldKind.game: .155, GalaxyWorldKind.identity: .145,
-      GalaxyWorldKind.cinema: .13, GalaxyWorldKind.creation: .13, GalaxyWorldKind.music: .11,
-      GalaxyWorldKind.family: .10, GalaxyWorldKind.archive: .07, GalaxyWorldKind.comingSoon: .065,
-    };
-    final size = base * (factors[kind] ?? .1);
-    return size * (kind == GalaxyWorldKind.vegeta ? 1 : compact ? .92 : 1);
-  }
+  double _planetSize(double base, GalaxyWorldKind kind) => base * (factors[kind] ?? .1) * (kind == GalaxyWorldKind.vegeta ? 1 : compact ? .92 : 1);
 }
 
 class _Planet extends StatelessWidget {
@@ -102,64 +87,29 @@ class _Planet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = world.kind == GalaxyWorldKind.vegeta;
+    final baseColor = dark ? const Color(0xFF76688F) : const Color(0xFF626B8C);
     return Opacity(
       opacity: muted ? .35 : 1,
       child: GestureDetector(
         onTap: onTap,
-        child: SizedBox(
-          width: size,
-          height: size + 36,
-          child: Column(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      center: const Alignment(-.38, -.40),
-                      radius: 1.0,
-                      colors: dark
-                          ? const [Color(0xFF7B6F96), Color(0xFF302946), Color(0xFF08070D)]
-                          : const [Color(0xFF59627C), Color(0xFF292B43), Color(0xFF070812)],
-                      stops: const [0.0, .48, 1.0],
-                    ),
-                    boxShadow: [
-                      BoxShadow(color: const Color(0xFF6C5A92).withValues(alpha: .20), blurRadius: size * .12, spreadRadius: size * .025),
-                      BoxShadow(color: Colors.black.withValues(alpha: .65), blurRadius: size * .10, offset: Offset(size * .06, size * .06)),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: CustomPaint(painter: _PlanetTexturePainter(seed: world.kind.index * 977 + 7)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(world.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: dark ? 11 : 8, letterSpacing: dark ? 3.2 : 2.1, color: Colors.white.withValues(alpha: .72))),
-            ],
+        child: SizedBox(width: size, height: size + 34, child: Column(children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: baseColor,
+              gradient: RadialGradient(center: const Alignment(-.35, -.38), radius: .92, colors: [Colors.white.withValues(alpha: .58), baseColor, const Color(0xFF171625)], stops: const [0, .38, 1]),
+              border: Border.all(color: Colors.white.withValues(alpha: .14), width: 1),
+              boxShadow: [BoxShadow(color: baseColor.withValues(alpha: .65), blurRadius: size * .16, spreadRadius: size * .025), BoxShadow(color: Colors.black.withValues(alpha: .9), blurRadius: size * .08, offset: Offset(size * .055, size * .07))],
+            ),
           ),
-        ),
+          const SizedBox(height: 5),
+          Text(world.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: dark ? 11 : 8, letterSpacing: dark ? 3.2 : 2.1, color: Colors.white.withValues(alpha: .78))),
+        ])),
       ),
     );
   }
-}
-
-class _PlanetTexturePainter extends CustomPainter {
-  final int seed;
-  const _PlanetTexturePainter({required this.seed});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final random = math.Random(seed);
-    final center = size.center(Offset.zero);
-    final radius = size.width * .5;
-    for (var i = 0; i < 16; i++) {
-      final a = random.nextDouble() * math.pi * 2;
-      final d = math.sqrt(random.nextDouble()) * radius * .70;
-      final p = center + Offset(math.cos(a) * d, math.sin(a) * d);
-      final w = radius * (.05 + random.nextDouble() * .15);
-      canvas.drawOval(Rect.fromCenter(center: p, width: w, height: w * (.45 + random.nextDouble())), Paint()..color = Colors.white.withValues(alpha: .035 + random.nextDouble() * .06));
-    }
-  }
-  @override bool shouldRepaint(covariant _PlanetTexturePainter oldDelegate) => false;
 }
 
 class _SelectionPanel extends StatelessWidget {
