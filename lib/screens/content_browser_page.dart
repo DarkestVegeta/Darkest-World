@@ -32,7 +32,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   bool get _external => ['game', 'movie', 'series'].contains(widget.contentType);
   String get _source => widget.contentType == 'game' ? 'igdb' : widget.contentType == 'movie' ? 'tmdb_movie' : 'tmdb_tv';
   String get _displayTitle => widget.title.replaceFirst(RegExp(r'\s*•\s*GAMES\s*$', caseSensitive: false), '').trim();
-  bool get _snesTestLibrary => widget.contentType == 'game' && _displayTitle.toUpperCase() == 'SNES';
+  bool get _snesLibrary => widget.contentType == 'game' && (widget.platformIds.contains(19) || _displayTitle.toUpperCase() == 'SNES');
 
   List<int> get _platformIds {
     if (widget.platformIds.isNotEmpty) return widget.platformIds;
@@ -44,32 +44,11 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     return [];
   }
 
-  List<ContentItem> get _realSnesTestItems => [
-    ['3 Ninjas Kick Back', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/3%20Ninjas%20kick%20back.png'],
-    ['90 Minutes - European Prime Goal', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/90%20Minutes%20-%20European%20Prime%20Goal.png'],
-    ['A.S.P. Air Strike Patrol', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/A.S.P.%20Air%20Strike%20Patrol.png'],
-    ['AAAHH!!!! Real Monsters', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/AAAHH!!!!%20Real%20Monsters.png'],
-    ['ABC Monday Night Football', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/ABC%20Monday%20Night%20fOOTBALL.png'],
-    ['Accele Brid', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/Accele%20Brid.png'],
-    ['ACME Animation Factory', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/ACME%20Animation%20Factory.png'],
-    ['ActRaiser', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/actraiser.png'],
-    ['ActRaiser 2', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/actraiser%202.png'],
-    ['Advanced Dungeons Dragons. Eye of the Beholder', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/Advanced%20Dungeons%20Dragons.%20Eye%20of%20the%20Beholder.png'],
-  ].map((entry) => ContentItem.fromRow({
-    'id': 'snes-sealed:${entry[0]}',
-    'content_type': 'game',
-    'title': entry[0],
-    'slug': entry[0].toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-'),
-    'metadata': {'public_url': entry[1], 'source': 'Supabase', 'collection': 'SNES Sealed'},
-  })).toList();
-
   @override
   void initState() {
     super.initState();
-    if (_snesTestLibrary) {
-      _items.addAll(_realSnesTestItems);
-      _focus = _items.length > 2 ? 2 : 0;
-      _hasMore = false;
+    if (_snesLibrary) {
+      _loadSnesSealed();
     } else {
       _load();
     }
@@ -79,6 +58,52 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSnesSealed() async {
+    if (_loading) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      final rows = await supabase
+          .from('storage_assets')
+          .select('id,title,public_url,metadata')
+          .eq('asset_type', 'snes_sealed')
+          .not('public_url', 'is', null)
+          .neq('public_url', '')
+          .order('title')
+          .limit(1000);
+
+      final loaded = <ContentItem>[];
+      for (final raw in rows) {
+        if (raw is! Map) continue;
+        final row = Map<String, dynamic>.from(raw);
+        final rawMetadata = row['metadata'];
+        final metadata = rawMetadata is Map ? Map<String, dynamic>.from(rawMetadata) : <String, dynamic>{};
+        metadata['public_url'] = row['public_url'];
+        metadata['source'] = 'Supabase';
+        metadata['collection'] = 'SNES Sealed';
+        final title = '${row['title'] ?? 'Untitled'}'.trim();
+        loaded.add(ContentItem.fromRow({
+          'id': 'snes-sealed:${row['id']}',
+          'content_type': 'game',
+          'title': title,
+          'slug': title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-|-$'), ''),
+          'metadata': metadata,
+        }));
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _items
+          ..clear()
+          ..addAll(loaded);
+        _focus = loaded.isEmpty ? 0 : math.min(2, loaded.length - 1);
+        _hasMore = false;
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = '$e'; });
+    }
   }
 
   Future<void> _load() async {
@@ -122,7 +147,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
         row['slug'] = '${row['slug'] ?? row['title'] ?? '$src-$id'}';
         try { results.add(ContentItem.fromRow(row)); } catch (_) {}
       }
-      if (mounted) setState(() { _items.addAll(results); _loading = false; _focus = results.isEmpty ? 0 : results.length > 2 ? 2 : results.length - 1; });
+      if (mounted) setState(() { _items.addAll(results); _loading = false; _focus = results.isEmpty ? 0 : math.min(2, results.length - 1); });
     } catch (e) {
       if (mounted) setState(() { _loading = false; _error = '$e'; });
     }
@@ -130,8 +155,8 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 
   Future<void> _refresh() async {
     _search.clear();
-    if (_snesTestLibrary) {
-      setState(() { _items..clear()..addAll(_realSnesTestItems); _focus = 2; _error = null; });
+    if (_snesLibrary) {
+      await _loadSnesSealed();
       return;
     }
     setState(() { _items.clear(); _page = 0; _focus = 0; _hasMore = true; _searching = false; _error = null; });
@@ -145,13 +170,13 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     final next = (_focus + delta).clamp(0, _items.length - 1);
     if (next == _focus) return;
     setState(() => _focus = next);
-    if (next >= _items.length - 6 && !_snesTestLibrary) _load();
+    if (next >= _items.length - 6 && !_snesLibrary) _load();
   }
 
   void _focusItem(int index) {
     if (index < 0 || index >= _items.length) return;
     setState(() => _focus = index);
-    if (index >= _items.length - 6 && !_snesTestLibrary) _load();
+    if (index >= _items.length - 6 && !_snesLibrary) _load();
   }
 
   List<ContentItem?> get _five => List<ContentItem?>.generate(5, (slot) {
@@ -217,7 +242,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
             ),
           ),
           if (_searching) Padding(padding: const EdgeInsets.only(top: 7), child: Text('LIVE ${_source.toUpperCase()}  •  NIET OPGESLAGEN', style: TextStyle(fontSize: 8, letterSpacing: 1.8, color: Colors.white.withValues(alpha: .34)))),
-          if (_snesTestLibrary) Padding(padding: const EdgeInsets.only(top: 7), child: Text('SNES SEALED  •  SUPABASE TEST LIBRARY', style: TextStyle(fontSize: 8, letterSpacing: 1.8, color: Colors.white.withValues(alpha: .34)))),
+          if (_snesLibrary) Padding(padding: const EdgeInsets.only(top: 7), child: Text('SNES SEALED  •  SUPABASE LIBRARY  •  ${_items.length} ARTBOXEN', style: TextStyle(fontSize: 8, letterSpacing: 1.8, color: Colors.white.withValues(alpha: .34)))),
           Expanded(child: _body()),
         ])),
         Positioned(left: 0, right: 0, bottom: 18, child: Column(children: [
@@ -234,7 +259,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   }
 
   Widget _body() {
-    if (_error != null && _items.isEmpty) return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Laden mislukt: $_error'), const SizedBox(height: 12), OutlinedButton(onPressed: _searching ? _searchExternal : _load, child: const Text('Opnieuw'))]));
+    if (_error != null && _items.isEmpty) return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Laden mislukt: $_error'), const SizedBox(height: 12), OutlinedButton(onPressed: _snesLibrary ? _loadSnesSealed : (_searching ? _searchExternal : _load), child: const Text('Opnieuw'))]));
     if (_items.isEmpty) return Center(child: _loading ? const CircularProgressIndicator() : Text(_searching ? 'Geen resultaten gevonden.' : 'Geen content gevonden.'));
 
     return LayoutBuilder(builder: (context, c) {
@@ -270,6 +295,7 @@ class _Card extends StatelessWidget {
   final double height;
   final bool main;
   final int position;
+
   const _Card({required this.item, required this.width, required this.height, required this.main, required this.position});
 
   @override
@@ -281,17 +307,22 @@ class _Card extends StatelessWidget {
       height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
+        color: const Color(0xFF090912),
         borderRadius: BorderRadius.circular(main ? 16 : 13),
         border: Border.all(width: main ? 2 : 1, color: main ? const Color(0xFF8E7BE8) : const Color(0x18222222)),
         boxShadow: main ? [const BoxShadow(color: Color(0x286956C7), blurRadius: 35, spreadRadius: 1)] : const [],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Expanded(child: url.isEmpty ? _Placeholder(title: item.title) : Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _Placeholder(title: item.title))),
-        Container(padding: const EdgeInsets.fromLTRB(12, 10, 12, 11), color: const Color(0xE6080810), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(positionLabel, style: TextStyle(fontSize: 7, letterSpacing: 1.8, color: Colors.white.withValues(alpha: main ? .48 : .20))),
-          const SizedBox(height: 5),
-          Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: main ? FontWeight.w700 : FontWeight.w500, fontSize: main ? 12 : 11)),
-        ])),
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+          color: const Color(0xE6080810),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(positionLabel, style: TextStyle(fontSize: 7, letterSpacing: 1.8, color: Colors.white.withValues(alpha: main ? .48 : .20))),
+            const SizedBox(height: 5),
+            Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: main ? FontWeight.w700 : FontWeight.w500, fontSize: main ? 12 : 11)),
+          ]),
+        ),
       ]),
     );
   }
@@ -300,25 +331,48 @@ class _Card extends StatelessWidget {
 class _Placeholder extends StatelessWidget {
   final String title;
   const _Placeholder({required this.title});
+
   @override
-  Widget build(BuildContext context) => Container(color: const Color(0xFF0A0913), child: Center(child: Padding(padding: const EdgeInsets.all(18), child: Text(title, textAlign: TextAlign.center, maxLines: 4, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withValues(alpha: .55))))));
+  Widget build(BuildContext context) => Container(
+    color: const Color(0xFF0A0913),
+    child: Center(child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Text(title, textAlign: TextAlign.center, maxLines: 4, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withValues(alpha: .55))),
+    )),
+  );
 }
 
 class _BrowserSpacePainter extends CustomPainter {
   const _BrowserSpacePainter();
+
   @override
   void paint(Canvas canvas, Size size) {
-    final bg = Paint()..shader = const RadialGradient(center: Alignment(0, -.18), radius: 1.15, colors: [Color(0xFF17142D), Color(0xFF070712), Color(0xFF010105)]).createShader(Offset.zero & size);
+    final bg = Paint()
+      ..shader = const RadialGradient(
+        center: Alignment(0, -.18),
+        radius: 1.15,
+        colors: [Color(0xFF17142D), Color(0xFF070712), Color(0xFF010105)],
+      ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, bg);
-    final glow = Paint()..color = const Color(0xFF7866D8).withValues(alpha: .035)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 110);
-    canvas.drawCircle(Offset(size.width / 2, size.height * .48), 280, glow);
-    final random = math.Random(811);
-    final star = Paint();
-    for (var i = 0; i < 150; i++) {
-      star.color = Colors.white.withValues(alpha: .08 + (i % 6) * .022);
-      canvas.drawCircle(Offset(random.nextDouble() * size.width, random.nextDouble() * size.height), i % 23 == 0 ? .85 : .34, star);
+
+    final random = math.Random(2307);
+    final stars = Paint()..color = Colors.white;
+    for (var i = 0; i < 240; i++) {
+      final p = Offset(random.nextDouble() * size.width, random.nextDouble() * size.height);
+      final r = random.nextDouble() * 1.15 + .15;
+      stars.color = Colors.white.withValues(alpha: random.nextDouble() * .28 + .05);
+      canvas.drawCircle(p, r, stars);
     }
+
+    final haze = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, -.25),
+        radius: .9,
+        colors: [const Color(0x241E1A55), Colors.transparent],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, haze);
   }
+
   @override
-  bool shouldRepaint(covariant _BrowserSpacePainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
