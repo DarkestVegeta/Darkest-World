@@ -12,7 +12,9 @@ class DarkestWorldAccessPolicy {
     'Chatbox',
   ];
 
-  static bool canEnterGalaxy({required bool signedIn}) => signedIn;
+  // The Galaxy itself is always visible. Login is for access to protected
+  // functions/content, not for hiding the DarkestWorld background universe.
+  static bool canEnterGalaxy({required bool signedIn}) => true;
 
   static bool canOpenWorld(String slug, {required bool signedIn}) {
     if (signedIn) return true;
