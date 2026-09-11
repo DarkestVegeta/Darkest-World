@@ -37,6 +37,35 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage> {
 
   void _open(int i) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GamePlatformPage(territory: territories[i].name, groups: territories[i].groups)));
 
+  int? _territoryAt(Offset local, double diameter) {
+    final center = Offset(diameter / 2, diameter / 2);
+    final regions = <_Region>[
+      _Region(0, const Offset(-.31,-.25), .34, .25, -.28, 0xFF8B73D6),
+      _Region(1, const Offset(.31,-.24), .36, .23, .18, 0xFF4D82C4),
+      _Region(2, const Offset(-.30,.27), .35, .28, .24, 0xFF756A9E),
+      _Region(3, const Offset(.29,.27), .34, .28, -.22, 0xFF4F8A86),
+    ];
+    final r = diameter * .49;
+    for (final region in regions.reversed) {
+      final path = _regionPath(center, r, region);
+      if (path.contains(local)) return region.index;
+    }
+    return null;
+  }
+
+  Path _regionPath(Offset o, double r, _Region region) {
+    final cx=o.dx+region.center.dx*r, cy=o.dy+region.center.dy*r, rx=region.rx*r, ry=region.ry*r, rot=region.rotation;
+    final p=Path(); final co=math.cos(rot), si=math.sin(rot);
+    for(var i=0;i<=24;i++) {
+      final a=math.pi*2*i/24;
+      final wobble=1+.10*math.sin(a*3+region.index)+.07*math.cos(a*5-region.index);
+      final x=math.cos(a)*rx*wobble, y=math.sin(a)*ry*wobble;
+      final px=cx+x*co-y*si, py=cy+x*si+y*co;
+      if(i==0)p.moveTo(px,py);else p.lineTo(px,py);
+    }
+    p.close(); return p;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,20 +82,30 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage> {
             const Spacer(),
             Text('TERRITORIES', style: TextStyle(fontSize: 8, letterSpacing: 2.8, color: Colors.white.withValues(alpha: .28))),
           ]))),
-          Center(child: SizedBox(width: diameter, height: diameter, child: Stack(clipBehavior: Clip.none, children: [
-            Positioned.fill(child: CustomPaint(painter: _GamePlanetPainter(diameter, selected, hovered))),
-            for (var i = 0; i < territories.length; i++)
-              _TerritoryButton(
-                data: territories[i], index: i, hovered: hovered == i, muted: selected != null && selected != i, diameter: diameter,
-                onEnter: () => setState(() => hovered = i), onExit: () => setState(() => hovered = null),
-                onTap: () => setState(() => selected = selected == i ? null : i),
-              ),
-            Center(child: IgnorePointer(child: AnimatedOpacity(duration: const Duration(milliseconds: 240), opacity: selected == null ? 1 : .28, child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text('GAME', style: TextStyle(fontSize: compact ? 15 : 20, letterSpacing: 7, color: Colors.white.withValues(alpha: .70))),
-              const SizedBox(height: 5),
-              Text('WORLD', style: TextStyle(fontSize: compact ? 8 : 10, letterSpacing: 5, color: Colors.white.withValues(alpha: .28))),
-            ]))),
-          ]))),
+          Center(child: SizedBox(width: diameter, height: diameter, child: MouseRegion(
+            onHover: (event) {
+              final hit = _territoryAt(event.localPosition, diameter);
+              if (hit != hovered) setState(() => hovered = hit);
+            },
+            onExit: (_) => setState(() => hovered = null),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapUp: (details) {
+                final hit = _territoryAt(details.localPosition, diameter);
+                if (hit != null) setState(() => selected = selected == hit ? null : hit);
+              },
+              child: Stack(clipBehavior: Clip.none, children: [
+                Positioned.fill(child: CustomPaint(painter: _GamePlanetPainter(diameter, selected, hovered))),
+                for (var i = 0; i < territories.length; i++)
+                  _TerritoryLabel(data: territories[i], hovered: hovered == i, muted: selected != null && selected != i, diameter: diameter, index: i),
+                Center(child: IgnorePointer(child: AnimatedOpacity(duration: const Duration(milliseconds: 240), opacity: selected == null ? 1 : .28, child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text('GAME', style: TextStyle(fontSize: compact ? 15 : 20, letterSpacing: 7, color: Colors.white.withValues(alpha: .70))),
+                  const SizedBox(height: 5),
+                  Text('WORLD', style: TextStyle(fontSize: compact ? 8 : 10, letterSpacing: 5, color: Colors.white.withValues(alpha: .28))),
+                ]))),
+              ]),
+            ),
+          ))),
           if (selected != null)
             _TerritoryInfo(data: territories[selected!], compact: compact, onEnter: () => _open(selected!)),
           Positioned(left: compact ? 18 : 30, bottom: compact ? 18 : 26, child: Text(selected == null ? 'SELECT A TERRITORY' : 'SELECTED TERRITORY  •  ENTER TO OPEN', style: TextStyle(fontSize: 8, letterSpacing: 2.6, color: Colors.white.withValues(alpha: .22)))),
@@ -86,14 +125,13 @@ class _TerritoryInfo extends StatelessWidget {
   }
 }
 
-class _TerritoryButton extends StatelessWidget {
+class _TerritoryLabel extends StatelessWidget {
   final _TerritoryData data; final int index; final bool hovered, muted; final double diameter;
-  final VoidCallback onEnter, onExit, onTap;
-  const _TerritoryButton({required this.data, required this.index, required this.hovered, required this.muted, required this.diameter, required this.onEnter, required this.onExit, required this.onTap});
+  const _TerritoryLabel({required this.data, required this.index, required this.hovered, required this.muted, required this.diameter});
   @override Widget build(BuildContext context) {
     final points = [Offset(diameter*.29,diameter*.30), Offset(diameter*.70,diameter*.30), Offset(diameter*.30,diameter*.69), Offset(diameter*.70,diameter*.69)];
     final p = points[index];
-    return Positioned(left:p.dx-78, top:p.dy-44, width:156, height:88, child: AnimatedOpacity(duration: const Duration(milliseconds: 220), opacity: muted ? .18 : 1, child: MouseRegion(cursor:SystemMouseCursors.click,onEnter:(_)=>onEnter(),onExit:(_)=>onExit(),child:GestureDetector(onTap:onTap,child:Center(child: AnimatedDefaultTextStyle(duration:const Duration(milliseconds:220), style:TextStyle(fontSize:hovered?11:9,letterSpacing:2.8,fontWeight:FontWeight.w500,color:Colors.white.withValues(alpha:hovered?.92:.66),shadows:hovered?[Shadow(color:Color(data.accent).withValues(alpha:.55),blurRadius:18)]:null),child:Text(data.name)))))));
+    return Positioned(left:p.dx-78, top:p.dy-44, width:156, height:88, child: IgnorePointer(child: AnimatedOpacity(duration:const Duration(milliseconds:220), opacity: muted ? .18 : 1, child: Center(child: AnimatedDefaultTextStyle(duration:const Duration(milliseconds:220), style:TextStyle(fontSize:hovered?11:9,letterSpacing:2.8,fontWeight:FontWeight.w500,color:Colors.white.withValues(alpha:hovered?.92:.66),shadows:hovered?[Shadow(color:Color(data.accent).withValues(alpha:.55),blurRadius:18)]:null),child:Text(data.name))))));
   }
 }
 
