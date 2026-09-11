@@ -9,6 +9,8 @@ class GamePlatformPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final allPlatforms = groups.expand((group) => group.platforms).toList(growable: false);
+
     return Scaffold(
       backgroundColor: const Color(0xFF020208),
       body: Stack(children: [
@@ -24,7 +26,7 @@ class GamePlatformPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text('PLATFORMS & GENERATIONS', textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: .35), fontSize: 9, letterSpacing: 3)),
             const SizedBox(height: 30),
-            ...groups.map((group) => _GroupCard(territory: territory, group: group)),
+            ...groups.map((group) => _GroupCard(territory: territory, group: group, allPlatforms: allPlatforms)),
           ])),
         ])),
       ]),
@@ -50,7 +52,8 @@ class GamePlatform {
 class _GroupCard extends StatelessWidget {
   final String territory;
   final GamePlatformGroup group;
-  const _GroupCard({required this.territory, required this.group});
+  final List<GamePlatform> allPlatforms;
+  const _GroupCard({required this.territory, required this.group, required this.allPlatforms});
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -63,7 +66,7 @@ class _GroupCard extends StatelessWidget {
         const SizedBox(height: 5),
         Text(group.subtitle, style: TextStyle(color: Colors.white.withValues(alpha: .35), fontSize: 10)),
         const SizedBox(height: 14),
-        Wrap(spacing: 9, runSpacing: 9, children: group.platforms.map((platform) => _PlatformButton(territory: territory, platform: platform, siblings: group.platforms)).toList()),
+        Wrap(spacing: 9, runSpacing: 9, children: group.platforms.map((platform) => _PlatformButton(territory: territory, platform: platform, allPlatforms: allPlatforms)).toList()),
       ]),
     ),
   );
@@ -72,8 +75,8 @@ class _GroupCard extends StatelessWidget {
 class _PlatformButton extends StatelessWidget {
   final String territory;
   final GamePlatform platform;
-  final List<GamePlatform> siblings;
-  const _PlatformButton({required this.territory, required this.platform, required this.siblings});
+  final List<GamePlatform> allPlatforms;
+  const _PlatformButton({required this.territory, required this.platform, required this.allPlatforms});
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -82,8 +85,8 @@ class _PlatformButton extends StatelessWidget {
       territory: territory,
       platform: platform.name,
       externalPlatformIds: platform.externalPlatformIds,
-      navigationPlatforms: siblings,
-      navigationIndex: siblings.indexOf(platform),
+      navigationPlatforms: allPlatforms,
+      navigationIndex: allPlatforms.indexOf(platform),
     ))),
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
