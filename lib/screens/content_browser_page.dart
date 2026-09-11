@@ -66,8 +66,25 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
         if(raw is! Map)continue;final row=Map<String,dynamic>.from(raw);final src='${row['external_source']??_source}';final id='${row['external_id']??''}';row['id']='$src:$id';row['slug']='${row['slug']??row['title']??'$src-$id'}';
         try{results.add(ContentItem.fromRow(row));}catch(_){ }
       }
-      if(mounted){setState((){_items.addAll(results);_loading=false;_focus=results.length>2?2:0;});WidgetsBinding.instance.addPostFrameCallback((_){if(mounted&&_scroll.hasClients&&_items.length>2){final width=_scroll.position.viewportDimension;final gap=width>1500?18.0:14.0;final card=(width-gap*4)/5;_scroll.jumpTo(2*(card+gap));}});}
+      if(mounted){setState((){_items.addAll(results);_loading=false;_focus=results.length>2?2:0;});WidgetsBinding.instance.addPostFrameCallback((_){_centerFocus();});}
     }catch(e){if(mounted)setState((){_loading=false;_error='$e';});}
+  }
+
+  Future<void> _centerFocus() async {
+    if(!mounted||!_scroll.hasClients||_items.length<2)return;
+    final width=_scroll.position.viewportDimension;
+    final gap=width>1500?18.0:14.0;
+    final card=math.max(150.0,(width-gap*4)/5);
+    final target=_focus*(card+gap);
+    await _scroll.animateTo(target.clamp(0.0,_scroll.position.maxScrollExtent),duration:const Duration(milliseconds:220),curve:Curves.easeOut);
+  }
+
+  void _moveFocus(int delta){
+    if(_items.isEmpty)return;
+    final next=(_focus+delta).clamp(0,_items.length-1);
+    if(next==_focus)return;
+    setState(()=>_focus=next);
+    _centerFocus();
   }
 
   Future<void> _refresh() async{_search.clear();setState((){_items.clear();_page=0;_focus=2;_hasMore=true;_searching=false;_error=null;});if(_scroll.hasClients)_scroll.jumpTo(0);await _load();}
@@ -79,6 +96,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     if(_gameBrowser)Padding(padding:const EdgeInsets.fromLTRB(24,12,24,0),child:Text('GAME-WORLD  ›  ${_displayTitle.toUpperCase()}  ›  GAMES',style:TextStyle(fontSize:9,letterSpacing:2.1,color:Colors.white.withValues(alpha:.28)))),
     if(_external)Padding(padding:const EdgeInsets.fromLTRB(24,18,24,4),child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:760),child:TextField(controller:_search,textInputAction:TextInputAction.search,onSubmitted:(_)=>_searchExternal(),decoration:InputDecoration(hintText:widget.contentType=='game'?'Zoek een game':widget.contentType=='movie'?'Zoek een film':'Zoek een serie',prefixIcon:const Icon(Icons.search),suffixIcon:IconButton(onPressed:_loading?null:_searchExternal,icon:const Icon(Icons.arrow_forward)),border:const OutlineInputBorder())))),
     if(_searching)Padding(padding:const EdgeInsets.only(top:8),child:Text('LIVE ${_source.toUpperCase()} • NIET OPGESLAGEN',style:TextStyle(fontSize:11,color:Colors.white.withValues(alpha:.42)))),
+    if(_items.length>1)_ContentNavigation(items:_items,focus:_focus,onPrevious:_focus>0?()=>_moveFocus(-1):null,onNext:_focus<_items.length-1?()=>_moveFocus(1):null),
     Expanded(child:_body())]));
 
   Widget _body(){
@@ -89,6 +107,33 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
       return ListView.builder(controller:_scroll,scrollDirection:Axis.horizontal,padding:EdgeInsets.symmetric(horizontal:side),itemCount:_items.length,itemBuilder:(context,i){final main=i==_focus;return SizedBox(width:card+gap,height:height+40,child:Center(child:MouseRegion(cursor:SystemMouseCursors.click,onEnter:(_)=>setState(()=>_focus=i),child:GestureDetector(onTap:()=>_open(_items[i]),child:AnimatedScale(scale:main?1.10:1.0,duration:const Duration(milliseconds:140),child:_Card(item:_items[i],width:card,height:height,main:main))))));});
     });
   }
+}
+
+class _ContentNavigation extends StatelessWidget {
+  final List<ContentItem> items;
+  final int focus;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+  const _ContentNavigation({required this.items,required this.focus,required this.onPrevious,required this.onNext});
+
+  @override Widget build(BuildContext context){
+    final previous=focus>0?items[focus-1].title:null;
+    final current=items[focus].title;
+    final next=focus<items.length-1?items[focus+1].title:null;
+    return Padding(padding:const EdgeInsets.fromLTRB(24,14,24,4),child:Row(mainAxisAlignment:MainAxisAlignment.center,children:[
+      _ContentNavNode(label:'PREVIOUS',value:previous,onTap:onPrevious,align:CrossAxisAlignment.end),
+      const Padding(padding:EdgeInsets.symmetric(horizontal:18),child:Text('|',style:TextStyle(color:Color(0xFF5C5577)))),
+      Column(mainAxisSize:MainAxisSize.min,children:[Text('CURRENT',style:TextStyle(color:Colors.white.withValues(alpha:.38),fontSize:8,letterSpacing:2.4)),const SizedBox(height:4),ConstrainedBox(constraints:const BoxConstraints(maxWidth:260),child:Text(current,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:12,letterSpacing:.8,fontWeight:FontWeight.w600))) ]),
+      const Padding(padding:EdgeInsets.symmetric(horizontal:18),child:Text('|',style:TextStyle(color:Color(0xFF5C5577)))),
+      _ContentNavNode(label:'NEXT',value:next,onTap:onNext,align:CrossAxisAlignment.start),
+    ]));
+  }
+}
+
+class _ContentNavNode extends StatelessWidget {
+  final String label;final String? value;final VoidCallback? onTap;final CrossAxisAlignment align;
+  const _ContentNavNode({required this.label,required this.value,required this.onTap,required this.align});
+  @override Widget build(BuildContext context)=>InkWell(onTap:onTap,borderRadius:BorderRadius.circular(8),child:Padding(padding:const EdgeInsets.symmetric(horizontal:4,vertical:4),child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:align,children:[Text(label,style:TextStyle(color:onTap==null?Colors.white.withValues(alpha:.14):Colors.white.withValues(alpha:.32),fontSize:8,letterSpacing:2.2)),const SizedBox(height:4),ConstrainedBox(constraints:const BoxConstraints(maxWidth:180),child:Text(value??'—',maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:onTap==null?Colors.white.withValues(alpha:.12):const Color(0xFF9A82FF),fontSize:10,letterSpacing:.6))) ]));
 }
 
 class _Card extends StatelessWidget{final ContentItem item;final double width,height;final bool main;const _Card({required this.item,required this.width,required this.height,required this.main});@override Widget build(BuildContext context){final url='${item.metadata['public_url']??item.metadata['image_url']??''}'.trim();return Container(width:width,height:height,clipBehavior:Clip.antiAlias,decoration:BoxDecoration(borderRadius:BorderRadius.circular(14),border:Border.all(width:main?2:1,color:main?Theme.of(context).colorScheme.primary:Theme.of(context).colorScheme.outlineVariant)),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Expanded(child:url.isEmpty?_Placeholder(title:item.title):Image.network(url,fit:BoxFit.cover,errorBuilder:(_,__,___)=>_Placeholder(title:item.title))),Padding(padding:const EdgeInsets.fromLTRB(12,10,12,11),child:Text(item.title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:main?FontWeight.w700:FontWeight.w500))) ]));}}
