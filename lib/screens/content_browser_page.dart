@@ -32,6 +32,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   bool get _external => ['game', 'movie', 'series'].contains(widget.contentType);
   String get _source => widget.contentType == 'game' ? 'igdb' : widget.contentType == 'movie' ? 'tmdb_movie' : 'tmdb_tv';
   String get _displayTitle => widget.title.replaceFirst(RegExp(r'\s*•\s*GAMES\s*$', caseSensitive: false), '').trim();
+  bool get _snesTestLibrary => widget.contentType == 'game' && _displayTitle.toUpperCase() == 'SNES';
 
   List<int> get _platformIds {
     if (widget.platformIds.isNotEmpty) return widget.platformIds;
@@ -43,10 +44,35 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     return [];
   }
 
+  List<ContentItem> get _realSnesTestItems => [
+    ['3 Ninjas Kick Back', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/3%20Ninjas%20kick%20back.png'],
+    ['90 Minutes - European Prime Goal', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/90%20Minutes%20-%20European%20Prime%20Goal.png'],
+    ['A.S.P. Air Strike Patrol', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/A.S.P.%20Air%20Strike%20Patrol.png'],
+    ['AAAHH!!!! Real Monsters', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/AAAHH!!!!%20Real%20Monsters.png'],
+    ['ABC Monday Night Football', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/ABC%20Monday%20Night%20fOOTBALL.png'],
+    ['Accele Brid', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/Accele%20Brid.png'],
+    ['ACME Animation Factory', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/ACME%20Animation%20Factory.png'],
+    ['ActRaiser', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/actraiser.png'],
+    ['ActRaiser 2', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/actraiser%202.png'],
+    ['Advanced Dungeons Dragons. Eye of the Beholder', 'https://abmqcbfwdwzgapvgqifk.supabase.co/storage/v1/object/public/snes-sealed/Advanced%20Dungeons%20Dragons.%20Eye%20of%20the%20Beholder.png'],
+  ].map((entry) => ContentItem.fromRow({
+    'id': 'snes-sealed:${entry[0]}',
+    'content_type': 'game',
+    'title': entry[0],
+    'slug': entry[0].toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-'),
+    'metadata': {'public_url': entry[1], 'source': 'Supabase', 'collection': 'SNES Sealed'},
+  })).toList();
+
   @override
   void initState() {
     super.initState();
-    _load();
+    if (_snesTestLibrary) {
+      _items.addAll(_realSnesTestItems);
+      _focus = _items.length > 2 ? 2 : 0;
+      _hasMore = false;
+    } else {
+      _load();
+    }
   }
 
   @override
@@ -104,6 +130,10 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 
   Future<void> _refresh() async {
     _search.clear();
+    if (_snesTestLibrary) {
+      setState(() { _items..clear()..addAll(_realSnesTestItems); _focus = 2; _error = null; });
+      return;
+    }
     setState(() { _items.clear(); _page = 0; _focus = 0; _hasMore = true; _searching = false; _error = null; });
     await _load();
   }
@@ -115,21 +145,19 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     final next = (_focus + delta).clamp(0, _items.length - 1);
     if (next == _focus) return;
     setState(() => _focus = next);
-    if (next >= _items.length - 6) _load();
+    if (next >= _items.length - 6 && !_snesTestLibrary) _load();
   }
 
   void _focusItem(int index) {
     if (index < 0 || index >= _items.length) return;
     setState(() => _focus = index);
-    if (index >= _items.length - 6) _load();
+    if (index >= _items.length - 6 && !_snesTestLibrary) _load();
   }
 
-  List<ContentItem?> get _five {
-    return List<ContentItem?>.generate(5, (slot) {
-      final index = _focus + slot - 2;
-      return index >= 0 && index < _items.length ? _items[index] : null;
-    });
-  }
+  List<ContentItem?> get _five => List<ContentItem?>.generate(5, (slot) {
+    final index = _focus + slot - 2;
+    return index >= 0 && index < _items.length ? _items[index] : null;
+  });
 
   ChatContext? get _chatContext {
     final scope = switch (widget.contentType) {
@@ -189,6 +217,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
             ),
           ),
           if (_searching) Padding(padding: const EdgeInsets.only(top: 7), child: Text('LIVE ${_source.toUpperCase()}  •  NIET OPGESLAGEN', style: TextStyle(fontSize: 8, letterSpacing: 1.8, color: Colors.white.withValues(alpha: .34)))),
+          if (_snesTestLibrary) Padding(padding: const EdgeInsets.only(top: 7), child: Text('SNES SEALED  •  SUPABASE TEST LIBRARY', style: TextStyle(fontSize: 8, letterSpacing: 1.8, color: Colors.white.withValues(alpha: .34)))),
           Expanded(child: _body()),
         ])),
         Positioned(left: 0, right: 0, bottom: 18, child: Column(children: [
