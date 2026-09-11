@@ -9,8 +9,6 @@ class GameWorldPage extends StatefulWidget {
   State<GameWorldPage> createState() => _GameWorldPageState();
 }
 
-const _territoryAccents = [0xFF9A72FF, 0xFF4F86FF, 0xFF776BFF, 0xFF58A5FF, 0xFFB084FF];
-
 class _GameWorldStateData {
   static const nintendo = [
     GamePlatformGroup('HOME CONSOLES', 'Generations of Nintendo hardware.', [
@@ -47,37 +45,39 @@ class _GameWorldStateData {
       GamePlatform('Xbox One', [49]), GamePlatform('Xbox Series', [169]),
     ]),
   ];
-
-  static const pc = [
-    GamePlatformGroup('PC', 'A platform without one fixed generation.', [
-      GamePlatform('PC Games', [6]),
-    ]),
-  ];
 }
 
-class _GameWorldPageState extends State<GameWorldPage> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  int selected = 0;
+class _Territory {
+  final String name;
+  final String description;
+  final int accent;
+  final List<GamePlatformGroup> platforms;
+  const _Territory(this.name, this.description, this.accent, this.platforms);
+}
+
+class _GameWorldPageState extends State<GameWorldPage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _motion = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 55),
+  )..repeat();
+
+  int? hovered;
 
   static const territories = [
-    _Territory('NINTENDO', 'Console history, worlds and games.', 0xFF9A72FF, _GameWorldStateData.nintendo),
-    _Territory('SEGA', 'Arcade roots, consoles and speed.', 0xFF4F86FF, _GameWorldStateData.sega),
-    _Territory('PLAYSTATION', 'A broad library of worlds and stories.', 0xFF776BFF, _GameWorldStateData.playstation),
-    _Territory('XBOX', 'A modern frontier of interactive worlds.', 0xFF58A5FF, _GameWorldStateData.xbox),
-    _Territory('PC', 'An open territory without fixed borders.', 0xFFB084FF, _GameWorldStateData.pc),
+    _Territory('NINTENDO', 'Forests, mountains, villages and strange old frontiers.', 0xFF8B73D6, _GameWorldStateData.nintendo),
+    _Territory('SEGA', 'Energetic cities, deserts, arcades and unusual landscapes.', 0xFF4D82C4, _GameWorldStateData.sega),
+    _Territory('PLAYSTATION', 'Fog, ruins, industry and darker unexplored territory.', 0xFF756A9E, _GameWorldStateData.playstation),
+    _Territory('XBOX', 'A vast technological frontier beyond the old world.', 0xFF4F8A86, _GameWorldStateData.xbox),
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 42))..repeat();
+  void dispose() {
+    _motion.dispose();
+    super.dispose();
   }
 
-  @override
-  void dispose() { _controller.dispose(); super.dispose(); }
-
   void _openTerritory(int index) {
-    setState(() => selected = index);
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => GamePlatformPage(
         territory: territories[index].name,
@@ -89,137 +89,558 @@ class _GameWorldPageState extends State<GameWorldPage> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF020208),
-      body: Stack(children: [
-        Positioned.fill(child: AnimatedBuilder(
-          animation: _controller,
-          builder: (_, __) => CustomPaint(painter: _GameWorldPainter(_controller.value)),
-        )),
-        SafeArea(child: Column(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 22, 28, 0),
-            child: Row(children: [
-              IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back_ios_new, size: 17)),
-              const SizedBox(width: 10),
-              const Text('GAME-WORLD', style: TextStyle(letterSpacing: 4.5, fontSize: 18)),
-            ]),
-          ),
-          const Spacer(),
-          SizedBox(
-            height: 390,
-            child: LayoutBuilder(builder: (context, constraints) {
-              final center = Offset(constraints.maxWidth / 2, 195);
-              return Stack(children: [
-                Positioned.fill(child: CustomPaint(painter: _TerritoryLinesPainter(center: center, selected: selected))),
-                ...List.generate(territories.length, (index) {
-                  final angle = -math.pi / 2 + index * (math.pi * 2 / 5);
-                  final radius = math.min(constraints.maxWidth * .29, 260.0);
-                  final size = index == selected ? 116.0 : 92.0;
-                  final p = center + Offset(math.cos(angle) * radius, math.sin(angle) * radius);
-                  return Positioned(
-                    left: p.dx - size / 2, top: p.dy - size / 2,
-                    child: SizedBox(width: size, height: size + 34,
-                      child: GestureDetector(onTap: () => _openTerritory(index), child: Column(children: [
-                        _TerritoryOrb(size: size, accent: Color(territories[index].accent), selected: index == selected),
-                        const SizedBox(height: 7),
-                        FittedBox(fit: BoxFit.scaleDown, child: Text(territories[index].name, style: TextStyle(
-                          color: Color(territories[index].accent).withValues(alpha: index == selected ? .9 : .5),
-                          fontSize: 10, letterSpacing: 2.1, fontWeight: index == selected ? FontWeight.w600 : FontWeight.w400,
-                        ))),
-                      ])),
-                    ),
-                  );
-                }),
-                Positioned(left: center.dx - 62, top: center.dy - 62, child: const _CoreOrb()),
-              ]);
-            }),
-          ),
-          const Spacer(),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            child: Padding(key: ValueKey(selected), padding: const EdgeInsets.fromLTRB(28, 0, 28, 34), child: Column(children: [
-              Text(territories[selected].name, style: TextStyle(fontSize: 22, letterSpacing: 5, color: Color(territories[selected].accent))),
-              const SizedBox(height: 9),
-              Text(territories[selected].description, textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: .48), fontSize: 12)),
-              const SizedBox(height: 15),
-              Text('ENTER TERRITORY', style: TextStyle(letterSpacing: 3.2, fontSize: 9, color: Colors.white.withValues(alpha: .28))),
-            ])),
-          ),
-        ])),
-      ]),
+      backgroundColor: const Color(0xFF020307),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 800;
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _motion,
+                  builder: (_, __) => CustomPaint(
+                    painter: _GameUniversePainter(_motion.value),
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(compact ? 14 : 28, compact ? 14 : 22, compact ? 14 : 28, 0),
+                  child: Row(
+                    children: [
+                      _BackButton(onTap: () => Navigator.of(context).pop()),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'GAME-WORLD',
+                        style: TextStyle(fontSize: 17, letterSpacing: 4.5, fontWeight: FontWeight.w400),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'AERIAL VIEW',
+                        style: TextStyle(fontSize: 8, letterSpacing: 2.8, color: Colors.white.withValues(alpha: .30)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Center(
+                child: _WorldStage(
+                  compact: compact,
+                  territories: territories,
+                  hovered: hovered,
+                  onHover: (value) => setState(() => hovered = value),
+                  onOpen: _openTerritory,
+                  animation: _motion,
+                ),
+              ),
+              Positioned(
+                left: compact ? 18 : 30,
+                bottom: compact ? 18 : 26,
+                child: Text(
+                  'THE WORLDS WHERE THE GAMES LIVE',
+                  style: TextStyle(fontSize: 8, letterSpacing: 2.6, color: Colors.white.withValues(alpha: .22)),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
 
-class _Territory {
-  final String name; final String description; final int accent; final List<GamePlatformGroup> platforms;
-  const _Territory(this.name, this.description, this.accent, this.platforms);
+class _BackButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _BackButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: .28),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: .10)),
+          ),
+          child: const Icon(Icons.arrow_back_ios_new, size: 14),
+        ),
+      ),
+    );
+  }
 }
 
-class _CoreOrb extends StatelessWidget {
-  const _CoreOrb();
-  @override Widget build(BuildContext context) => Container(
-    width: 124, height: 124,
-    decoration: BoxDecoration(shape: BoxShape.circle,
-      gradient: const RadialGradient(colors: [Color(0xFF24204A), Color(0xFF090817), Color(0xFF020208)]),
-      boxShadow: [BoxShadow(color: const Color(0xFF7258FF).withValues(alpha: .35), blurRadius: 38, spreadRadius: 4)],
-      border: Border.all(color: const Color(0xFF9B7CFF).withValues(alpha: .35))),
-    child: const Center(child: Text('GAME', style: TextStyle(letterSpacing: 4, fontSize: 14))),
-  );
+class _WorldStage extends StatelessWidget {
+  final bool compact;
+  final List<_Territory> territories;
+  final int? hovered;
+  final ValueChanged<int?> onHover;
+  final ValueChanged<int> onOpen;
+  final Animation<double> animation;
+
+  const _WorldStage({
+    required this.compact,
+    required this.territories,
+    required this.hovered,
+    required this.onHover,
+    required this.onOpen,
+    required this.animation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+    final width = math.min(screen.width * (compact ? .98 : .90), 1280.0);
+    final height = math.min(screen.height * (compact ? .72 : .76), 720.0);
+    final center = Offset(width / 2, height / 2);
+    final islandW = compact ? width * .38 : width * .31;
+    final islandH = compact ? height * .34 : height * .39;
+    final positions = [
+      Offset(width * .25, height * .27),
+      Offset(width * .75, height * .27),
+      Offset(width * .25, height * .73),
+      Offset(width * .75, height * .73),
+    ];
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _OceanWorldPainter(animation.value),
+            ),
+          ),
+          for (var i = 0; i < territories.length; i++)
+            Positioned(
+              left: positions[i].dx - islandW / 2,
+              top: positions[i].dy - islandH / 2,
+              child: _Island(
+                territory: territories[i],
+                width: islandW,
+                height: islandH,
+                hovered: hovered == i,
+                onHover: (v) => onHover(v ? i : null),
+                onTap: () => onOpen(i),
+                seed: 40 + i * 91,
+                animation: animation,
+              ),
+            ),
+          Positioned(
+            left: center.dx - (compact ? 62 : 78),
+            top: center.dy - (compact ? 62 : 78),
+            child: _CentralHub(
+              compact: compact,
+              hovered: hovered == null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _TerritoryOrb extends StatelessWidget {
-  final double size; final Color accent; final bool selected;
-  const _TerritoryOrb({required this.size, required this.accent, required this.selected});
-  @override Widget build(BuildContext context) => AnimatedContainer(
-    duration: const Duration(milliseconds: 220), width: size, height: size,
-    decoration: BoxDecoration(shape: BoxShape.circle,
-      gradient: RadialGradient(colors: [accent.withValues(alpha: .34), const Color(0xFF0B0B16), const Color(0xFF030309)]),
-      border: Border.all(color: accent.withValues(alpha: selected ? .72 : .27), width: selected ? 1.6 : 1),
-      boxShadow: [BoxShadow(color: accent.withValues(alpha: selected ? .30 : .10), blurRadius: selected ? 30 : 15)]),
-    child: Center(child: Text(selected ? '●' : '○', style: TextStyle(color: accent.withValues(alpha: .75), fontSize: selected ? 13 : 10))),
-  );
+class _CentralHub extends StatelessWidget {
+  final bool compact;
+  final bool hovered;
+  const _CentralHub({required this.compact, required this.hovered});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = compact ? 124.0 : 156.0;
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 250),
+      opacity: hovered ? 1 : .78,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(painter: _HubPainter()),
+      ),
+    );
+  }
 }
 
-class _TerritoryLinesPainter extends CustomPainter {
-  final Offset center; final int selected;
-  const _TerritoryLinesPainter({required this.center, required this.selected});
-  @override void paint(Canvas canvas, Size size) {
-    final radius = math.min(size.width * .29, 260.0);
-    final orbit = Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0xFF806CFF).withValues(alpha: .13);
-    canvas.drawOval(Rect.fromCenter(center: center, width: radius * 2.25, height: radius * 1.65), orbit);
-    canvas.drawOval(Rect.fromCenter(center: center, width: radius * 1.62, height: radius * 1.18), orbit..color = const Color(0xFF4C8FFF).withValues(alpha: .10));
+class _Island extends StatefulWidget {
+  final _Territory territory;
+  final double width;
+  final double height;
+  final bool hovered;
+  final ValueChanged<bool> onHover;
+  final VoidCallback onTap;
+  final int seed;
+  final Animation<double> animation;
+
+  const _Island({
+    required this.territory,
+    required this.width,
+    required this.height,
+    required this.hovered,
+    required this.onHover,
+    required this.onTap,
+    required this.seed,
+    required this.animation,
+  });
+
+  @override
+  State<_Island> createState() => _IslandState();
+}
+
+class _IslandState extends State<_Island> {
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => widget.onHover(true),
+      onExit: (_) => widget.onHover(false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: widget.hovered ? 1.035 : 1,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+          child: SizedBox(
+            width: widget.width,
+            height: widget.height + 55,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _IslandPainter(
+                      accent: Color(widget.territory.accent),
+                      seed: widget.seed,
+                      highlighted: widget.hovered,
+                      animation: widget.animation.value,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 4,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 180),
+                    opacity: widget.hovered ? 1 : .58,
+                    child: Column(
+                      children: [
+                        Text(
+                          widget.territory.name,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: widget.hovered ? 12 : 10,
+                            letterSpacing: 3.4,
+                            color: Colors.white.withValues(alpha: widget.hovered ? .92 : .62),
+                            fontWeight: FontWeight.w500,
+                            shadows: const [Shadow(color: Colors.black, blurRadius: 12)],
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'PLATFORM TERRITORY',
+                          style: TextStyle(fontSize: 7, letterSpacing: 2.1, color: Colors.white.withValues(alpha: .27)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (widget.hovered)
+                  Positioned(
+                    top: 8,
+                    left: widget.width * .18,
+                    right: widget.width * .18,
+                    child: _IslandMoons(accent: Color(widget.territory.accent)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _IslandMoons extends StatelessWidget {
+  final Color accent;
+  const _IslandMoons({required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: const [
+        _MoonLabel('COLLECTION'),
+        _MoonLabel('PLATFORMS'),
+        _MoonLabel('MARATHONS'),
+        _MoonLabel('STATS'),
+      ],
+    );
+  }
+}
+
+class _MoonLabel extends StatelessWidget {
+  final String text;
+  const _MoonLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .62),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: .11)),
+      ),
+      child: Text(text, style: TextStyle(fontSize: 6, letterSpacing: 1.2, color: Colors.white.withValues(alpha: .58))),
+    );
+  }
+}
+
+class _GameUniversePainter extends CustomPainter {
+  final double t;
+  const _GameUniversePainter(this.t);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(0, 0),
+          radius: 1.15,
+          colors: [Color(0xFF14152A), Color(0xFF060711), Color(0xFF010205)],
+        ).createShader(rect),
+    );
+
+    final nebula = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 70);
+    final centers = [
+      Offset(size.width * .23, size.height * .28),
+      Offset(size.width * .78, size.height * .24),
+      Offset(size.width * .26, size.height * .78),
+      Offset(size.width * .75, size.height * .74),
+    ];
+    for (var i = 0; i < centers.length; i++) {
+      nebula.color = (i.isEven ? const Color(0xFF6C58A8) : const Color(0xFF3E6792)).withValues(alpha: .028);
+      canvas.drawCircle(centers[i] + Offset(math.sin(t * math.pi * 2 + i) * 16, 0), 150, nebula);
+    }
+
+    final stars = math.Random(711);
+    final starPaint = Paint();
+    for (var i = 0; i < 230; i++) {
+      final x = stars.nextDouble() * size.width;
+      final y = stars.nextDouble() * size.height;
+      starPaint.color = Colors.white.withValues(alpha: .08 + stars.nextDouble() * .22);
+      canvas.drawCircle(Offset(x, y), .3 + stars.nextDouble() * .75, starPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GameUniversePainter oldDelegate) => oldDelegate.t != t;
+}
+
+class _OceanWorldPainter extends CustomPainter {
+  final double t;
+  const _OceanWorldPainter(this.t);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) * .40;
+    final rings = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0xFF7B79B8).withValues(alpha: .055);
+    canvas.drawOval(Rect.fromCenter(center: center, width: radius * 2.15, height: radius * .88), rings);
+    canvas.drawOval(Rect.fromCenter(center: center, width: radius * 1.70, height: radius * .62), rings..color = const Color(0xFF587A9A).withValues(alpha: .045));
+
+    final route = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = .8
+      ..color = const Color(0xFFB5A6D8).withValues(alpha: .025);
+    for (var i = 0; i < 4; i++) {
+      final phase = t * math.pi * 2 + i;
+      final y = center.dy + math.sin(phase) * radius * .16;
+      canvas.drawArc(Rect.fromCenter(center: Offset(center.dx, y), width: radius * 2.6, height: radius * .32), math.pi, math.pi, false, route);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _OceanWorldPainter oldDelegate) => oldDelegate.t != t;
+}
+
+class _HubPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
+    final glow = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFFB6A0FF).withValues(alpha: .24),
+          const Color(0xFF655B9B).withValues(alpha: .10),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: c, radius: r * 1.4));
+    canvas.drawCircle(c, r * 1.35, glow);
+
+    final orb = Paint()
+      ..shader = const RadialGradient(
+        center: Alignment(-.3, -.35),
+        colors: [Color(0xFF4A436D), Color(0xFF141323), Color(0xFF03040A)],
+      ).createShader(Rect.fromCircle(center: c, radius: r));
+    canvas.drawCircle(c, r * .70, orb);
+
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0xFFB2A2E5).withValues(alpha: .22);
+    canvas.drawOval(Rect.fromCenter(center: c, width: r * 1.72, height: r * .58), ring);
+    canvas.drawOval(Rect.fromCenter(center: c, width: r * 1.35, height: r * 1.02), ring..color = const Color(0xFF6E87B5).withValues(alpha: .12));
+
+    final core = Paint()..color = Colors.white.withValues(alpha: .68);
+    canvas.drawCircle(c, 2.1, core);
+  }
+
+  @override
+  bool shouldRepaint(covariant _HubPainter oldDelegate) => false;
+}
+
+class _IslandPainter extends CustomPainter {
+  final Color accent;
+  final int seed;
+  final bool highlighted;
+  final double animation;
+
+  _IslandPainter({
+    required this.accent,
+    required this.seed,
+    required this.highlighted,
+    required this.animation,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(seed);
+    final center = Offset(size.width / 2, size.height * .48);
+    final rx = size.width * .43;
+    final ry = size.height * .38;
+
+    final oceanShadow = Paint()
+      ..color = accent.withValues(alpha: highlighted ? .12 : .075)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 22);
+    canvas.drawOval(Rect.fromCenter(center: center + const Offset(0, 9), width: rx * 2.05, height: ry * 1.95), oceanShadow);
+
+    final coast = _organicLandPath(center, rx, ry, random, 1.0);
+    final coastPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          const Color(0xFF33423D).withValues(alpha: .98),
+          accent.withValues(alpha: .58),
+          const Color(0xFF111A1A),
+        ],
+      ).createShader(Offset.zero & size);
+    canvas.drawPath(coast, coastPaint);
+
+    final inner = _organicLandPath(center + const Offset(-3, -3), rx * .91, ry * .89, random, .8);
+    canvas.drawPath(inner, Paint()..color = const Color(0xFF1A2925).withValues(alpha: .72));
+
+    // Original terrain only: no logos, characters, copied landmarks or franchise assets.
+    final terrain = Paint()..style = PaintingStyle.stroke..strokeWidth = 1;
+    for (var i = 0; i < 9; i++) {
+      final x = center.dx + (random.nextDouble() * 2 - 1) * rx * .70;
+      final y = center.dy + (random.nextDouble() * 2 - 1) * ry * .65;
+      final w = 25 + random.nextDouble() * 75;
+      final h = 8 + random.nextDouble() * 24;
+      terrain.color = Colors.white.withValues(alpha: .035 + random.nextDouble() * .035);
+      canvas.drawOval(Rect.fromCenter(center: Offset(x, y), width: w, height: h), terrain);
+    }
+
+    // Mountains.
+    final mountain = Paint()..style = PaintingStyle.fill;
     for (var i = 0; i < 5; i++) {
-      final angle = -math.pi / 2 + i * (math.pi * 2 / 5);
-      final end = center + Offset(math.cos(angle) * radius, math.sin(angle) * radius);
-      final p = Paint()..style = PaintingStyle.stroke..strokeWidth = i == selected ? 1.5 : .7..color = Color(_territoryAccents[i]).withValues(alpha: i == selected ? .24 : .09);
-      canvas.drawLine(center, end, p);
+      final x = center.dx - rx * .65 + random.nextDouble() * rx * 1.3;
+      final y = center.dy - ry * .50 + random.nextDouble() * ry * .75;
+      final h = 12 + random.nextDouble() * 26;
+      final w = 16 + random.nextDouble() * 30;
+      final path = Path()
+        ..moveTo(x - w, y)
+        ..lineTo(x, y - h)
+        ..lineTo(x + w, y)
+        ..close();
+      mountain.color = const Color(0xFF0B1415).withValues(alpha: .50);
+      canvas.drawPath(path, mountain);
     }
-  }
-  @override bool shouldRepaint(covariant _TerritoryLinesPainter oldDelegate) => oldDelegate.selected != selected;
-}
 
-class _GameWorldPainter extends CustomPainter {
-  final double t; const _GameWorldPainter(this.t);
-  @override void paint(Canvas canvas, Size size) {
-    final bg = Paint()..shader = const RadialGradient(center: Alignment(0, .05), radius: 1.0, colors: [Color(0xFF11102A), Color(0xFF060612), Color(0xFF010105)]).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, bg);
-    final nebula = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 55);
-    for (var i = 0; i < 6; i++) {
-      final x = size.width * (.18 + i * .14) + math.sin(t * math.pi * 2 + i) * 35;
-      final y = size.height * (.26 + (i % 3) * .22);
-      nebula.color = (i.isEven ? const Color(0xFF694CFF) : const Color(0xFF397BFF)).withValues(alpha: .035);
-      canvas.drawCircle(Offset(x, y), 105 + i * 15, nebula);
+    // Rivers / coast channels.
+    final river = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..color = const Color(0xFF6E93A0).withValues(alpha: .25);
+    for (var i = 0; i < 3; i++) {
+      final path = Path();
+      final startX = center.dx - rx * .55 + random.nextDouble() * rx * .2;
+      path.moveTo(startX, center.dy - ry * .62);
+      for (var p = 1; p <= 5; p++) {
+        final px = startX + math.sin(p * 1.7 + seed) * 20 + p * 8;
+        final py = center.dy - ry * .62 + p * ry * .25;
+        path.lineTo(px, py);
+      }
+      canvas.drawPath(path, river);
     }
-    final star = Paint();
-    for (var i = 0; i < 170; i++) {
-      final seed = i * 47.17;
-      final x = math.sin(seed).abs() * size.width;
-      final y = math.sin(seed * 1.37).abs() * size.height;
-      final twinkle = .25 + .35 * ((math.sin(t * math.pi * 2 + i) + 1) / 2);
-      star.color = Colors.white.withValues(alpha: twinkle);
-      canvas.drawCircle(Offset(x, y), i % 9 == 0 ? 1.25 : .55, star);
+
+    // Small settlements as abstract lights, deliberately non-identifiable.
+    final lights = Paint();
+    for (var i = 0; i < 12; i++) {
+      final x = center.dx + (random.nextDouble() * 2 - 1) * rx * .68;
+      final y = center.dy + (random.nextDouble() * 2 - 1) * ry * .55;
+      lights.color = Colors.white.withValues(alpha: highlighted ? .13 : .065);
+      canvas.drawCircle(Offset(x, y), 1 + random.nextDouble() * 1.4, lights);
     }
+
+    final rim = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = highlighted ? 1.6 : 1
+      ..color = accent.withValues(alpha: highlighted ? .48 : .18);
+    canvas.drawPath(coast, rim);
+
+    // Slow atmospheric light sweep.
+    final sweepX = center.dx + math.sin(animation * math.pi * 2 + seed) * rx * .45;
+    final sweep = Paint()
+      ..shader = LinearGradient(
+        colors: [Colors.transparent, Colors.white.withValues(alpha: highlighted ? .055 : .018), Colors.transparent],
+      ).createShader(Rect.fromLTWH(sweepX - 90, center.dy - ry, 180, ry * 2));
+    canvas.drawPath(coast, sweep..style = PaintingStyle.fill);
   }
-  @override bool shouldRepaint(covariant _GameWorldPainter oldDelegate) => true;
+
+  Path _organicLandPath(Offset c, double rx, double ry, math.Random random, double variation) {
+    final path = Path();
+    const points = 18;
+    for (var i = 0; i < points; i++) {
+      final a = i / points * math.pi * 2;
+      final wobble = .84 + random.nextDouble() * .24 * variation;
+      final x = c.dx + math.cos(a) * rx * wobble;
+      final y = c.dy + math.sin(a) * ry * wobble;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant _IslandPainter oldDelegate) =>
+      oldDelegate.highlighted != highlighted || oldDelegate.animation != animation;
 }
