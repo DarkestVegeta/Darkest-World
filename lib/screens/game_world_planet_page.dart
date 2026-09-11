@@ -160,7 +160,7 @@ class _GamePlanetPainter extends CustomPainter {
   const _GamePlanetPainter({required this.selected, required this.diameter});
   @override
   void paint(Canvas c, Size s) {
-    final o = s.center;
+    final o = Offset(s.width / 2, s.height / 2);
     final r = diameter * .49;
     final rect = Rect.fromCircle(center: o, radius: r);
     c.drawCircle(o, r * 1.05, Paint()..shader = const RadialGradient(colors: [Color(0x226679A5), Colors.transparent]).createShader(Rect.fromCircle(center: o, radius: r * 1.08)));
