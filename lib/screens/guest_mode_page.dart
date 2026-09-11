@@ -6,6 +6,7 @@ import '../core/chat_scope.dart';
 import '../widgets/living_world_scene.dart';
 import 'chat_world_page.dart';
 import 'content_browser_page.dart';
+import 'login_page.dart';
 
 class GuestModePage extends StatelessWidget {
   const GuestModePage({super.key});
@@ -43,6 +44,13 @@ class GuestModePage extends StatelessWidget {
           context: ChatContext(scope: ChatScope.chatbox),
         ),
       ),
+    );
+  }
+
+  void _openLogin(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
     );
   }
 
@@ -105,6 +113,15 @@ class GuestModePage extends StatelessWidget {
                           onPressed: () => _openChatbox(context),
                         ),
                         const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed: () => _openLogin(context),
+                          icon: const Icon(Icons.lock_open),
+                          label: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            child: Text('Eigen toegang / Inloggen'),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
                         Text(
                           'Log in om de Galaxy te betreden.',
                           style: TextStyle(
