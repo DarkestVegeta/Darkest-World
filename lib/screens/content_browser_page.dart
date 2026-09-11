@@ -8,88 +8,31 @@ import 'chatbox.dart';
 import 'content_detail_page.dart';
 
 class ContentBrowserPage extends StatefulWidget {
-  final String? contentType;
-  final String title;
-  final List<int> platformIds;
+  final String? contentType; final String title; final List<int> platformIds;
   const ContentBrowserPage({super.key, required this.title, this.contentType, this.platformIds = const []});
   @override State<ContentBrowserPage> createState() => _ContentBrowserPageState();
 }
 
 class _ContentBrowserPageState extends State<ContentBrowserPage> {
-  final _repository = ContentRepository();
-  final _search = TextEditingController();
-  final _scroll = ScrollController();
-  final _items = <ContentItem>[];
-  bool _loading = false, _searching = false, _hasMore = true;
-  int _page = 0, _focus = 2;
-  String? _error;
-
-  bool get _external => ['game','movie','series'].contains(widget.contentType);
-  bool get _gameBrowser => widget.contentType == 'game';
-  String get _source => widget.contentType == 'game' ? 'igdb' : widget.contentType == 'movie' ? 'tmdb_movie' : 'tmdb_tv';
-  String get _displayTitle => widget.title.replaceFirst(RegExp(r'\s*•\s*GAMES\s*$', caseSensitive: false), '').trim();
-  List<int> get _platformIds {
-    if (widget.platformIds.isNotEmpty) return widget.platformIds;
-    final t = widget.title.toUpperCase();
-    if (t.contains('NINTENDO')) return [18,19,4,21,5,41,20,37,130];
-    if (t.contains('SEGA')) return [29,32,23,84,107];
-    if (t.contains('PLAYSTATION')) return [7,8,9,48,167];
-    if (t.contains('XBOX')) return [11,12,49,169];
-    return [];
-  }
-
+  final _repository=ContentRepository(); final _search=TextEditingController(); final _scroll=ScrollController(); final _items=<ContentItem>[];
+  bool _loading=false,_searching=false,_hasMore=true; int _page=0,_focus=0; String? _error;
+  bool get _external=>['game','movie','series'].contains(widget.contentType);
+  String get _source=>widget.contentType=='game'?'igdb':widget.contentType=='movie'?'tmdb_movie':'tmdb_tv';
+  String get _displayTitle=>widget.title.replaceFirst(RegExp(r'\s*•\s*GAMES\s*$',caseSensitive:false),'').trim();
+  List<int> get _platformIds{if(widget.platformIds.isNotEmpty)return widget.platformIds;final t=widget.title.toUpperCase();if(t.contains('NINTENDO'))return [18,19,4,21,5,41,20,37,130];if(t.contains('SEGA'))return [29,32,23,84,107];if(t.contains('PLAYSTATION'))return [7,8,9,48,167];if(t.contains('XBOX'))return [11,12,49,169];return [];}
   @override void initState(){super.initState();_scroll.addListener(_onScroll);_load();}
   @override void dispose(){_search.dispose();_scroll.dispose();super.dispose();}
   void _onScroll(){if(!_scroll.hasClients||_searching)return;if(_scroll.position.maxScrollExtent-_scroll.position.pixels<900)_load();}
-
-  Future<void> _load() async {
-    if(_loading||!_hasMore||_searching)return;
-    setState(()=>_loading=true);
-    try{
-      final rows=await _repository.getContentItemsPage(type:widget.contentType,page:_page);
-      if(!mounted)return;
-      setState((){_items.addAll(rows);_page++;_hasMore=rows.length==ContentRepository.pageSize;_loading=false;_focus=_items.length>2?2:0;});
-    }catch(e){if(mounted)setState((){_loading=false;_error='$e';});}
-  }
-
-  Future<void> _searchExternal() async {
-    final query=_search.text.trim();if(query.isEmpty||!_external)return;
-    FocusScope.of(context).unfocus();
-    setState((){_searching=true;_loading=true;_error=null;_items.clear();_focus=0;});
-    if(_scroll.hasClients)_scroll.jumpTo(0);
-    try{
-      final response=await supabase.functions.invoke('darkestworld-content-import',body:{'source':_source,'query':query,'platformIds':_platformIds});
-      final data=Map<String,dynamic>.from(response.data as Map);
-      if(data['ok']!=true)throw Exception('${data['error']??'Zoeken mislukt.'}');
-      final results=<ContentItem>[];
-      for(final raw in(data['items'] is List?data['items'] as List:const [])){
-        if(raw is! Map)continue;final row=Map<String,dynamic>.from(raw);final src='${row['external_source']??_source}';final id='${row['external_id']??''}';row['id']='$src:$id';row['slug']='${row['slug']??row['title']??'$src-$id'}';
-        try{results.add(ContentItem.fromRow(row));}catch(_){ }
-      }
-      if(mounted){setState((){_items.addAll(results);_loading=false;_focus=results.length>2?2:0;});WidgetsBinding.instance.addPostFrameCallback((_){if(mounted&&_scroll.hasClients&&_items.length>2){final width=_scroll.position.viewportDimension;final gap=width>1500?18.0:14.0;final card=(width-gap*4)/5;_scroll.jumpTo(2*(card+gap));}});}
-    }catch(e){if(mounted)setState((){_loading=false;_error='$e';});}
-  }
-
-  Future<void> _refresh() async{_search.clear();setState((){_items.clear();_page=0;_focus=2;_hasMore=true;_searching=false;_error=null;});if(_scroll.hasClients)_scroll.jumpTo(0);await _load();}
+  Future<void> _load()async{if(_loading||!_hasMore||_searching)return;setState(()=>_loading=true);try{final rows=await _repository.getContentItemsPage(type:widget.contentType,page:_page);if(!mounted)return;setState((){_items.addAll(rows);_page++;_hasMore=rows.length==ContentRepository.pageSize;_loading=false;if(_items.isNotEmpty&&_focus>=_items.length)_focus=_items.length-1;});}catch(e){if(mounted)setState((){_loading=false;_error='$e';});}}
+  Future<void> _searchExternal()async{final query=_search.text.trim();if(query.isEmpty||!_external)return;FocusScope.of(context).unfocus();setState((){_searching=true;_loading=true;_error=null;_items.clear();_focus=0;});if(_scroll.hasClients)_scroll.jumpTo(0);try{final response=await supabase.functions.invoke('darkestworld-content-import',body:{'source':_source,'query':query,'platformIds':_platformIds});final data=Map<String,dynamic>.from(response.data as Map);if(data['ok']!=true)throw Exception('${data['error']??'Zoeken mislukt.'}');final results=<ContentItem>[];for(final raw in(data['items'] is List?data['items'] as List:const [])){if(raw is! Map)continue;final row=Map<String,dynamic>.from(raw);final src='${row['external_source']??_source}',id='${row['external_id']??''}';row['id']='$src:$id';row['slug']='${row['slug']??row['title']??'$src-$id'}';try{results.add(ContentItem.fromRow(row));}catch(_){}}if(mounted)setState((){_items.addAll(results);_loading=false;_focus=results.isEmpty?0:results.length>2?2:0;});}catch(e){if(mounted)setState((){_loading=false;_error='$e';});}}
+  Future<void> _refresh()async{_search.clear();setState((){_items.clear();_page=0;_focus=0;_hasMore=true;_searching=false;_error=null;});if(_scroll.hasClients)_scroll.jumpTo(0);await _load();}
   void _open(ContentItem item)=>Navigator.push(context,MaterialPageRoute(builder:(_)=>ContentDetailPage(item:item)));
-
-  ChatContext? get _chatContext{if(_searching)return null;final scope=switch(widget.contentType){'game'=>ChatScope.games,'movie'=>ChatScope.movies,'series'=>ChatScope.series,_=>null};if(scope==null)return null;final item=_items.isEmpty?null:_items[_focus.clamp(0,_items.length-1)];return ChatContext(scope:scope,contentId:item?.id,contentTitle:item?.title);}
-
-  @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text(widget.title),actions:[IconButton(onPressed:_loading?null:_refresh,icon:const Icon(Icons.refresh))]),floatingActionButton:_chatContext==null?null:Chatbox(contextData:_chatContext!),body:Column(children:[
-    if(_gameBrowser)Padding(padding:const EdgeInsets.fromLTRB(24,12,24,0),child:Text('GAME-WORLD  ›  ${_displayTitle.toUpperCase()}  ›  GAMES',style:TextStyle(fontSize:9,letterSpacing:2.1,color:Colors.white.withValues(alpha:.28)))),
-    if(_external)Padding(padding:const EdgeInsets.fromLTRB(24,18,24,4),child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:760),child:TextField(controller:_search,textInputAction:TextInputAction.search,onSubmitted:(_)=>_searchExternal(),decoration:InputDecoration(hintText:widget.contentType=='game'?'Zoek een game':widget.contentType=='movie'?'Zoek een film':'Zoek een serie',prefixIcon:const Icon(Icons.search),suffixIcon:IconButton(onPressed:_loading?null:_searchExternal,icon:const Icon(Icons.arrow_forward)),border:const OutlineInputBorder())))),
-    if(_searching)Padding(padding:const EdgeInsets.only(top:8),child:Text('LIVE ${_source.toUpperCase()} • NIET OPGESLAGEN',style:TextStyle(fontSize:11,color:Colors.white.withValues(alpha:.42)))),
-    Expanded(child:_body())]));
-
-  Widget _body(){
-    if(_error!=null&&_items.isEmpty)return Center(child:Column(mainAxisSize:MainAxisSize.min,children:[Text('Laden mislukt: $_error'),const SizedBox(height:12),OutlinedButton(onPressed:_searching?_searchExternal:_load,child:const Text('Opnieuw'))]));
-    if(_items.isEmpty)return Center(child:_loading?const CircularProgressIndicator():Text(_searching?'Geen resultaten gevonden.':'Geen content gevonden.'));
-    return LayoutBuilder(builder:(context,c){
-      final gap=c.maxWidth>1500?18.0:14.0;final card=math.max(150.0,(c.maxWidth-gap*4)/5);final height=card*1.42;final side=(c.maxWidth-card)/2;
-      return ListView.builder(controller:_scroll,scrollDirection:Axis.horizontal,padding:EdgeInsets.symmetric(horizontal:side),itemCount:_items.length,itemBuilder:(context,i){final main=i==_focus;return SizedBox(width:card+gap,height:height+40,child:Center(child:MouseRegion(cursor:SystemMouseCursors.click,onEnter:(_)=>setState(()=>_focus=i),child:GestureDetector(onTap:()=>_open(_items[i]),child:AnimatedScale(scale:main?1.10:1.0,duration:const Duration(milliseconds:140),child:_Card(item:_items[i],width:card,height:height,main:main))))));});
-    });
-  }
+  void _focusItem(int i){if(i<0||i>=_items.length)return;setState(()=>_focus=i);if(_scroll.hasClients){final w=_scroll.position.viewportDimension,gap=w>1500?18.0:14.0,card=math.max(150.0,(w-gap*4)/5),target=i*(card+gap)-(w-(card+gap))/2;_scroll.animateTo(target.clamp(0.0,_scroll.position.maxScrollExtent),duration:const Duration(milliseconds:220),curve:Curves.easeOutCubic);}}
+  ChatContext? get _chatContext{final scope=switch(widget.contentType){'game'=>ChatScope.games,'movie'=>ChatScope.movies,'series'=>ChatScope.series,_=>null};if(scope==null||_items.isEmpty)return null;final item=_items[_focus.clamp(0,_items.length-1)];return ChatContext(scope:scope,contentId:item.id,contentTitle:item.title);}
+  @override Widget build(BuildContext context){final isGame=widget.contentType=='game';return Scaffold(backgroundColor:const Color(0xFF010107),floatingActionButton:_chatContext==null?null:Chatbox(contextData:_chatContext!),body:Stack(children:[const Positioned.fill(child:CustomPaint(painter:_BrowserSpacePainter())),SafeArea(child:Column(children:[Padding(padding:const EdgeInsets.fromLTRB(18,14,18,0),child:Row(children:[IconButton(onPressed:()=>Navigator.of(context).pop(),icon:const Icon(Icons.arrow_back_ios_new,size:16)),const SizedBox(width:5),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('GAME-WORLD',style:TextStyle(fontSize:8,letterSpacing:2.4,color:Colors.white.withValues(alpha:.22))),const SizedBox(height:4),Text(isGame?'${_displayTitle.toUpperCase()}  /  GAMES':widget.title.toUpperCase(),style:const TextStyle(fontSize:13,letterSpacing:2.2,fontWeight:FontWeight.w500))])),Text('${_items.length}',style:TextStyle(fontSize:9,letterSpacing:1.8,color:Colors.white.withValues(alpha:.25))),const SizedBox(width:5),IconButton(onPressed:_loading?null:_refresh,icon:const Icon(Icons.refresh,size:17))])),if(_external)Padding(padding:const EdgeInsets.fromLTRB(24,12,24,4),child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:760),child:TextField(controller:_search,textInputAction:TextInputAction.search,onSubmitted:(_)=>_searchExternal(),style:const TextStyle(fontSize:12),decoration:InputDecoration(hintText:widget.contentType=='game'?'SEARCH GAME LIBRARY':widget.contentType=='movie'?'SEARCH FILMS':'SEARCH SERIES',prefixIcon:const Icon(Icons.search,size:18),suffixIcon:IconButton(onPressed:_loading?null:_searchExternal,icon:const Icon(Icons.arrow_forward,size:18)),filled:true,fillColor:const Color(0xFF090912),border:OutlineInputBorder(borderRadius:BorderRadius.all(Radius.circular(10)),borderSide:BorderSide(color:Color(0x14222222))),enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.all(Radius.circular(10)),borderSide:BorderSide(color:Color(0x14222222))))))),if(_searching)Padding(padding:const EdgeInsets.only(top:7),child:Text('LIVE ${_source.toUpperCase()}  •  NIET OPGESLAGEN',style:TextStyle(fontSize:8,letterSpacing:1.8,color:Colors.white.withValues(alpha:.34)))),Expanded(child:_body())])),Positioned(left:0,right:0,bottom:18,child:Column(children:[if(_items.isNotEmpty)Text('PREVIOUS   |   CURRENT   |   NEXT',style:TextStyle(fontSize:8,letterSpacing:2.4,color:Colors.white.withValues(alpha:.28))),const SizedBox(height:7),if(_items.isNotEmpty)Text('${_focus+1}  /  ${_items.length}  •  CURRENT',style:TextStyle(fontSize:8,letterSpacing:1.7,color:Colors.white.withValues(alpha:.20)))]))]));}
+  Widget _body(){if(_error!=null&&_items.isEmpty)return Center(child:Column(mainAxisSize:MainAxisSize.min,children:[Text('Laden mislukt: $_error'),const SizedBox(height:12),OutlinedButton(onPressed:_searching?_searchExternal:_load,child:const Text('Opnieuw'))]));if(_items.isEmpty)return Center(child:_loading?const CircularProgressIndicator():Text(_searching?'Geen resultaten gevonden.':'Geen content gevonden.'));return LayoutBuilder(builder:(context,c){final gap=c.maxWidth>1500?18.0:14.0,card=math.max(150.0,(c.maxWidth-gap*4)/5),height=card*1.42,side=(c.maxWidth-card)/2;return ListView.builder(controller:_scroll,scrollDirection:Axis.horizontal,padding:EdgeInsets.symmetric(horizontal:side),itemCount:_items.length,itemBuilder:(context,i){final main=i==_focus;return SizedBox(width:card+gap,height:height+40,child:Center(child:MouseRegion(cursor:SystemMouseCursors.click,onEnter:(_)=>_focusItem(i),child:GestureDetector(onTap:()=>_open(_items[i]),child:AnimatedScale(scale:main?1.10:1.0,duration:const Duration(milliseconds:140),child:_Card(item:_items[i],width:card,height:height,main:main))))));});});}
 }
 
-class _Card extends StatelessWidget{final ContentItem item;final double width,height;final bool main;const _Card({required this.item,required this.width,required this.height,required this.main});@override Widget build(BuildContext context){final url='${item.metadata['public_url']??item.metadata['image_url']??''}'.trim();return Container(width:width,height:height,clipBehavior:Clip.antiAlias,decoration:BoxDecoration(borderRadius:BorderRadius.circular(14),border:Border.all(width:main?2:1,color:main?Theme.of(context).colorScheme.primary:Theme.of(context).colorScheme.outlineVariant)),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Expanded(child:url.isEmpty?_Placeholder(title:item.title):Image.network(url,fit:BoxFit.cover,errorBuilder:(_,__,___)=>_Placeholder(title:item.title))),Padding(padding:const EdgeInsets.fromLTRB(12,10,12,11),child:Text(item.title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:main?FontWeight.w700:FontWeight.w500))) ]));}}
-class _Placeholder extends StatelessWidget{final String title;const _Placeholder({required this.title});@override Widget build(BuildContext context)=>Center(child:Padding(padding:const EdgeInsets.all(18),child:Text(title,textAlign:TextAlign.center,maxLines:4,overflow:TextOverflow.ellipsis)));}
+class _Card extends StatelessWidget{final ContentItem item;final double width,height;final bool main;const _Card({required this.item,required this.width,required this.height,required this.main});@override Widget build(BuildContext context){final url='${item.metadata['public_url']??item.metadata['image_url']??''}'.trim();return Container(width:width,height:height,clipBehavior:Clip.antiAlias,decoration:BoxDecoration(borderRadius:BorderRadius.circular(main?16:13),border:Border.all(width:main?2:1,color:main?const Color(0xFF8E7BE8):const Color(0x18222222)),boxShadow:main?[const BoxShadow(color:Color(0x286956C7),blurRadius:35,spreadRadius:1)]:const[]),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Expanded(child:url.isEmpty?_Placeholder(title:item.title):Image.network(url,fit:BoxFit.cover,errorBuilder:(_,__,___)=>_Placeholder(title:item.title))),Container(padding:const EdgeInsets.fromLTRB(12,10,12,11),color:const Color(0xE6080810),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(main?'CURRENT':'RELATED',style:TextStyle(fontSize:7,letterSpacing:1.8,color:Colors.white.withValues(alpha:main?.48:.20))),const SizedBox(height:5),Text(item.title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:main?FontWeight.w700:FontWeight.w500,fontSize:main?12:11))]))]));}}
+class _Placeholder extends StatelessWidget{final String title;const _Placeholder({required this.title});@override Widget build(BuildContext context)=>Container(color:const Color(0xFF0A0913),child:Center(child:Padding(padding:const EdgeInsets.all(18),child:Text(title,textAlign:TextAlign.center,maxLines:4,overflow:TextOverflow.ellipsis,style:TextStyle(color:Colors.white.withValues(alpha:.55))))));}
+class _BrowserSpacePainter extends CustomPainter{const _BrowserSpacePainter();@override void paint(Canvas canvas,Size size){final bg=Paint()..shader=const RadialGradient(center:Alignment(0,-.18),radius:1.15,colors:[Color(0xFF17142D),Color(0xFF070712),Color(0xFF010105)]).createShader(Offset.zero&size);canvas.drawRect(Offset.zero&size,bg);final glow=Paint()..color=const Color(0xFF7866D8).withValues(alpha:.035)..maskFilter=const MaskFilter.blur(BlurStyle.normal,110);canvas.drawCircle(Offset(size.width/2,size.height*.48),280,glow);final random=math.Random(811),star=Paint();for(var i=0;i<150;i++){star.color=Colors.white.withValues(alpha:.08+(i%6)*.022);canvas.drawCircle(Offset(random.nextDouble()*size.width,random.nextDouble()*size.height),i%23==0?.85:.34,star);}}@override bool shouldRepaint(covariant _BrowserSpacePainter oldDelegate)=>false;}
