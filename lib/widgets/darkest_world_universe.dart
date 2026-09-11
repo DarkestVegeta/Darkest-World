@@ -31,7 +31,17 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> {
       final current = selected == null ? null : find(selected!);
       return Stack(fit: StackFit.expand, children: [
         const Positioned.fill(child: CustomPaint(painter: _UniversePainter())),
-        _PlanetField(worlds: widget.worlds, selected: selected, compact: compact, onSelect: (world) => setState(() => selected = selected == world.kind ? null : world.kind)),
+        // _PlanetField contains only Positioned children. It therefore needs
+        // explicit full-screen constraints; otherwise Flutter Web can give it
+        // a zero-sized layout and all planets are painted outside its bounds.
+        Positioned.fill(
+          child: _PlanetField(
+            worlds: widget.worlds,
+            selected: selected,
+            compact: compact,
+            onSelect: (world) => setState(() => selected = selected == world.kind ? null : world.kind),
+          ),
+        ),
         Positioned(left: compact ? 18 : 34, top: compact ? 18 : 28, child: const _UniverseTitle()),
         if (current != null) _SelectionPanel(world: current, compact: compact, onClose: () => setState(() => selected = null), onEnter: () => widget.onWorldTap?.call(current)),
       ]);
