@@ -29,8 +29,9 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   int _focus = 0;
   String? _error;
 
-  bool get _external => ['game', 'movie', 'series'].contains(widget.contentType);
-  String get _source => widget.contentType == 'game' ? 'igdb' : widget.contentType == 'movie' ? 'tmdb_movie' : 'tmdb_tv';
+  // Games are always the user's own library. External search is only for film/series.
+  bool get _external => ['movie', 'series'].contains(widget.contentType);
+  String get _source => widget.contentType == 'movie' ? 'tmdb_movie' : 'tmdb_tv';
   String get _displayTitle => widget.title.replaceFirst(RegExp(r'\s*•\s*GAMES\s*$', caseSensitive: false), '').trim();
   bool get _snesLibrary => widget.contentType == 'game' && (widget.platformIds.contains(19) || _displayTitle.toUpperCase() == 'SNES');
 
@@ -230,7 +231,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
                 onSubmitted: (_) => _searchExternal(),
                 style: const TextStyle(fontSize: 12),
                 decoration: InputDecoration(
-                  hintText: widget.contentType == 'game' ? 'SEARCH GAME LIBRARY' : widget.contentType == 'movie' ? 'SEARCH FILMS' : 'SEARCH SERIES',
+                  hintText: widget.contentType == 'movie' ? 'SEARCH FILMS' : 'SEARCH SERIES',
                   prefixIcon: const Icon(Icons.search, size: 18),
                   suffixIcon: IconButton(onPressed: _loading ? null : _searchExternal, icon: const Icon(Icons.arrow_forward, size: 18)),
                   filled: true,
