@@ -39,9 +39,9 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> {
           onSelect: (w) => setState(() => selected = w.kind),
         )),
         Positioned(left: compact ? 18 : 34, top: compact ? 18 : 28, child: const _UniverseTitle()),
-        if (!compact) Positioned(right: 34, top: 28, child: Text(
-          'SELECT A WORLD',
-          style: TextStyle(fontSize: 8, letterSpacing: 3, color: Colors.white.withValues(alpha: .28)),
+        if (!compact) Positioned(right: 34, top: 30, child: Text(
+          'DARKest WORLD / UNIVERSE',
+          style: TextStyle(fontSize: 7, letterSpacing: 2.8, color: Colors.white.withValues(alpha: .20)),
         )),
         if (selected != null) _SelectionLayer(
           world: _findWorld(selected!),
@@ -57,7 +57,9 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> {
   }
 
   GalaxyWorld? _findWorld(GalaxyWorldKind kind) {
-    for (final world in widget.worlds) { if (world.kind == kind) return world; }
+    for (final world in widget.worlds) {
+      if (world.kind == kind) return world;
+    }
     return null;
   }
 }
@@ -78,26 +80,27 @@ class _PlanetField extends StatelessWidget {
     final base = math.min(size.width, size.height);
     final positions = <GalaxyWorldKind, Offset>{
       GalaxyWorldKind.vegeta: Offset(size.width * .50, size.height * .51),
-      GalaxyWorldKind.identity: Offset(size.width * .18, size.height * .31),
-      GalaxyWorldKind.game: Offset(size.width * .78, size.height * .29),
-      GalaxyWorldKind.cinema: Offset(size.width * .82, size.height * .70),
-      GalaxyWorldKind.creation: Offset(size.width * .22, size.height * .72),
-      GalaxyWorldKind.music: Offset(size.width * .52, size.height * .84),
-      GalaxyWorldKind.family: Offset(size.width * .50, size.height * .16),
-      GalaxyWorldKind.archive: Offset(size.width * .08, size.height * .53),
-      GalaxyWorldKind.comingSoon: Offset(size.width * .92, size.height * .51),
+      GalaxyWorldKind.identity: Offset(size.width * .17, size.height * .30),
+      GalaxyWorldKind.game: Offset(size.width * .79, size.height * .29),
+      GalaxyWorldKind.cinema: Offset(size.width * .82, size.height * .71),
+      GalaxyWorldKind.creation: Offset(size.width * .20, size.height * .73),
+      GalaxyWorldKind.music: Offset(size.width * .53, size.height * .85),
+      GalaxyWorldKind.family: Offset(size.width * .50, size.height * .15),
+      GalaxyWorldKind.archive: Offset(size.width * .075, size.height * .53),
+      GalaxyWorldKind.comingSoon: Offset(size.width * .925, size.height * .53),
     };
     final sizes = <GalaxyWorldKind, double>{
-      GalaxyWorldKind.vegeta: base * (compact ? .29 : .34),
-      GalaxyWorldKind.identity: base * (compact ? .13 : .15),
-      GalaxyWorldKind.game: base * (compact ? .14 : .16),
-      GalaxyWorldKind.cinema: base * (compact ? .115 : .135),
-      GalaxyWorldKind.creation: base * (compact ? .115 : .135),
-      GalaxyWorldKind.music: base * (compact ? .095 : .115),
-      GalaxyWorldKind.family: base * (compact ? .09 : .105),
-      GalaxyWorldKind.archive: base * (compact ? .065 : .075),
-      GalaxyWorldKind.comingSoon: base * (compact ? .06 : .07),
+      GalaxyWorldKind.vegeta: base * (compact ? .29 : .33),
+      GalaxyWorldKind.identity: base * (compact ? .125 : .145),
+      GalaxyWorldKind.game: base * (compact ? .135 : .155),
+      GalaxyWorldKind.cinema: base * (compact ? .115 : .13),
+      GalaxyWorldKind.creation: base * (compact ? .115 : .13),
+      GalaxyWorldKind.music: base * (compact ? .095 : .11),
+      GalaxyWorldKind.family: base * (compact ? .085 : .10),
+      GalaxyWorldKind.archive: base * (compact ? .06 : .07),
+      GalaxyWorldKind.comingSoon: base * (compact ? .055 : .065),
     };
+
     return Stack(clipBehavior: Clip.none, children: [
       for (final world in worlds)
         if (positions.containsKey(world.kind)) Positioned(
@@ -123,6 +126,7 @@ class _PlanetInteraction extends StatelessWidget {
   final bool active;
   final ValueChanged<bool> onHover;
   final VoidCallback onTap;
+
   const _PlanetInteraction({required this.world, required this.size, required this.central, required this.active, required this.onHover, required this.onTap});
 
   @override
@@ -133,26 +137,47 @@ class _PlanetInteraction extends StatelessWidget {
       onExit: (_) => onHover(false),
       child: GestureDetector(
         onTap: onTap,
-        child: SizedBox(width: size + 110, height: size + 76, child: Stack(
+        child: SizedBox(width: size + 112, height: size + 78, child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
           children: [
-            Transform.scale(
-              scale: active ? 1.02 : 1,
-              child: CustomPaint(
-                size: Size.square(size),
-                painter: _PlanetPainter(
-                  kind: world.kind,
-                  seed: world.kind.index * 911 + 47,
-                  active: active,
-                  central: central,
+            CustomPaint(
+              size: Size.square(size),
+              painter: _PlanetPainter(
+                kind: world.kind,
+                seed: world.kind.index * 1783 + 91,
+                active: active,
+                central: central,
+              ),
+            ),
+            Positioned(
+              top: size + 9,
+              left: -28,
+              right: -28,
+              child: Text(
+                world.title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: central ? 11 : 8,
+                  letterSpacing: central ? 3.6 : 2.3,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white.withValues(alpha: active || central ? .82 : .48),
+                  shadows: const [Shadow(color: Colors.black, blurRadius: 14)],
                 ),
               ),
             ),
-            Positioned(top: size + 9, left: -24, right: -24, child: Text(world.title, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: central ? 12 : 9, letterSpacing: central ? 3.8 : 2.4, color: Colors.white.withValues(alpha: active || central ? .9 : .58), shadows: const [Shadow(color: Colors.black, blurRadius: 16)]))),
-            if (active) Positioned(top: size + 27, left: -30, right: -30, child: Text('ENTER WORLD', textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 7, letterSpacing: 2.6, color: Colors.white.withValues(alpha: .32)))),
+            if (active) Positioned(
+              top: size + 25,
+              left: -28,
+              right: -28,
+              child: Text(
+                'OPEN',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 6, letterSpacing: 2.5, color: Colors.white.withValues(alpha: .30)),
+              ),
+            ),
           ],
         )),
       ),
@@ -163,11 +188,14 @@ class _PlanetInteraction extends StatelessWidget {
 class _UniverseTitle extends StatelessWidget {
   const _UniverseTitle();
   @override
-  Widget build(BuildContext context) => IgnorePointer(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text('DARKESTWORLD', style: TextStyle(fontSize: 15, letterSpacing: 6, color: Colors.white.withValues(alpha: .86))),
-    const SizedBox(height: 6),
-    Text('THE WORLDS BEYOND', style: TextStyle(fontSize: 8, letterSpacing: 3.4, color: Colors.white.withValues(alpha: .30))),
-  ]));
+  Widget build(BuildContext context) => IgnorePointer(child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('DARKESTWORLD', style: TextStyle(fontSize: 14, letterSpacing: 5.5, color: Colors.white.withValues(alpha: .78))),
+      const SizedBox(height: 5),
+      Text('THE WORLDS BEYOND', style: TextStyle(fontSize: 7, letterSpacing: 3.2, color: Colors.white.withValues(alpha: .25))),
+    ],
+  ));
 }
 
 class _UniversePainter extends CustomPainter {
@@ -175,18 +203,36 @@ class _UniversePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    canvas.drawRect(rect, Paint()..shader = const RadialGradient(center: Alignment(0, -.08), radius: 1.18, colors: [Color(0xFF151226), Color(0xFF070711), Color(0xFF010106)]).createShader(rect));
+    canvas.drawRect(rect, Paint()..shader = const RadialGradient(
+      center: Alignment(0, -.08),
+      radius: 1.18,
+      colors: [Color(0xFF17142A), Color(0xFF080812), Color(0xFF010106)],
+    ).createShader(rect));
+
     final random = math.Random(4817);
     final stars = Paint();
-    for (var i = 0; i < 420; i++) {
+    for (var i = 0; i < 360; i++) {
       final p = Offset(random.nextDouble() * size.width, random.nextDouble() * size.height);
-      stars.color = Colors.white.withValues(alpha: .018 + random.nextDouble() * .12);
-      canvas.drawCircle(p, .25 + random.nextDouble() * .65, stars);
+      stars.color = Colors.white.withValues(alpha: .018 + random.nextDouble() * .085);
+      canvas.drawCircle(p, .20 + random.nextDouble() * .58, stars);
     }
-    final glowRect = Rect.fromCenter(center: Offset(size.width * .5, size.height * .5), width: size.width * .95, height: size.height * .80);
-    canvas.drawOval(glowRect, Paint()..shader = RadialGradient(colors: [const Color(0xFF694D9A).withValues(alpha: .10), const Color(0xFF395D87).withValues(alpha: .035), Colors.transparent]).createShader(glowRect));
+
+    final haze = Rect.fromCenter(
+      center: Offset(size.width * .50, size.height * .50),
+      width: size.width * .90,
+      height: size.height * .76,
+    );
+    canvas.drawOval(haze, Paint()..shader = RadialGradient(
+      colors: [
+        const Color(0xFF6C5798).withValues(alpha: .075),
+        const Color(0xFF405D83).withValues(alpha: .028),
+        Colors.transparent,
+      ],
+    ).createShader(haze));
   }
-  @override bool shouldRepaint(covariant _UniversePainter oldDelegate) => false;
+
+  @override
+  bool shouldRepaint(covariant _UniversePainter oldDelegate) => false;
 }
 
 class _PlanetPainter extends CustomPainter {
@@ -194,125 +240,278 @@ class _PlanetPainter extends CustomPainter {
   final int seed;
   final bool active;
   final bool central;
+
   const _PlanetPainter({required this.kind, required this.seed, required this.active, required this.central});
 
   @override
   void paint(Canvas canvas, Size size) {
     final r = size.width / 2;
     final center = size.center(Offset.zero);
-    final rect = Offset.zero & size;
-    final p = _palette(kind);
+    final palette = _palette(kind);
+    final planetRect = Rect.fromCircle(center: center, radius: r * .965);
 
-    if (active || central) {
-      canvas.drawCircle(center, r * 1.09, Paint()..shader = RadialGradient(colors: [p.glow.withValues(alpha: active ? .16 : .10), p.glow.withValues(alpha: .025), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: r * 1.09)));
-    }
+    // Very restrained atmosphere: this is a planet in space, not a glowing icon.
+    canvas.drawCircle(
+      center,
+      r * (active ? 1.055 : 1.025),
+      Paint()..shader = RadialGradient(
+        colors: [
+          palette.glow.withValues(alpha: active ? .15 : .055),
+          palette.glow.withValues(alpha: .018),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: center, radius: r * (active ? 1.055 : 1.025))),
+    );
 
-    canvas.drawCircle(center, r * .985, Paint()..shader = RadialGradient(center: const Alignment(-.34, -.38), radius: 1.02, colors: [p.light, p.base, p.shadow], stops: const [0, .58, 1]).createShader(rect));
+    // Base sphere and broad natural lighting.
+    canvas.drawCircle(
+      center,
+      r * .965,
+      Paint()..shader = RadialGradient(
+        center: const Alignment(-.34, -.38),
+        radius: 1.03,
+        colors: [palette.light, palette.base, palette.shadow],
+        stops: const [0, .54, 1],
+      ).createShader(planetRect),
+    );
 
     canvas.save();
-    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: center, radius: r * .985)));
+    canvas.clipPath(Path()..addOval(planetRect));
     final random = math.Random(seed);
-    _surface(canvas, center, r, random, p);
-    _craters(canvas, center, r, random, p);
-    _clouds(canvas, center, r, random, p);
-    _highlight(canvas, center, r, p);
+
+    _landMasses(canvas, center, r, random, palette);
+    _terrain(canvas, center, r, random, palette);
+    _craters(canvas, center, r, random, palette);
+    _cloudBelts(canvas, center, r, random, palette);
+    _terminatorDetail(canvas, center, r, palette);
+    _specularLight(canvas, center, r, palette);
     canvas.restore();
 
-    canvas.drawArc(Rect.fromCircle(center: center, radius: r * .966), math.pi * .72, math.pi * 1.08, false, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, r * .018)..color = p.glow.withValues(alpha: active ? .28 : .14));
-    canvas.drawArc(Rect.fromCircle(center: center, radius: r * .985), -math.pi * .94, math.pi * .62, false, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(.8, r * .010)..color = Colors.white.withValues(alpha: .10));
-
-    final night = center + Offset(r * .34, r * .22);
-    canvas.drawCircle(night, r * .72, Paint()..shader = RadialGradient(center: const Alignment(-.18, -.18), radius: .92, colors: [Colors.transparent, Colors.black.withValues(alpha: .08), Colors.black.withValues(alpha: .38)], stops: const [0, .48, 1]).createShader(Rect.fromCircle(center: night, radius: r * .72)));
+    // Thin atmospheric rim catches the light around the sphere.
+    canvas.drawArc(
+      planetRect.deflate(r * .006),
+      math.pi * .67,
+      math.pi * 1.13,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1.0, r * .014)
+        ..color = palette.glow.withValues(alpha: active ? .28 : .13),
+    );
+    canvas.drawArc(
+      planetRect.deflate(r * .012),
+      -math.pi * .95,
+      math.pi * .52,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(.7, r * .008)
+        ..color = Colors.white.withValues(alpha: .075),
+    );
   }
 
-  void _surface(Canvas canvas, Offset center, double r, math.Random random, _PlanetPalette p) {
-    final paint = Paint();
+  void _landMasses(Canvas canvas, Offset center, double r, math.Random random, _PlanetPalette p) {
     final count = switch (kind) {
-      GalaxyWorldKind.game || GalaxyWorldKind.identity || GalaxyWorldKind.cinema => 115,
-      GalaxyWorldKind.music || GalaxyWorldKind.creation => 90,
-      _ => 130,
+      GalaxyWorldKind.game => 8,
+      GalaxyWorldKind.identity => 7,
+      GalaxyWorldKind.cinema => 5,
+      GalaxyWorldKind.creation => 9,
+      GalaxyWorldKind.music => 4,
+      GalaxyWorldKind.family => 6,
+      GalaxyWorldKind.archive => 10,
+      GalaxyWorldKind.comingSoon => 4,
+      GalaxyWorldKind.vegeta => 7,
     };
 
-    // Quiet, natural planetary variation. No named-world continents or Game-World lands here.
+    final paint = Paint();
+    for (var i = 0; i < count; i++) {
+      final angle = random.nextDouble() * math.pi * 2;
+      final distance = r * (.12 + random.nextDouble() * .58);
+      final point = center + Offset(math.cos(angle) * distance, math.sin(angle) * distance);
+      final rx = r * (.075 + random.nextDouble() * .17);
+      final ry = r * (.045 + random.nextDouble() * .12);
+      final rotation = random.nextDouble() * math.pi;
+      final path = _organicIsland(point, rx, ry, rotation, random);
+      paint.color = p.land.withValues(alpha: .10 + random.nextDouble() * .12);
+      canvas.drawPath(path, paint);
+
+      // A very soft shoreline, enough to give depth without becoming a map.
+      final inner = _organicIsland(point, rx * .78, ry * .72, rotation, random);
+      paint.color = p.coast.withValues(alpha: .025 + random.nextDouble() * .035);
+      canvas.drawPath(inner, paint);
+    }
+  }
+
+  Path _organicIsland(Offset center, double rx, double ry, double rotation, math.Random random) {
+    final path = Path();
+    const points = 13;
+    for (var i = 0; i <= points; i++) {
+      final a = math.pi * 2 * i / points;
+      final wobble = .72 + random.nextDouble() * .48;
+      final x = math.cos(a) * rx * wobble;
+      final y = math.sin(a) * ry * wobble;
+      final c = math.cos(rotation);
+      final s = math.sin(rotation);
+      final px = center.dx + x * c - y * s;
+      final py = center.dy + x * s + y * c;
+      if (i == 0) {
+        path.moveTo(px, py);
+      } else {
+        path.lineTo(px, py);
+      }
+    }
+    path.close();
+    return path;
+  }
+
+  void _terrain(Canvas canvas, Offset center, double r, math.Random random, _PlanetPalette p) {
+    final paint = Paint();
+    final count = kind == GalaxyWorldKind.archive ? 110 : 78;
     for (var i = 0; i < count; i++) {
       final a = random.nextDouble() * math.pi * 2;
-      final d = math.sqrt(random.nextDouble()) * r * .86;
+      final d = math.sqrt(random.nextDouble()) * r * .88;
       final point = center + Offset(math.cos(a) * d, math.sin(a) * d);
-      final rx = r * (.012 + random.nextDouble() * .065);
-      final ry = rx * (.45 + random.nextDouble() * .95);
-      final opacity = .025 + random.nextDouble() * .065;
-      paint.color = (i.isEven ? p.land : p.highlight).withValues(alpha: opacity);
-      canvas.drawOval(Rect.fromCenter(center: point, width: rx * 2.2, height: ry * 2.2), paint);
+      final rx = r * (.008 + random.nextDouble() * .045);
+      final ry = rx * (.35 + random.nextDouble() * 1.25);
+      paint.color = (i.isEven ? p.terrainLight : p.terrainDark).withValues(alpha: .018 + random.nextDouble() * .055);
+      canvas.drawOval(Rect.fromCenter(center: point, width: rx * 2.4, height: ry * 2.4), paint);
     }
 
-    // A few broad, irregular mineral bands make the surface feel spherical rather than flat.
-    for (var i = 0; i < 7; i++) {
-      final y = center.dy + (i - 3) * r * .19 + (random.nextDouble() - .5) * r * .12;
-      final path = Path()..moveTo(center.dx - r * 1.1, y);
-      for (var j = 1; j <= 9; j++) {
-        final x = center.dx - r * 1.1 + (r * 2.2) * j / 9;
-        path.lineTo(x, y + math.sin(j * 1.37 + i) * r * (.025 + random.nextDouble() * .025));
+    // Large geological streaks are deliberately curved and sparse.
+    final bands = kind == GalaxyWorldKind.vegeta ? 4 : 3;
+    for (var i = 0; i < bands; i++) {
+      final y = center.dy + (i - (bands - 1) / 2) * r * .30;
+      final path = Path()..moveTo(center.dx - r * 1.12, y);
+      for (var j = 1; j <= 12; j++) {
+        final x = center.dx - r * 1.12 + r * 2.24 * j / 12;
+        final yy = y + math.sin(j * .82 + i * 2.3) * r * (.018 + random.nextDouble() * .025);
+        path.lineTo(x, yy);
       }
-      canvas.drawPath(path, Paint()..style = PaintingStyle.stroke..strokeWidth = r * (.012 + random.nextDouble() * .018)..color = p.band.withValues(alpha: .035 + random.nextDouble() * .045));
+      canvas.drawPath(path, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = r * (.008 + random.nextDouble() * .010)
+        ..color = p.band.withValues(alpha: .025 + random.nextDouble() * .035));
     }
   }
 
   void _craters(Canvas canvas, Offset center, double r, math.Random random, _PlanetPalette p) {
     final count = switch (kind) {
-      GalaxyWorldKind.family || GalaxyWorldKind.archive || GalaxyWorldKind.vegeta => 26,
-      GalaxyWorldKind.music || GalaxyWorldKind.creation => 13,
-      _ => 20,
+      GalaxyWorldKind.vegeta => 20,
+      GalaxyWorldKind.archive => 28,
+      GalaxyWorldKind.family => 17,
+      GalaxyWorldKind.music => 8,
+      GalaxyWorldKind.creation => 9,
+      _ => 13,
     };
+
     for (var i = 0; i < count; i++) {
-      final point = Offset(center.dx + (random.nextDouble() * 2 - 1) * r * .82, center.dy + (random.nextDouble() * 2 - 1) * r * .82);
-      if ((point - center).distance > r * .90) continue;
-      final rr = r * (.008 + random.nextDouble() * .035);
-      canvas.drawCircle(point, rr, Paint()..color = Colors.black.withValues(alpha: .035 + random.nextDouble() * .07));
-      canvas.drawCircle(point - Offset(rr * .22, rr * .20), rr * .72, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(.35, rr * .14)..color = p.highlight.withValues(alpha: .065));
+      final point = Offset(
+        center.dx + (random.nextDouble() * 2 - 1) * r * .82,
+        center.dy + (random.nextDouble() * 2 - 1) * r * .82,
+      );
+      if ((point - center).distance > r * .88) continue;
+      final rr = r * (.006 + random.nextDouble() * .026);
+      canvas.drawCircle(point, rr, Paint()..color = Colors.black.withValues(alpha: .025 + random.nextDouble() * .055));
+      canvas.drawArc(
+        Rect.fromCircle(center: point - Offset(rr * .12, rr * .13), radius: rr * .72),
+        math.pi * 1.05,
+        math.pi * .90,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(.35, rr * .13)
+          ..color = p.highlight.withValues(alpha: .055),
+      );
     }
   }
 
-  void _clouds(Canvas canvas, Offset center, double r, math.Random random, _PlanetPalette p) {
+  void _cloudBelts(Canvas canvas, Offset center, double r, math.Random random, _PlanetPalette p) {
+    final cloudCount = switch (kind) {
+      GalaxyWorldKind.music => 2,
+      GalaxyWorldKind.archive => 1,
+      _ => 3,
+    };
     final paint = Paint()..style = PaintingStyle.stroke;
-    for (var i = 0; i < 4; i++) {
-      final y = center.dy + (i - 1.5) * r * .25 + random.nextDouble() * r * .08;
-      final left = center.dx - r * .80;
-      final right = center.dx + r * .62;
+    for (var i = 0; i < cloudCount; i++) {
+      final y = center.dy + (i - (cloudCount - 1) / 2) * r * .27 + random.nextDouble() * r * .07;
+      final left = center.dx - r * .82;
+      final right = center.dx + r * .78;
       final path = Path()..moveTo(left, y);
-      for (var j = 1; j <= 8; j++) {
-        final x = left + (right - left) * j / 8;
-        path.lineTo(x, y + math.sin(j * 1.7 + i) * r * (.022 + random.nextDouble() * .016));
+      for (var j = 1; j <= 10; j++) {
+        final x = left + (right - left) * j / 10;
+        final yy = y + math.sin(j * 1.15 + i * 1.8) * r * (.014 + random.nextDouble() * .012);
+        path.lineTo(x, yy);
       }
-      paint..strokeWidth = math.max(.6, r * .010)..color = p.cloud.withValues(alpha: .035 + random.nextDouble() * .045);
+      paint
+        ..strokeWidth = math.max(.55, r * .008)
+        ..color = p.cloud.withValues(alpha: .025 + random.nextDouble() * .035);
       canvas.drawPath(path, paint);
     }
   }
 
-  void _highlight(Canvas canvas, Offset center, double r, _PlanetPalette p) {
+  void _terminatorDetail(Canvas canvas, Offset center, double r, _PlanetPalette p) {
+    // Soft night-side falloff. The offset makes the sphere read as lit from one side.
+    final nightCenter = center + Offset(r * .39, r * .25);
+    canvas.drawCircle(
+      nightCenter,
+      r * .72,
+      Paint()..shader = RadialGradient(
+        center: const Alignment(-.16, -.18),
+        radius: .92,
+        colors: [Colors.transparent, Colors.black.withValues(alpha: .075), Colors.black.withValues(alpha: .34)],
+        stops: const [0, .48, 1],
+      ).createShader(Rect.fromCircle(center: nightCenter, radius: r * .72)),
+    );
+  }
+
+  void _specularLight(Canvas canvas, Offset center, double r, _PlanetPalette p) {
     final light = center + Offset(-r * .30, -r * .34);
-    final rr = r * .62;
-    canvas.drawCircle(light, rr, Paint()..shader = RadialGradient(colors: [Colors.white.withValues(alpha: .075), p.highlight.withValues(alpha: .025), Colors.transparent]).createShader(Rect.fromCircle(center: light, radius: rr)));
+    final rr = r * .58;
+    canvas.drawCircle(
+      light,
+      rr,
+      Paint()..shader = RadialGradient(
+        colors: [
+          Colors.white.withValues(alpha: .070),
+          p.highlight.withValues(alpha: .022),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: light, radius: rr)),
+    );
   }
 
   _PlanetPalette _palette(GalaxyWorldKind k) {
     switch (k) {
-      case GalaxyWorldKind.vegeta: return const _PlanetPalette(Color(0xFF514A72), Color(0xFF19172C), Color(0xFF020208), Color(0xFF7770A1), Color(0xFFB7A8E5), Color(0xFF6B5E9B), Color(0xFF9272D2), Color(0xFFD6CCF2), Color(0xFFD9D3EE));
-      case GalaxyWorldKind.game: return const _PlanetPalette(Color(0xFF4B7E9B), Color(0xFF12344B), Color(0xFF03101A), Color(0xFF3E704F), Color(0xFF8DB5A2), Color(0xFF3B718C), Color(0xFF5C9EC1), Color(0xFFB6E3E8), Color(0xFFE0F2F1));
-      case GalaxyWorldKind.music: return const _PlanetPalette(Color(0xFF5B467D), Color(0xFF241632), Color(0xFF06030C), Color(0xFF8A4D9A), Color(0xFFBE82CE), Color(0xFFA25BC0), Color(0xFFA263D0), Color(0xFFE0B5EE), Color(0xFFE0C6EB));
-      case GalaxyWorldKind.identity: return const _PlanetPalette(Color(0xFF3E6E8C), Color(0xFF122A3A), Color(0xFF020A11), Color(0xFF496C70), Color(0xFF8AB0A7), Color(0xFF355D7C), Color(0xFF548DAD), Color(0xFFB2D8D9), Color(0xFFD9E8E4));
-      case GalaxyWorldKind.family: return const _PlanetPalette(Color(0xFF725B4D), Color(0xFF30221F), Color(0xFF090504), Color(0xFF765D4B), Color(0xFFA58A72), Color(0xFF59453C), Color(0xFFB17A57), Color(0xFFE0C0A2), Color(0xFFD6C5B6));
-      case GalaxyWorldKind.cinema: return const _PlanetPalette(Color(0xFF66758D), Color(0xFF26313F), Color(0xFF05080C), Color(0xFF5C6470), Color(0xFFA8B2C0), Color(0xFF526377), Color(0xFF8FA5C2), Color(0xFFD8E2ED), Color(0xFFE3E9EF));
-      case GalaxyWorldKind.creation: return const _PlanetPalette(Color(0xFF875B7A), Color(0xFF35223A), Color(0xFF09050C), Color(0xFF8E5A86), Color(0xFFC89BC3), Color(0xFF9E668F), Color(0xFFD178C1), Color(0xFFF0C8E6), Color(0xFFE8D7E6));
-      case GalaxyWorldKind.archive: return const _PlanetPalette(Color(0xFF4B4E58), Color(0xFF1C1D23), Color(0xFF030306), Color(0xFF4B4B52), Color(0xFF777A83), Color(0xFF41434C), Color(0xFF7D7E8A), Color(0xFFC5C6CC), Color(0xFFC5C6CC));
-      case GalaxyWorldKind.comingSoon: return const _PlanetPalette(Color(0xFF3D5362), Color(0xFF15222A), Color(0xFF020609), Color(0xFF36515B), Color(0xFF69838A), Color(0xFF304651), Color(0xFF5B8993), Color(0xFFB3D2D3), Color(0xFFD2E2E0));
+      case GalaxyWorldKind.vegeta:
+        return const _PlanetPalette(Color(0xFF514C70), Color(0xFF211D34), Color(0xFF030208), Color(0xFF716B91), Color(0xFFA99BCB), Color(0xFF6E6590), Color(0xFF856BC0), Color(0xFFD4CBEB), Color(0xFFD0C8DE), Color(0xFF3B354F), Color(0xFF171328));
+      case GalaxyWorldKind.game:
+        return const _PlanetPalette(Color(0xFF4B7890), Color(0xFF163648), Color(0xFF031018), Color(0xFF466F4C), Color(0xFF8CA48D), Color(0xFF47778B), Color(0xFF5D9BBC), Color(0xFFD0E9E6), Color(0xFFC5E1DF), Color(0xFF244536), Color(0xFF102B31));
+      case GalaxyWorldKind.music:
+        return const _PlanetPalette(Color(0xFF594572), Color(0xFF261A33), Color(0xFF06040A), Color(0xFF77547C), Color(0xFFAA83AD), Color(0xFF76517E), Color(0xFF9360B5), Color(0xFFE0BFE4), Color(0xFFD9B9DE), Color(0xFF4A294E), Color(0xFF1D1027));
+      case GalaxyWorldKind.identity:
+        return const _PlanetPalette(Color(0xFF466F84), Color(0xFF172D3A), Color(0xFF02090E), Color(0xFF4E6F6C), Color(0xFF8FAAA0), Color(0xFF3F6575), Color(0xFF5C91A9), Color(0xFFC5DFDC), Color(0xFFC2D9D4), Color(0xFF294B49), Color(0xFF10262C));
+      case GalaxyWorldKind.family:
+        return const _PlanetPalette(Color(0xFF705B4D), Color(0xFF30231F), Color(0xFF080504), Color(0xFF735A48), Color(0xFFA78A70), Color(0xFF60483C), Color(0xFFA87858), Color(0xFFE3C5A6), Color(0xFFDCC9B8), Color(0xFF47362E), Color(0xFF201714));
+      case GalaxyWorldKind.cinema:
+        return const _PlanetPalette(Color(0xFF66768B), Color(0xFF293541), Color(0xFF05080C), Color(0xFF626C76), Color(0xFFA9B3BD), Color(0xFF586879), Color(0xFF819BB8), Color(0xFFD9E4ED), Color(0xFFD6E0E7), Color(0xFF353D47), Color(0xFF171D24));
+      case GalaxyWorldKind.creation:
+        return const _PlanetPalette(Color(0xFF805A75), Color(0xFF38263A), Color(0xFF09060B), Color(0xFF855B7D), Color(0xFFC29CB9), Color(0xFF875F82), Color(0xFFC16EA7), Color(0xFFF0CEE5), Color(0xFFE7CEDF), Color(0xFF513448), Color(0xFF211525));
+      case GalaxyWorldKind.archive:
+        return const _PlanetPalette(Color(0xFF50535D), Color(0xFF1E2026), Color(0xFF030306), Color(0xFF53545B), Color(0xFF85868D), Color(0xFF4A4C54), Color(0xFF777C8A), Color(0xFFC9CBD0), Color(0xFFC3C6CA), Color(0xFF33343A), Color(0xFF15161B));
+      case GalaxyWorldKind.comingSoon:
+        return const _PlanetPalette(Color(0xFF405764), Color(0xFF17252C), Color(0xFF020609), Color(0xFF405A61), Color(0xFF70888A), Color(0xFF3A515B), Color(0xFF5F8791), Color(0xFFC2D9D7), Color(0xFFBCD0CF), Color(0xFF293E44), Color(0xFF111D22));
     }
   }
-  @override bool shouldRepaint(covariant _PlanetPainter oldDelegate) => oldDelegate.active != active || oldDelegate.kind != kind;
+
+  @override
+  bool shouldRepaint(covariant _PlanetPainter oldDelegate) {
+    return oldDelegate.active != active || oldDelegate.kind != kind;
+  }
 }
 
 class _PlanetPalette {
-  final Color light, base, shadow, land, coast, band, glow, highlight, cloud;
-  const _PlanetPalette(this.light, this.base, this.shadow, this.land, this.coast, this.band, this.glow, this.highlight, this.cloud);
+  final Color light, base, shadow, land, coast, band, glow, highlight, cloud, terrainLight, terrainDark;
+  const _PlanetPalette(this.light, this.base, this.shadow, this.land, this.coast, this.band, this.glow, this.highlight, this.cloud, this.terrainLight, this.terrainDark);
 }
 
 class _SelectionLayer extends StatelessWidget {
@@ -321,24 +520,36 @@ class _SelectionLayer extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onEnter;
   const _SelectionLayer({required this.world, required this.compact, required this.onClose, required this.onEnter});
+
   @override
   Widget build(BuildContext context) {
     if (world == null) return const SizedBox.shrink();
-    return Positioned(left: compact ? 14 : 34, right: compact ? 14 : 34, bottom: compact ? 14 : 28,
-      child: Material(color: Colors.transparent, child: Container(
-        constraints: const BoxConstraints(maxWidth: 720),
-        padding: EdgeInsets.fromLTRB(compact ? 18 : 24, 15, 10, 15),
-        decoration: BoxDecoration(color: const Color(0xFF07070E).withValues(alpha: .94), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFBBA9E6).withValues(alpha: .16)), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .60), blurRadius: 32, offset: const Offset(0, 12))]),
-        child: Row(children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(world!.title, style: const TextStyle(fontSize: 12, letterSpacing: 3)),
-            const SizedBox(height: 6),
-            Text(world!.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, height: 1.4, color: Colors.white.withValues(alpha: .44))),
-          ])),
-          const SizedBox(width: 12),
-          TextButton(onPressed: onEnter, child: const Text('ENTER')),
-          IconButton(onPressed: onClose, icon: Icon(Icons.close, size: 17, color: Colors.white.withValues(alpha: .45))),
-        ]),
-      )));
+    return Positioned(
+      left: compact ? 16 : 34,
+      bottom: compact ? 16 : 28,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: compact ? 250 : 330,
+          padding: const EdgeInsets.fromLTRB(18, 15, 10, 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF080810).withValues(alpha: .90),
+            border: Border.all(color: const Color(0xFFB7A9D5).withValues(alpha: .13)),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .50), blurRadius: 28, offset: const Offset(0, 10))],
+          ),
+          child: Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(world!.title, style: const TextStyle(fontSize: 11, letterSpacing: 2.8)),
+              const SizedBox(height: 5),
+              Text(world!.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 9, height: 1.35, color: Colors.white.withValues(alpha: .38))),
+            ])),
+            const SizedBox(width: 8),
+            TextButton(onPressed: onEnter, style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap), child: const Text('ENTER', style: TextStyle(fontSize: 8, letterSpacing: 1.8))),
+            IconButton(onPressed: onClose, padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 28, height: 28), icon: Icon(Icons.close, size: 15, color: Colors.white.withValues(alpha: .35))),
+          ]),
+        ),
+      ),
+    );
   }
 }
