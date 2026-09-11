@@ -106,8 +106,8 @@ class _PlatformNode extends StatelessWidget {
       cursor: SystemMouseCursors.click,
       onEnter: (_) => onEnter(), onExit: (_) => onExit(),
       child: GestureDetector(onTap: onTap, child: SizedBox(width: 116, height: 116, child: Stack(alignment: Alignment.center, children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 180), width: size, height: size,
+        Container(
+          width: size, height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(colors: [
