@@ -2,17 +2,10 @@ import 'package:darkest_world/core/access_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('visitor menu exposes exactly Games, Films and Chatbox', () {
-    expect(
-      DarkestWorldAccessPolicy.visitorMenu,
-      ['Games', 'Films', 'Chatbox'],
-    );
-  });
-
-  test('visitor cannot enter the Galaxy', () {
+  test('visitors can see the Galaxy without signing in', () {
     expect(
       DarkestWorldAccessPolicy.canEnterGalaxy(signedIn: false),
-      isFalse,
+      isTrue,
     );
     expect(
       DarkestWorldAccessPolicy.canEnterGalaxy(signedIn: true),
@@ -20,45 +13,47 @@ void main() {
     );
   });
 
-  test('visitor can open only the three public destinations', () {
+  test('visitors can open the public worlds', () {
     expect(
-      DarkestWorldAccessPolicy.canOpenWorld('game-world', signedIn: false),
+      DarkestWorldAccessPolicy.canOpenWorld(
+        'game-world',
+        signedIn: false,
+      ),
       isTrue,
     );
     expect(
-      DarkestWorldAccessPolicy.canOpenWorld('cinema-world', signedIn: false),
+      DarkestWorldAccessPolicy.canOpenWorld(
+        'cinema-world',
+        signedIn: false,
+      ),
       isTrue,
     );
     expect(
-      DarkestWorldAccessPolicy.canOpenWorld('chatbox', signedIn: false),
+      DarkestWorldAccessPolicy.canOpenWorld(
+        'chatbox',
+        signedIn: false,
+      ),
       isTrue,
-    );
-    expect(
-      DarkestWorldAccessPolicy.canOpenWorld('music-world', signedIn: false),
-      isFalse,
-    );
-    expect(
-      DarkestWorldAccessPolicy.canOpenWorld('events', signedIn: false),
-      isFalse,
-    );
-    expect(
-      DarkestWorldAccessPolicy.canOpenWorld('create-your-world', signedIn: false),
-      isFalse,
     );
   });
 
-  test('members can open all existing world routes', () {
+  test('members can open protected worlds', () {
     expect(
-      DarkestWorldAccessPolicy.canOpenWorld('music-world', signedIn: true),
+      DarkestWorldAccessPolicy.canOpenWorld(
+        'darkest-identity',
+        signedIn: true,
+      ),
       isTrue,
     );
+  });
+
+  test('visitors cannot open protected worlds', () {
     expect(
-      DarkestWorldAccessPolicy.canOpenWorld('events', signedIn: true),
-      isTrue,
-    );
-    expect(
-      DarkestWorldAccessPolicy.canOpenWorld('create-your-world', signedIn: true),
-      isTrue,
+      DarkestWorldAccessPolicy.canOpenWorld(
+        'darkest-identity',
+        signedIn: false,
+      ),
+      isFalse,
     );
   });
 }
