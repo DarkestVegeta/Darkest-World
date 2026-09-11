@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/world_sections_repository.dart';
 import '../widgets/darkest_world_universe.dart';
+import 'archive_world_page.dart';
 import 'basic_section_page.dart';
 import 'cinema_world_page.dart';
 import 'creation_world_page.dart';
@@ -102,7 +103,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
         _push(const CreationWorldPage());
         return;
       case GalaxyWorldKind.archive:
-        _push(BasicSectionPage(title: 'ARCHIVE-WORLD', description: world.description));
+        _push(const ArchiveWorldPage());
         return;
       case GalaxyWorldKind.comingSoon:
         _push(BasicSectionPage(title: 'COMING SOON', description: world.description));
