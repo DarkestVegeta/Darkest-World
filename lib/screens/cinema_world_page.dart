@@ -56,14 +56,22 @@ class _CinemaWorldPageState extends State<CinemaWorldPage> {
   Widget _selectionPanel() {
     final films = _selected == 'FILMS';
     return Container(
-      width: 360, padding: const EdgeInsets.all(20),
+      width: 390, padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: const Color(0xFF090914).withValues(alpha: .94), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF9B89D8).withValues(alpha: .25))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(films ? 'FILMS' : 'SERIES', style: const TextStyle(fontSize: 20, letterSpacing: 3, fontWeight: FontWeight.w600)),
         const SizedBox(height: 7),
-        Text(films ? 'Films and movie discovery.' : 'Series and television worlds.', style: TextStyle(color: Colors.white.withValues(alpha: .55))),
+        Text(
+          films
+              ? 'Films, animated films and anime films.'
+              : 'Series includes live-action series, cartoons and anime.',
+          style: TextStyle(color: Colors.white.withValues(alpha: .55)),
+        ),
         const SizedBox(height: 16),
-        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => _open(films ? 'movie' : 'series', '${films ? 'FILMS' : 'SERIES'} • CINEMA-WORLD'), child: const Text('ENTER'))),
+        SizedBox(width: double.infinity, child: ElevatedButton(
+          onPressed: () => _open(films ? 'movie' : 'series', '${films ? 'FILMS' : 'SERIES'} • CINEMA-WORLD'),
+          child: Text(films ? 'ENTER FILMS' : 'ENTER SERIES'),
+        )),
       ]),
     );
   }
@@ -73,7 +81,7 @@ class _CinemaSpacePainter extends CustomPainter {
   @override void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = const Color(0xFF020208);
     canvas.drawRect(Offset.zero & size, paint);
-    final random = math.Random(19)..nextInt(1);
+    final random = math.Random(19);
     paint.color = Colors.white.withValues(alpha: .22);
     for (var i = 0; i < 220; i++) canvas.drawCircle(Offset(random.nextDouble() * size.width, random.nextDouble() * size.height), random.nextDouble() * 1.1, paint);
   }
