@@ -12,6 +12,9 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  static const _webRedirectUrl =
+      'https://darkestvegeta.github.io/Darkest-World/';
+
   final _emailController = TextEditingController();
   bool _loading = false;
   late final StreamSubscription<AuthState> _authSubscription;
@@ -19,7 +22,8 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _authSubscription =
+        Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (!mounted || data.session == null) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
     });
@@ -43,7 +47,9 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await Supabase.instance.client.auth.signInWithOtp(
         email: email,
-        emailRedirectTo: kIsWeb ? null : 'io.supabase.darkestworld://login-callback/',
+        emailRedirectTo: kIsWeb
+            ? _webRedirectUrl
+            : 'io.supabase.darkestworld://login-callback/',
       );
       if (mounted) {
         _showMessage('Check je e-mail voor de inloglink.');
