@@ -9,49 +9,70 @@ class GameListPage extends StatefulWidget {
   final List<int> externalPlatformIds;
   final List<GamePlatform> navigationPlatforms;
   final int navigationIndex;
-  const GameListPage({super.key,required this.territory,required this.platform,required this.externalPlatformIds,this.navigationPlatforms=const [],this.navigationIndex=-1});
-  @override State<GameListPage> createState()=>_GameListPageState();
+  const GameListPage({super.key, required this.territory, required this.platform, required this.externalPlatformIds, this.navigationPlatforms = const [], this.navigationIndex = -1});
+  @override State<GameListPage> createState() => _GameListPageState();
 }
 
-class _GameListPageState extends State<GameListPage>{
-  int _focus=2;
-  void _openGames(BuildContext context,GamePlatform target)=>Navigator.of(context).pushReplacement(MaterialPageRoute(builder:(_)=>GameListPage(territory:widget.territory,platform:target.name,externalPlatformIds:target.externalPlatformIds,navigationPlatforms:widget.navigationPlatforms,navigationIndex:widget.navigationPlatforms.indexOf(target))));
-  void _openBrowser(BuildContext context)=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>ContentBrowserPage(title:'${widget.platform} • GAMES',contentType:'game',platformIds:widget.externalPlatformIds)));
-  @override Widget build(BuildContext context){
-    final platforms=widget.navigationPlatforms; final hasNav=platforms.length>1&&widget.navigationIndex>=0;
-    final previous=hasNav&&widget.navigationIndex>0?platforms[widget.navigationIndex-1]:null;
-    final next=hasNav&&widget.navigationIndex<platforms.length-1?platforms[widget.navigationIndex+1]:null;
-    return Scaffold(backgroundColor:const Color(0xFF010107),body:LayoutBuilder(builder:(context,c){final compact=c.maxWidth<900;return Stack(children:[
-      const Positioned.fill(child:CustomPaint(painter:_GamesWorldPainter())),
-      SafeArea(child:Padding(padding:EdgeInsets.fromLTRB(compact?16:28,16,compact?16:28,0),child:Row(children:[IconButton(onPressed:()=>Navigator.of(context).pop(),icon:const Icon(Icons.arrow_back_ios_new,size:16)),const SizedBox(width:8),Expanded(child:_HierarchyTrail(territory:widget.territory,platform:widget.platform)),Text('${widget.externalPlatformIds.length} SOURCE${widget.externalPlatformIds.length==1?'':'S'}',style:TextStyle(fontSize:8,letterSpacing:1.8,color:Colors.white.withValues(alpha:.22)))]))),
-      Center(child:Padding(padding:EdgeInsets.only(top:compact?34:18,bottom:hasNav?135:90),child:_FivePositionBrowser(platform:widget.platform,platforms:platforms,currentIndex:widget.navigationIndex,focus:_focus,compact:compact,onFocus:(i)=>setState(()=>_focus=i),onSelect:(i){if(i>=0&&i<platforms.length)_openGames(context,platforms[i]);},onOpen:()=>_openBrowser(context)))),
-      Positioned(left:0,right:0,bottom:compact?18:28,child:Column(children:[if(hasNav)_PlatformNavigation(previous:previous,current:widget.platform,next:next,onPrevious:previous==null?null:()=>_openGames(context,previous),onNext:next==null?null:()=>_openGames(context,next)),const SizedBox(height:10),Text('SELECTED PLATFORM  •  ENTER TO OPEN GAME LIBRARY',style:TextStyle(fontSize:8,letterSpacing:2.1,color:Colors.white.withValues(alpha:.22)))]))
-    ]);}));
+class _GameListPageState extends State<GameListPage> {
+  int focus = 2;
+  void openPlatform(GamePlatform target) => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => GameListPage(territory: widget.territory, platform: target.name, externalPlatformIds: target.externalPlatformIds, navigationPlatforms: widget.navigationPlatforms, navigationIndex: widget.navigationPlatforms.indexOf(target))));
+  void openLibrary() => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentBrowserPage(title: '${widget.platform} • GAMES', contentType: 'game', platformIds: widget.externalPlatformIds)));
+
+  @override
+  Widget build(BuildContext context) {
+    final platforms = widget.navigationPlatforms;
+    final validIndex = widget.navigationIndex >= 0 && widget.navigationIndex < platforms.length;
+    final previous = validIndex && widget.navigationIndex > 0 ? platforms[widget.navigationIndex - 1] : null;
+    final next = validIndex && widget.navigationIndex < platforms.length - 1 ? platforms[widget.navigationIndex + 1] : null;
+    return Scaffold(backgroundColor: const Color(0xFF010107), body: LayoutBuilder(builder: (context, box) {
+      final compact = box.maxWidth < 900;
+      return Stack(children: [
+        const Positioned.fill(child: CustomPaint(painter: _GamesBackgroundPainter())),
+        SafeArea(child: Padding(padding: EdgeInsets.all(compact ? 14 : 26), child: Row(children: [
+          IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back_ios_new, size: 16)),
+          const SizedBox(width: 6), Expanded(child: Text('GAME-WORLD  /  ${widget.territory}  /  ${widget.platform}  /  GAMES', style: TextStyle(fontSize: 10, letterSpacing: 2))),
+        ]))),
+        Center(child: _PlatformStrip(platforms: platforms, currentIndex: widget.navigationIndex, focus: focus, currentName: widget.platform, compact: compact, onFocus: (i) => setState(() => focus = i), onOpenCurrent: openLibrary, onOpenPlatform: (i) { if (i >= 0 && i < platforms.length) openPlatform(platforms[i]); })),
+        Positioned(left: 0, right: 0, bottom: compact ? 18 : 28, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          _Nav(label: 'PREVIOUS', value: previous?.name, onTap: previous == null ? null : () => openPlatform(previous)),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 18), child: Text('|')),
+          Text(widget.platform, style: const TextStyle(fontSize: 10, letterSpacing: 1.8)),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 18), child: Text('|')),
+          _Nav(label: 'NEXT', value: next?.name, onTap: next == null ? null : () => openPlatform(next)),
+        ])),
+      ]);
+    }));
   }
 }
 
-class _FivePositionBrowser extends StatelessWidget{
-  final String platform;final List<GamePlatform> platforms;final int currentIndex;final int focus;final bool compact;final ValueChanged<int> onFocus;final ValueChanged<int> onSelect;final VoidCallback onOpen;
-  const _FivePositionBrowser({required this.platform,required this.platforms,required this.currentIndex,required this.focus,required this.compact,required this.onFocus,required this.onSelect,required this.onOpen});
-  @override Widget build(BuildContext context){
-    final names=List<String>.filled(5,'');
-    final indices=List<int>.filled(5,-1);
-    if(currentIndex>=0&&currentIndex<platforms.length){for(var slot=0;slot<5;slot++){final idx=currentIndex+slot-2;if(idx>=0&&idx<platforms.length){indices[slot]=idx;names[slot]=platforms[idx].name;}}}
-    if(names[2].isEmpty)names[2]=platform.toUpperCase();
-    final width=math.min(MediaQuery.sizeOf(context).width-(compact?22:56),1320.0);final card=compact?math.max(110.0,(width-28)/3.2):math.max(145.0,(width-64)/5.0);final gap=compact?9.0:14.0;
-    return SizedBox(width:width,height:compact?430:510,child:Column(children:[Text('GAME LIBRARY',style:TextStyle(fontSize:compact?9:10,letterSpacing:3.4,color:Colors.white.withValues(alpha:.28))),const SizedBox(height:8),Text(platform.toUpperCase(),style:TextStyle(fontSize:compact?17:22,letterSpacing:4.5,fontWeight:FontWeight.w500)),const SizedBox(height:30),Expanded(child:Row(mainAxisAlignment:MainAxisAlignment.center,children:List.generate(5,(i){final main=i==2;final active=focus==i;final available=names[i].isNotEmpty;final opacity=main?1.0:(i-2).abs()==1?.62:.30;final h=main?(compact?280.0:335.0):(compact?225.0:270.0);return Padding(padding:EdgeInsets.symmetric(horizontal:gap/2),child:MouseRegion(cursor:available?SystemMouseCursors.click:SystemMouseCursors.basic,onEnter:(_)=>onFocus(i),child:GestureDetector(onTap:!available?null:main?onOpen:()=>onSelect(indices[i]),child:AnimatedOpacity(duration:const Duration(milliseconds:160),opacity:available?(active?1:opacity):.10,child:AnimatedScale(scale:active&&!main?1.035:1.0,duration:const Duration(milliseconds:160),child:_GameLibraryCard(width:card*(main?1.12:1),height:h,label:available?(main?'CURRENT':i<2?'PREVIOUS':'NEXT'):'—',title:available?names[i]:'NO WORLD',main:main,index:i,available:available)))))));}))),const SizedBox(height:16),Text(focus==2?'CURRENT  •  ENTER':availableFocus(indices,focus)?'SELECT PLATFORM  •  ENTER':'CURRENT PLATFORM',style:TextStyle(fontSize:8,letterSpacing:2,color:Colors.white.withValues(alpha:.28)))]));
+class _PlatformStrip extends StatelessWidget {
+  final List<GamePlatform> platforms; final int currentIndex; final int focus; final String currentName; final bool compact; final ValueChanged<int> onFocus; final VoidCallback onOpenCurrent; final ValueChanged<int> onOpenPlatform;
+  const _PlatformStrip({required this.platforms, required this.currentIndex, required this.focus, required this.currentName, required this.compact, required this.onFocus, required this.onOpenCurrent, required this.onOpenPlatform});
+  @override
+  Widget build(BuildContext context) {
+    final width = math.min(MediaQuery.sizeOf(context).width - (compact ? 20 : 60), 1320.0);
+    return SizedBox(width: width, height: compact ? 430 : 510, child: Column(children: [
+      Text('GAME LIBRARY', style: TextStyle(fontSize: 9, letterSpacing: 3.5, color: Colors.white.withValues(alpha: .28))),
+      const SizedBox(height: 8), Text(currentName.toUpperCase(), style: const TextStyle(fontSize: 21, letterSpacing: 4)), const SizedBox(height: 28),
+      Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(5, (slot) {
+        final index = currentIndex + slot - 2;
+        final available = index >= 0 && index < platforms.length;
+        final title = available ? platforms[index].name : slot == 2 ? currentName : '—';
+        final main = slot == 2;
+        final active = focus == slot;
+        return Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: MouseRegion(onEnter: (_) => onFocus(slot), cursor: available || main ? SystemMouseCursors.click : SystemMouseCursors.basic, child: GestureDetector(onTap: main ? onOpenCurrent : available ? () => onOpenPlatform(index) : null, child: _LibraryCard(title: title, main: main, active: active, available: available, height: main ? (compact ? 280 : 335) : (compact ? 225 : 270))))));
+      }))),
+      const SizedBox(height: 14), Text(focus == 2 ? 'CURRENT  •  ENTER' : 'SELECT PLATFORM  •  ENTER', style: TextStyle(fontSize: 8, letterSpacing: 2, color: Colors.white.withValues(alpha: .28))),
+    ]));
   }
-
-  bool availableFocus(List<int> indices,int focus)=>focus>=0&&focus<indices.length&&indices[focus]>=0;
 }
 
-class _GameLibraryCard extends StatelessWidget{final double width,height;final String label,title;final bool main,available;final int index;const _GameLibraryCard({required this.width,required this.height,required this.label,required this.title,required this.main,required this.index,required this.available});
-  @override Widget build(BuildContext context)=>Container(width:width,height:height,clipBehavior:Clip.antiAlias,decoration:BoxDecoration(borderRadius:BorderRadius.circular(main?18:14),border:Border.all(color:Colors.white.withValues(alpha:main?.24:(available?.10:.04)),width:main?1.5:1),gradient:const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF17152A),Color(0xFF080811),Color(0xFF030307)]),boxShadow:main?[BoxShadow(color:Color(0xFF7765D0),blurRadius:42,spreadRadius:2)]:const[]),child:CustomPaint(painter:_LibraryTerrainPainter(seed:index,muted:!available),child:Padding(padding:EdgeInsets.all(main?22:15),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(label,style:TextStyle(fontSize:7,letterSpacing:2.2,color:Colors.white.withValues(alpha:main?.46:.24))),const Spacer(),Text(title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontSize:main?16:11,letterSpacing:main?2.1:1.1,fontWeight:main?FontWeight.w600:FontWeight.w500,color:Colors.white.withValues(alpha:available?1:.25))),const SizedBox(height:9),Text(available?(main?'OPEN LIBRARY':'ENTER WORLD'):'NO WORLD',style:TextStyle(fontSize:7,letterSpacing:1.6,color:Colors.white.withValues(alpha:main?.34:.18)))]))));}
+class _LibraryCard extends StatelessWidget {
+  final String title; final bool main, active, available; final double height;
+  const _LibraryCard({required this.title, required this.main, required this.active, required this.available, required this.height});
+  @override Widget build(BuildContext context) => AnimatedContainer(duration: const Duration(milliseconds: 120), height: height, decoration: BoxDecoration(borderRadius: BorderRadius.circular(main ? 18 : 14), border: Border.all(color: Colors.white.withValues(alpha: main ? .24 : available ? .10 : .04), width: main ? 1.5 : 1), gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF17152A), Color(0xFF080811), Color(0xFF030307)]), boxShadow: main ? const [BoxShadow(color: Color(0x667765D0), blurRadius: 35)] : const []), child: Padding(padding: EdgeInsets.all(main ? 20 : 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(main ? 'CURRENT' : available ? 'PLATFORM' : 'EMPTY', style: TextStyle(fontSize: 7, letterSpacing: 2.2, color: Colors.white.withValues(alpha: main ? .46 : .24))), const Spacer(), Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: main ? 16 : 11, letterSpacing: main ? 2 : 1, fontWeight: main ? FontWeight.w600 : FontWeight.w500, color: Colors.white.withValues(alpha: available || main ? 1 : .25))), const SizedBox(height: 8), Text(available || main ? (main ? 'OPEN LIBRARY' : 'ENTER WORLD') : 'NO WORLD', style: TextStyle(fontSize: 7, letterSpacing: 1.6, color: Colors.white.withValues(alpha: .22))) ])));
 }
 
-class _LibraryTerrainPainter extends CustomPainter{final int seed;final bool muted;const _LibraryTerrainPainter({required this.seed,this.muted=false});@override void paint(Canvas canvas,Size size){final r=math.Random(seed*71+9);final p=Paint()..color=const Color(0xFF7869AE).withValues(alpha:muted?.025:.075);for(var i=0;i<6;i++){final center=Offset(size.width*(.15+r.nextDouble()*.7),size.height*(.18+r.nextDouble()*.58));final rx=size.width*(.08+r.nextDouble()*.18),ry=size.height*(.04+r.nextDouble()*.10);canvas.drawOval(Rect.fromCenter(center:center,width:rx*2,height:ry*2),p);}final line=Paint()..color=Colors.white.withValues(alpha:muted?.012:.035);canvas.drawLine(Offset(size.width*.12,size.height*.70),Offset(size.width*.88,size.height*.62),line);}@override bool shouldRepaint(covariant CustomPainter oldDelegate)=>false;}
+class _Nav extends StatelessWidget { final String label; final String? value; final VoidCallback? onTap; const _Nav({required this.label, required this.value, required this.onTap}); @override Widget build(BuildContext context) => InkWell(onTap: onTap, child: Column(children: [Text(label, style: TextStyle(fontSize: 7, letterSpacing: 2, color: Colors.white.withValues(alpha: onTap == null ? .12 : .30))), const SizedBox(height: 4), Text(value ?? '—', style: TextStyle(fontSize: 9, color: onTap == null ? Colors.white.withValues(alpha: .10) : const Color(0xFF9A82FF)))])); }
 
-class _PlatformNavigation extends StatelessWidget{final GamePlatform? previous;final String current;final GamePlatform? next;final VoidCallback? onPrevious;final VoidCallback? onNext;const _PlatformNavigation({required this.previous,required this.current,required this.next,required this.onPrevious,required this.onNext});@override Widget build(BuildContext context)=>Row(mainAxisAlignment:MainAxisAlignment.center,children:[_NavNode(label:'PREVIOUS',value:previous?.name,onTap:onPrevious,alignment:CrossAxisAlignment.end),const Padding(padding:EdgeInsets.symmetric(horizontal:14),child:Text('|',style:TextStyle(color:Color(0xFF5C5577),fontSize:12))),Column(mainAxisSize:MainAxisSize.min,children:[Text('CURRENT',style:TextStyle(color:Colors.white.withValues(alpha:.38),fontSize:8,letterSpacing:2.4)),const SizedBox(height:5),Text(current,style:const TextStyle(fontSize:11,letterSpacing:1.4,fontWeight:FontWeight.w600))]),const Padding(padding:EdgeInsets.symmetric(horizontal:14),child:Text('|',style:TextStyle(color:Color(0xFF5C5577),fontSize:12))),_NavNode(label:'NEXT',value:next?.name,onTap:onNext,alignment:CrossAxisAlignment.start)]);}
-class _NavNode extends StatelessWidget{final String label;final String? value;final VoidCallback? onTap;final CrossAxisAlignment alignment;const _NavNode({required this.label,required this.value,required this.onTap,required this.alignment});@override Widget build(BuildContext context)=>InkWell(onTap:onTap,borderRadius:BorderRadius.circular(8),child:Padding(padding:const EdgeInsets.symmetric(horizontal:4,vertical:4),child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:alignment,children:[Text(label,style:TextStyle(color:onTap==null?Colors.white.withValues(alpha:.14):Colors.white.withValues(alpha:.32),fontSize:8,letterSpacing:2.2)),const SizedBox(height:5),Text(value??'—',style:TextStyle(color:onTap==null?Colors.white.withValues(alpha:.12):const Color(0xFF9A82FF),fontSize:10,letterSpacing:.8))])));}
-class _HierarchyTrail extends StatelessWidget{final String territory,platform;const _HierarchyTrail({required this.territory,required this.platform});@override Widget build(BuildContext context)=>Wrap(alignment:WrapAlignment.center,crossAxisAlignment:WrapCrossAlignment.center,spacing:8,children:[Text('GAME-WORLD',style:TextStyle(color:Colors.white.withValues(alpha:.24),fontSize:9,letterSpacing:2)),const Icon(Icons.chevron_right,size:14,color:Color(0xFF7467A8)),Text(territory,style:TextStyle(color:Colors.white.withValues(alpha:.34),fontSize:9,letterSpacing:2)),const Icon(Icons.chevron_right,size:14,color:Color(0xFF7467A8)),Text(platform,style:const TextStyle(fontSize:9,letterSpacing:2)),const Icon(Icons.chevron_right,size:14,color:Color(0xFF7467A8)),Text('GAMES',style:TextStyle(color:Colors.white.withValues(alpha:.55),fontSize:9,letterSpacing:2))]);}
-class _GamesWorldPainter extends CustomPainter{const _GamesWorldPainter();@override void paint(Canvas canvas,Size size){final bg=Paint()..shader=const RadialGradient(center:Alignment(0,-.05),radius:1.05,colors:[Color(0xFF161330),Color(0xFF060612),Color(0xFF010105)]).createShader(Offset.zero&size);canvas.drawRect(Offset.zero&size,bg);final glow=Paint()..color=const Color(0xFF7560FF).withValues(alpha:.045)..maskFilter=const MaskFilter.blur(BlurStyle.normal,100);canvas.drawCircle(Offset(size.width/2,size.height*.48),250,glow);final star=Paint(),random=math.Random(442);for(var i=0;i<125;i++){star.color=Colors.white.withValues(alpha:.10+(i%5)*.028);canvas.drawCircle(Offset(random.nextDouble()*size.width,random.nextDouble()*size.height),i%19==0?.9:.38,star);}}@override bool shouldRepaint(covariant _GamesWorldPainter oldDelegate)=>false;}
+class _GamesBackgroundPainter extends CustomPainter { const _GamesBackgroundPainter(); @override void paint(Canvas canvas, Size size) { canvas.drawRect(Offset.zero & size, Paint()..shader = const RadialGradient(center: Alignment(0, -.1), radius: 1.1, colors: [Color(0xFF161330), Color(0xFF060612), Color(0xFF010105)]).createShader(Offset.zero & size)); final r = math.Random(442); final p = Paint(); for (var i = 0; i < 140; i++) { p.color = Colors.white.withValues(alpha: .04 + (i % 5) * .025); canvas.drawCircle(Offset(r.nextDouble() * size.width, r.nextDouble() * size.height), .25 + r.nextDouble() * .7, p); } } @override bool shouldRepaint(covariant _GamesBackgroundPainter oldDelegate) => false; }
