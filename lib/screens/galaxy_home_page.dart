@@ -3,6 +3,7 @@ import '../core/world_sections_repository.dart';
 import '../widgets/darkest_world_universe.dart';
 import 'basic_section_page.dart';
 import 'cinema_world_page.dart';
+import 'creation_world_page.dart';
 import 'dark_core_page.dart';
 import 'family_world_page.dart';
 import 'game_world_planet_page.dart';
@@ -98,7 +99,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
         _push(CinemaWorldPage(title: 'CINEMA-WORLD', description: world.description));
         return;
       case GalaxyWorldKind.creation:
-        _push(BasicSectionPage(title: 'CREATION-WORLD', description: world.description));
+        _push(const CreationWorldPage());
         return;
       case GalaxyWorldKind.archive:
         _push(BasicSectionPage(title: 'ARCHIVE-WORLD', description: world.description));
