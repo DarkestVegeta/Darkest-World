@@ -54,14 +54,14 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage> {
             Text('TERRITORIES', style: TextStyle(fontSize: 8, letterSpacing: 2.8, color: Colors.white.withValues(alpha: .28))),
           ]))),
           Center(child: SizedBox(width: diameter, height: diameter, child: Stack(clipBehavior: Clip.none, children: [
-            Positioned.fill(child: CustomPaint(painter: _GamePlanetPainter(diameter))),
+            Positioned.fill(child: CustomPaint(painter: _GamePlanetPainter(diameter, selected, hovered))),
             for (var i = 0; i < territories.length; i++)
               _TerritoryButton(
                 data: territories[i], index: i, hovered: hovered == i, muted: selected != null && selected != i, diameter: diameter,
                 onEnter: () => setState(() => hovered = i), onExit: () => setState(() => hovered = null),
                 onTap: () => setState(() => selected = selected == i ? null : i),
               ),
-            Center(child: IgnorePointer(child: AnimatedOpacity(duration: const Duration(milliseconds: 240), opacity: selected == null ? 1 : .35, child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Center(child: IgnorePointer(child: AnimatedOpacity(duration: const Duration(milliseconds: 240), opacity: selected == null ? 1 : .28, child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('GAME', style: TextStyle(fontSize: compact ? 15 : 20, letterSpacing: 7, color: Colors.white.withValues(alpha: .70))),
               const SizedBox(height: 5),
               Text('WORLD', style: TextStyle(fontSize: compact ? 8 : 10, letterSpacing: 5, color: Colors.white.withValues(alpha: .28))),
@@ -91,9 +91,9 @@ class _TerritoryButton extends StatelessWidget {
   final VoidCallback onEnter, onExit, onTap;
   const _TerritoryButton({required this.data, required this.index, required this.hovered, required this.muted, required this.diameter, required this.onEnter, required this.onExit, required this.onTap});
   @override Widget build(BuildContext context) {
-    final points = [Offset(diameter*.30,diameter*.27), Offset(diameter*.70,diameter*.27), Offset(diameter*.28,diameter*.70), Offset(diameter*.72,diameter*.69)];
-    final p = points[index]; final w = hovered ? 145.0 : 118.0;
-    return Positioned(left:p.dx-w/2,top:p.dy-42,child: AnimatedOpacity(duration: const Duration(milliseconds: 220), opacity: muted ? .22 : 1, child: MouseRegion(cursor:SystemMouseCursors.click,onEnter:(_)=>onEnter(),onExit:(_)=>onExit(),child:GestureDetector(onTap:onTap,child:AnimatedContainer(duration:const Duration(milliseconds:220),width:w,height:84,decoration:BoxDecoration(color:Colors.black.withValues(alpha:hovered?.52:.30),borderRadius:BorderRadius.circular(50),border:Border.all(color:Color(data.accent).withValues(alpha:hovered?.48:.15)),boxShadow:hovered?[BoxShadow(color:Color(data.accent).withValues(alpha:.20),blurRadius:26)]:null),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Text(data.name,style:TextStyle(fontSize:hovered?11:9,letterSpacing:2.8,color:Colors.white.withValues(alpha:hovered?.90:.58))),if (hovered) ...[const SizedBox(height:5),Text('SELECT TERRITORY',style:TextStyle(fontSize:6,letterSpacing:1.8,color:Colors.white.withValues(alpha:.34)))] ]))))));
+    final points = [Offset(diameter*.29,diameter*.30), Offset(diameter*.70,diameter*.30), Offset(diameter*.30,diameter*.69), Offset(diameter*.70,diameter*.69)];
+    final p = points[index];
+    return Positioned(left:p.dx-78, top:p.dy-44, width:156, height:88, child: AnimatedOpacity(duration: const Duration(milliseconds: 220), opacity: muted ? .18 : 1, child: MouseRegion(cursor:SystemMouseCursors.click,onEnter:(_)=>onEnter(),onExit:(_)=>onExit(),child:GestureDetector(onTap:onTap,child:Center(child: AnimatedDefaultTextStyle(duration:const Duration(milliseconds:220), style:TextStyle(fontSize:hovered?11:9,letterSpacing:2.8,fontWeight:FontWeight.w500,color:Colors.white.withValues(alpha:hovered?.92:.66),shadows:hovered?[Shadow(color:Color(data.accent).withValues(alpha:.55),blurRadius:18)]:null),child:Text(data.name)))))));
   }
 }
 
@@ -106,8 +106,62 @@ class _GameSpacePainter extends CustomPainter {
 }
 
 class _GamePlanetPainter extends CustomPainter {
-  final double diameter; const _GamePlanetPainter(this.diameter);
-  @override void paint(Canvas c,Size s){final o=s.center;final r=diameter*.49;final planet=Rect.fromCircle(center:o,radius:r);c.drawCircle(o,r*1.04,Paint()..shader=RadialGradient(colors:[const Color(0xFF6679A5).withValues(alpha:.12),Colors.transparent],stops:const[.18,1]).createShader(Rect.fromCircle(center:o,radius:r*1.08)));c.drawCircle(o,r,Paint()..shader=const RadialGradient(center:Alignment(-.34,-.38),radius:1.05,colors:[Color(0xFF26364B),Color(0xFF172538),Color(0xFF070D16)],stops:[0,.55,1]).createShader(planet));c.save();c.clipPath(Path()..addOval(planet));final q=math.Random(9121);final colors=[const Color(0xFF7167A3),const Color(0xFF47758A),const Color(0xFF6C6B83),const Color(0xFF4C786E)];for(var i=0;i<38;i++){final a=q.nextDouble()*math.pi*2,d=math.sqrt(q.nextDouble())*r*.72,at=o+Offset(math.cos(a)*d,math.sin(a)*d),rx=r*(.025+q.nextDouble()*.13),ry=r*(.018+q.nextDouble()*.075),rot=q.nextDouble()*math.pi;c.drawPath(_blob(at,rx,ry,rot,q),Paint()..color=colors[i%colors.length].withValues(alpha:.10+q.nextDouble()*.12));}for(var i=0;i<90;i++){final a=q.nextDouble()*math.pi*2,d=math.sqrt(q.nextDouble())*r*.88,at=o+Offset(math.cos(a)*d,math.sin(a)*d);final rr=r*(.002+q.nextDouble()*.015);c.drawCircle(at,rr,Paint()..color=Colors.white.withValues(alpha:.008+q.nextDouble()*.018));}c.drawOval(Rect.fromCenter(center:o+Offset(-r*.18,-r*.05),width:r*1.55,height:r*.25),Paint()..color=Colors.white.withValues(alpha:.018));c.drawCircle(o+Offset(r*.38,r*.08),r*.82,Paint()..shader=RadialGradient(colors:[Colors.transparent,const Color(0xFF000000).withValues(alpha:.30)]).createShader(Rect.fromCircle(center:o+Offset(r*.38,r*.08),radius:r*.82)));c.restore();c.drawArc(planet,math.pi*1.08,math.pi*.78,false,Paint()..style=PaintingStyle.stroke..strokeWidth=math.max(1,r*.008)..color=Colors.white.withValues(alpha:.08));}
-  Path _blob(Offset o,double rx,double ry,double rot,math.Random q){final p=Path(),co=math.cos(rot),si=math.sin(rot);for(var i=0;i<=18;i++){final a=math.pi*2*i/18,w=.55+q.nextDouble()*.9,x=math.cos(a)*rx*w,y=math.sin(a)*ry*w,px=o.dx+x*co-y*si,py=o.dy+x*si+y*co;if(i==0)p.moveTo(px,py);else p.lineTo(px,py);}p.close();return p;}
-  @override bool shouldRepaint(covariant _GamePlanetPainter old)=>false;
+  final double diameter; final int? selected, hovered;
+  const _GamePlanetPainter(this.diameter, this.selected, this.hovered);
+
+  @override
+  void paint(Canvas c,Size s){
+    final o=s.center; final r=diameter*.49; final planet=Rect.fromCircle(center:o,radius:r);
+    c.drawCircle(o,r*1.04,Paint()..shader=RadialGradient(colors:[const Color(0xFF6679A5).withValues(alpha:.12),Colors.transparent],stops:const[.18,1]).createShader(Rect.fromCircle(center:o,radius:r*1.08)));
+    c.drawCircle(o,r,Paint()..shader=const RadialGradient(center:Alignment(-.34,-.38),radius:1.05,colors:[Color(0xFF26364B),Color(0xFF172538),Color(0xFF070D16)],stops:[0,.55,1]).createShader(planet));
+    c.save(); c.clipPath(Path()..addOval(planet));
+    _drawTerritories(c,o,r);
+    final q=math.Random(9121);
+    for(var i=0;i<65;i++){final a=q.nextDouble()*math.pi*2,d=math.sqrt(q.nextDouble())*r*.91,at=o+Offset(math.cos(a)*d,math.sin(a)*d);final rr=r*(.0015+q.nextDouble()*.009);c.drawCircle(at,rr,Paint()..color=Colors.white.withValues(alpha:.008+q.nextDouble()*.018));}
+    c.drawOval(Rect.fromCenter(center:o+Offset(-r*.18,-r*.05),width:r*1.55,height:r*.25),Paint()..color=Colors.white.withValues(alpha:.018));
+    c.drawCircle(o+Offset(r*.38,r*.08),r*.82,Paint()..shader=RadialGradient(colors:[Colors.transparent,const Color(0xFF000000).withValues(alpha:.34)]).createShader(Rect.fromCircle(center:o+Offset(r*.38,r*.08),radius:r*.82)));
+    c.restore();
+    c.drawArc(planet,math.pi*1.08,math.pi*.78,false,Paint()..style=PaintingStyle.stroke..strokeWidth=math.max(1,r*.008)..color=Colors.white.withValues(alpha:.08));
+  }
+
+  void _drawTerritories(Canvas c, Offset o, double r) {
+    final regions = <_Region>[
+      _Region(0, Offset(-.31,-.25), .34, .25, -.28, 0xFF8B73D6),
+      _Region(1, Offset(.31,-.24), .36, .23, .18, 0xFF4D82C4),
+      _Region(2, Offset(-.30,.27), .35, .28, .24, 0xFF756A9E),
+      _Region(3, Offset(.29,.27), .34, .28, -.22, 0xFF4F8A86),
+    ];
+    for(final region in regions){
+      final isSelected=selected==region.index, isHovered=hovered==region.index;
+      final path=_regionPath(o,r,region);
+      final alpha=selected==null ? (isHovered?.16: .0) : (isSelected ? .25 : .025);
+      c.drawPath(path,Paint()..color=Color(region.color).withValues(alpha:alpha));
+      if(selected==null || isSelected || isHovered){
+        c.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth:isSelected||isHovered?2.0:1.0..color=Color(region.color).withValues(alpha:isSelected?.62:isHovered?.48:.20));
+      }
+      if(isSelected){
+        c.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=7..color=Color(region.color).withValues(alpha:.10)..maskFilter=const MaskFilter.blur(BlurStyle.normal,9));
+      }
+    }
+  }
+
+  Path _regionPath(Offset o,double r,_Region region){
+    final cx=o.dx+region.center.dx*r, cy=o.dy+region.center.dy*r, rx=region.rx*r, ry=region.ry*r, rot=region.rotation;
+    final p=Path(); final co=math.cos(rot),si=math.sin(rot);
+    for(var i=0;i<=24;i++){
+      final a=math.pi*2*i/24;
+      final wobble=1+.10*math.sin(a*3+region.index)+.07*math.cos(a*5-region.index);
+      final x=math.cos(a)*rx*wobble, y=math.sin(a)*ry*wobble;
+      final px=cx+x*co-y*si, py=cy+x*si+y*co;
+      if(i==0)p.moveTo(px,py);else p.lineTo(px,py);
+    }
+    p.close(); return p;
+  }
+
+  @override bool shouldRepaint(covariant _GamePlanetPainter old)=>old.selected!=selected||old.hovered!=hovered;
+}
+
+class _Region {
+  final int index,color; final Offset center; final double rx,ry,rotation;
+  const _Region(this.index,this.center,this.rx,this.ry,this.rotation,this.color);
 }
