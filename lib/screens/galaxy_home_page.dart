@@ -4,6 +4,7 @@ import '../widgets/darkest_world_universe.dart';
 import 'archive_world_page.dart';
 import 'basic_section_page.dart';
 import 'cinema_world_page.dart';
+import 'coming_soon_world_page.dart';
 import 'creation_world_page.dart';
 import 'dark_core_page.dart';
 import 'family_world_page.dart';
@@ -53,32 +54,21 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   List<GalaxyWorld> _mapWorlds(List<WorldSection> source) => _fallback.map((fallback) {
         final matches = source.where((s) => _matches(s, fallback));
         final section = matches.isEmpty ? null : matches.first;
-        return section == null
-            ? fallback
-            : GalaxyWorld(fallback.title, section.description, fallback.kind);
+        return section == null ? fallback : GalaxyWorld(fallback.title, section.description, fallback.kind);
       }).toList();
 
   bool _matches(WorldSection section, GalaxyWorld world) {
     final text = '${section.name} ${section.slug}'.toLowerCase();
     switch (world.kind) {
-      case GalaxyWorldKind.vegeta:
-        return text.contains('vegeta');
-      case GalaxyWorldKind.game:
-        return text.contains('game');
-      case GalaxyWorldKind.music:
-        return text.contains('music');
-      case GalaxyWorldKind.identity:
-        return text.contains('identity');
-      case GalaxyWorldKind.family:
-        return text.contains('family');
-      case GalaxyWorldKind.cinema:
-        return text.contains('cinema');
-      case GalaxyWorldKind.creation:
-        return text.contains('creation');
-      case GalaxyWorldKind.archive:
-        return text.contains('archive');
-      case GalaxyWorldKind.comingSoon:
-        return text.contains('coming');
+      case GalaxyWorldKind.vegeta: return text.contains('vegeta');
+      case GalaxyWorldKind.game: return text.contains('game');
+      case GalaxyWorldKind.music: return text.contains('music');
+      case GalaxyWorldKind.identity: return text.contains('identity');
+      case GalaxyWorldKind.family: return text.contains('family');
+      case GalaxyWorldKind.cinema: return text.contains('cinema');
+      case GalaxyWorldKind.creation: return text.contains('creation');
+      case GalaxyWorldKind.archive: return text.contains('archive');
+      case GalaxyWorldKind.comingSoon: return text.contains('coming');
     }
   }
 
@@ -106,7 +96,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
         _push(const ArchiveWorldPage());
         return;
       case GalaxyWorldKind.comingSoon:
-        _push(BasicSectionPage(title: 'COMING SOON', description: world.description));
+        _push(const ComingSoonWorldPage());
         return;
       case GalaxyWorldKind.vegeta:
         _push(DarkCorePage(title: 'VEGETA WORLD', description: world.description));
