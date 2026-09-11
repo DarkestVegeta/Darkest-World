@@ -23,15 +23,15 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   late Future<List<WorldSection>> sections = repository.load();
 
   static const _fallback = <GalaxyWorld>[
-    GalaxyWorld('VEGETA', 'The darker heart of DarkestWorld.', GalaxyWorldKind.vegeta),
-    GalaxyWorld('GAME-WORLD', 'Games you have played and what comes next.', GalaxyWorldKind.game),
-    GalaxyWorld('MUSIC-WORLD', 'Music, sound and the worlds they create.', GalaxyWorldKind.music),
-    GalaxyWorld('DARKEST-IDENTITY', 'The identity behind DarkestWorld.', GalaxyWorldKind.identity),
-    GalaxyWorld('DARKESTFAMILY', 'Personas, people and stories.', GalaxyWorldKind.family),
-    GalaxyWorld('CINEMA-WORLD', 'Films and series.', GalaxyWorldKind.cinema),
-    GalaxyWorld('CREATION', 'Art, projects and experiments.', GalaxyWorldKind.creation),
-    GalaxyWorld('ARCHIVE', 'Things worth keeping.', GalaxyWorldKind.archive),
-    GalaxyWorld('COMING SOON', 'What DarkestWorld can become.', GalaxyWorldKind.comingSoon),
+    GalaxyWorld(kind: GalaxyWorldKind.vegeta, title: 'VEGETA', description: 'The darker heart of DarkestWorld.'),
+    GalaxyWorld(kind: GalaxyWorldKind.game, title: 'GAME-WORLD', description: 'Games you have played and what comes next.'),
+    GalaxyWorld(kind: GalaxyWorldKind.music, title: 'MUSIC-WORLD', description: 'Music, sound and the worlds they create.'),
+    GalaxyWorld(kind: GalaxyWorldKind.identity, title: 'DARKEST-IDENTITY', description: 'The identity behind DarkestWorld.'),
+    GalaxyWorld(kind: GalaxyWorldKind.family, title: 'DARKESTFAMILY', description: 'Personas, people and stories.'),
+    GalaxyWorld(kind: GalaxyWorldKind.cinema, title: 'CINEMA-WORLD', description: 'Films and series.'),
+    GalaxyWorld(kind: GalaxyWorldKind.creation, title: 'CREATION', description: 'Art, projects and experiments.'),
+    GalaxyWorld(kind: GalaxyWorldKind.archive, title: 'ARCHIVE', description: 'Things worth keeping.'),
+    GalaxyWorld(kind: GalaxyWorldKind.comingSoon, title: 'COMING SOON', description: 'What DarkestWorld can become.'),
   ];
 
   @override
@@ -53,7 +53,9 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   List<GalaxyWorld> _mapWorlds(List<WorldSection> source) => _fallback.map((fallback) {
         final matches = source.where((s) => _matches(s, fallback));
         final section = matches.isEmpty ? null : matches.first;
-        return section == null ? fallback : GalaxyWorld(fallback.title, section.description, fallback.kind);
+        return section == null
+            ? fallback
+            : GalaxyWorld(kind: fallback.kind, title: fallback.title, description: section.description);
       }).toList();
 
   bool _matches(WorldSection section, GalaxyWorld world) {
