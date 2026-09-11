@@ -14,9 +14,9 @@ void main() {
       ),
     );
 
-    expect(find.text('Identity World'), findsNWidgets(2));
+    expect(find.text('Identity World'), findsOneWidget);
     expect(find.text('Identity'), findsOneWidget);
-    expect(find.textContaining('personal collection'), findsOneWidget);
+    expect(find.textContaining('personal collection'), findsNothing);
   });
 
   testWidgets('Dark Core construction layer renders its core context', (tester) async {
@@ -29,8 +29,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Dark Core'), findsNWidgets(2));
-    expect(find.text('Core'), findsOneWidget);
-    expect(find.textContaining('Core systems and lore'), findsOneWidget);
+    expect(find.text('Dark Core'), findsOneWidget);
+    expect(find.text('Core'), findsNothing);
+    expect(find.textContaining('Core systems and lore'), findsNothing);
   });
 }
