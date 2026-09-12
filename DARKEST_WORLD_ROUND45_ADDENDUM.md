@@ -15,3 +15,11 @@
 - Repaired the Game Library `Container` constructor to use named arguments.
 - Kept procedural rendering and platform/world navigation intact.
 - This round is committed together with the code fixes so CI tests the exact logged state.
+
+## GO 29 — Game World planet syntax repair
+- CI reached Flutter Analyze and isolated one remaining parser error in `lib/screens/game_world_planet_page.dart`.
+- Rebuilt the entire screen with explicit Flutter widget nesting instead of compressed one-line syntax.
+- Preserved the four-region Game World structure: Nintendo, Sega, PlayStation and Xbox.
+- Preserved region selection, ENTER navigation, procedural relief and animated space background.
+- Corrected the `Size.center(Offset.zero)` usage in the relief painter.
+- CI must again pass Analyze → Test → Web Build → Pages Deploy before the site is considered viewable.

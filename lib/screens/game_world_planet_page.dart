@@ -2,20 +2,353 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'game_platform_page.dart';
 
-class GameWorldPlanetPage extends StatefulWidget { const GameWorldPlanetPage({super.key}); @override State<GameWorldPlanetPage> createState()=>_GameWorldPlanetPageState(); }
-class _TerritoryData{final String name,description;final List<GamePlatformGroup> groups;const _TerritoryData(this.name,this.description,this.groups);}
-class _GameWorldPlanetPageState extends State<GameWorldPlanetPage> with SingleTickerProviderStateMixin{
- int? selected;late final AnimationController clock=AnimationController(vsync:this,duration:const Duration(seconds:30))..repeat();
- final territories=const <_TerritoryData>[
-  _TerritoryData('NINTENDO','Nintendo generations.',[GamePlatformGroup('HOME CONSOLES','Home generations.',[GamePlatform('NES',[18]),GamePlatform('SNES',[19]),GamePlatform('N64',[4]),GamePlatform('GameCube',[21]),GamePlatform('Wii',[5]),GamePlatform('Wii U',[41]),GamePlatform('Switch',[130])]),GamePlatformGroup('HANDHELD','Portable generations.',[GamePlatform('Game Boy',[33]),GamePlatform('Game Boy Color',[22]),GamePlatform('Game Boy Advance',[24]),GamePlatform('DS',[20]),GamePlatform('3DS',[37])])]),
-  _TerritoryData('SEGA','Sega generations.',[GamePlatformGroup('CONSOLES','Console generations.',[GamePlatform('Master System',[64]),GamePlatform('Mega Drive',[29]),GamePlatform('Saturn',[32]),GamePlatform('Dreamcast',[23])]),GamePlatformGroup('PORTABLE','Portable generation.',[GamePlatform('Game Gear',[35])])]),
-  _TerritoryData('PLAYSTATION','PlayStation generations.',[GamePlatformGroup('GENERATIONS','Main generations.',[GamePlatform('PlayStation',[7]),GamePlatform('PlayStation 2',[8]),GamePlatform('PlayStation 3',[9]),GamePlatform('PlayStation 4',[48]),GamePlatform('PlayStation 5',[167])])]),
-  _TerritoryData('XBOX','Xbox generations.',[GamePlatformGroup('GENERATIONS','Main generations.',[GamePlatform('Xbox',[11]),GamePlatform('Xbox 360',[12]),GamePlatform('Xbox One',[49]),GamePlatform('Xbox Series',[169])])]),
- ];
- @override void dispose(){clock.dispose();super.dispose();}
- void enter(int i){Navigator.of(context).push(MaterialPageRoute(builder:(_)=>GamePlatformPage(territory:territories[i].name,groups:territories[i].groups)));}
- @override Widget build(BuildContext context)=>Scaffold(backgroundColor:const Color(0xFF010207),body:AnimatedBuilder(animation:clock,builder:(_,__)=>LayoutBuilder(builder:(context,box){final d=math.min(box.maxWidth*.82,box.maxHeight*.78);return Stack(children:[Positioned.fill(child:CustomPaint(painter:_SpacePainter(clock.value))),SafeArea(child:Padding(padding:const EdgeInsets.all(24),child:Row(children:[IconButton(onPressed:()=>Navigator.pop(context),icon:const Icon(Icons.arrow_back_ios_new,size:16)),const Text('GAME-WORLD',style:TextStyle(fontSize:15,letterSpacing:4)),const Spacer(),const Text('ONE WORLD  •  FOUR REGIONS',style:TextStyle(fontSize:7,letterSpacing:2,color:Colors.white24))]))),Center(child:SizedBox(width:d,height:d,child:Stack(children:[for(var i=0;i<territories.length;i++)_Region(territory:territories[i],index:i,total:territories.length,selected:selected==i,onTap:()=>setState(()=>selected=selected==i?null:i),size:d)]))),if(selected!=null)Positioned(left:20,right:20,bottom:24,child:Container(padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:const Color(0xEE080812),borderRadius:BorderRadius.circular(16),border:Border.all(color:const Color(0x557F70B0))),child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(territories[selected!].name,style:const TextStyle(fontSize:14,letterSpacing:3)),const SizedBox(height:4),Text(territories[selected!].description,style:const TextStyle(fontSize:8,color:Colors.white38))])),TextButton(onPressed:()=>setState(()=>selected=null),child:const Text('CLOSE')),FilledButton(onPressed:()=>enter(selected!),child:const Text('ENTER'))])))]);}));
+class GameWorldPlanetPage extends StatefulWidget {
+  const GameWorldPlanetPage({super.key});
+  @override
+  State<GameWorldPlanetPage> createState() => _GameWorldPlanetPageState();
 }
-class _Region extends StatelessWidget{final _TerritoryData territory;final int index,total;final bool selected;final VoidCallback onTap;final double size;const _Region({required this.territory,required this.index,required this.total,required this.selected,required this.onTap,required this.size});@override Widget build(BuildContext context){final a=-math.pi/2+index*math.pi*2/total;final c=size/2;final p=Offset(c+math.cos(a)*size*.28,c+math.sin(a)*size*.28);final s=selected?size*.20:size*.15;return Positioned(left:p.dx-s/2,top:p.dy-s/2,child:GestureDetector(onTap:onTap,child:Column(children:[Container(width:s,height:s,decoration:BoxDecoration(shape:BoxShape.circle,gradient:const RadialGradient(colors:[Color(0xFF8A80A3),Color(0xFF272238),Color(0xFF05050A)]),border:Border.all(color:Colors.white.withValues(alpha:selected ? .3 : .1)),boxShadow:selected?const[BoxShadow(color:Color(0x557F70B0),blurRadius:30)]:const[]),child:CustomPaint(painter:_RegionRelief(index))),const SizedBox(height:6),Text(territory.name,style:TextStyle(fontSize:selected?10:7,letterSpacing:2,color:Colors.white.withValues(alpha:selected ? .9 : .45)))])));}}
-class _RegionRelief extends CustomPainter{final int seed;const _RegionRelief(this.seed);@override void paint(Canvas c,Size s){final r=math.Random(seed+50);final p=Paint()..style=PaintingStyle.stroke..strokeWidth=.7..color=const Color(0x557F7394);for(var i=0;i<5;i++)c.drawOval(Rect.fromCenter(center:s.center(Offset.zero),width:s.width*(.35+i*.12),height:s.height*(.18+i*.10)),p);for(var i=0;i<12;i++)c.drawCircle(Offset(r.nextDouble()*s.width,r.nextDouble()*s.height),.5,p);}@override bool shouldRepaint(covariant _RegionRelief old)=>false;}
-class _SpacePainter extends CustomPainter{final double t;const _SpacePainter(this.t);@override void paint(Canvas c,Size s){final r=math.Random(412);c.drawRect(Offset.zero&s,Paint()..shader=const RadialGradient(colors:[Color(0xFF19152B),Color(0xFF07070F),Color(0xFF010106)]).createShader(Offset.zero&s));for(var i=0;i<260;i++)c.drawCircle(Offset((r.nextDouble()*s.width+t*s.width*.02)%s.width,r.nextDouble()*s.height),.2+r.nextDouble()*.6,Paint()..color=Colors.white.withValues(alpha:.02));}@override bool shouldRepaint(covariant _SpacePainter old)=>old.t!=t;}
+
+class _TerritoryData {
+  final String name, description;
+  final List<GamePlatformGroup> groups;
+  const _TerritoryData(this.name, this.description, this.groups);
+}
+
+class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
+    with SingleTickerProviderStateMixin {
+  int? selected;
+  late final AnimationController clock = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 30),
+  )..repeat();
+
+  final territories = const <_TerritoryData>[
+    _TerritoryData('NINTENDO', 'Nintendo generations.', [
+      GamePlatformGroup('HOME CONSOLES', 'Home generations.', [
+        GamePlatform('NES', [18]),
+        GamePlatform('SNES', [19]),
+        GamePlatform('N64', [4]),
+        GamePlatform('GameCube', [21]),
+        GamePlatform('Wii', [5]),
+        GamePlatform('Wii U', [41]),
+        GamePlatform('Switch', [130]),
+      ]),
+      GamePlatformGroup('HANDHELD', 'Portable generations.', [
+        GamePlatform('Game Boy', [33]),
+        GamePlatform('Game Boy Color', [22]),
+        GamePlatform('Game Boy Advance', [24]),
+        GamePlatform('DS', [20]),
+        GamePlatform('3DS', [37]),
+      ]),
+    ]),
+    _TerritoryData('SEGA', 'Sega generations.', [
+      GamePlatformGroup('CONSOLES', 'Console generations.', [
+        GamePlatform('Master System', [64]),
+        GamePlatform('Mega Drive', [29]),
+        GamePlatform('Saturn', [32]),
+        GamePlatform('Dreamcast', [23]),
+      ]),
+      GamePlatformGroup('PORTABLE', 'Portable generation.', [
+        GamePlatform('Game Gear', [35]),
+      ]),
+    ]),
+    _TerritoryData('PLAYSTATION', 'PlayStation generations.', [
+      GamePlatformGroup('GENERATIONS', 'Main generations.', [
+        GamePlatform('PlayStation', [7]),
+        GamePlatform('PlayStation 2', [8]),
+        GamePlatform('PlayStation 3', [9]),
+        GamePlatform('PlayStation 4', [48]),
+        GamePlatform('PlayStation 5', [167]),
+      ]),
+    ]),
+    _TerritoryData('XBOX', 'Xbox generations.', [
+      GamePlatformGroup('GENERATIONS', 'Main generations.', [
+        GamePlatform('Xbox', [11]),
+        GamePlatform('Xbox 360', [12]),
+        GamePlatform('Xbox One', [49]),
+        GamePlatform('Xbox Series', [169]),
+      ]),
+    ]),
+  ];
+
+  @override
+  void dispose() {
+    clock.dispose();
+    super.dispose();
+  }
+
+  void enter(int index) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GamePlatformPage(
+          territory: territories[index].name,
+          groups: territories[index].groups,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF010207),
+      body: AnimatedBuilder(
+        animation: clock,
+        builder: (_, __) {
+          return LayoutBuilder(
+            builder: (context, box) {
+              final d = math.min(box.maxWidth * .82, box.maxHeight * .78);
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(painter: _SpacePainter(clock.value)),
+                  ),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.arrow_back_ios_new, size: 16),
+                          ),
+                          const Text(
+                            'GAME-WORLD',
+                            style: TextStyle(fontSize: 15, letterSpacing: 4),
+                          ),
+                          const Spacer(),
+                          const Text(
+                            'ONE WORLD  •  FOUR REGIONS',
+                            style: TextStyle(
+                              fontSize: 7,
+                              letterSpacing: 2,
+                              color: Colors.white24,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Center(
+                    child: SizedBox(
+                      width: d,
+                      height: d,
+                      child: Stack(
+                        children: [
+                          for (var i = 0; i < territories.length; i++)
+                            _Region(
+                              territory: territories[i],
+                              index: i,
+                              total: territories.length,
+                              selected: selected == i,
+                              onTap: () => setState(
+                                () => selected = selected == i ? null : i,
+                              ),
+                              size: d,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (selected != null)
+                    Positioned(
+                      left: 20,
+                      right: 20,
+                      bottom: 24,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xEE080812),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0x557F70B0),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    territories[selected!].name,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      letterSpacing: 3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    territories[selected!].description,
+                                    style: const TextStyle(
+                                      fontSize: 8,
+                                      color: Colors.white38,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => setState(() => selected = null),
+                              child: const Text('CLOSE'),
+                            ),
+                            FilledButton(
+                              onPressed: () => enter(selected!),
+                              child: const Text('ENTER'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _Region extends StatelessWidget {
+  final _TerritoryData territory;
+  final int index, total;
+  final bool selected;
+  final VoidCallback onTap;
+  final double size;
+
+  const _Region({
+    required this.territory,
+    required this.index,
+    required this.total,
+    required this.selected,
+    required this.onTap,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final a = -math.pi / 2 + index * math.pi * 2 / total;
+    final c = size / 2;
+    final p = Offset(
+      c + math.cos(a) * size * .28,
+      c + math.sin(a) * size * .28,
+    );
+    final s = selected ? size * .20 : size * .15;
+
+    return Positioned(
+      left: p.dx - s / 2,
+      top: p.dy - s / 2,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          children: [
+            Container(
+              width: s,
+              height: s,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const RadialGradient(
+                  colors: [
+                    Color(0xFF8A80A3),
+                    Color(0xFF272238),
+                    Color(0xFF05050A),
+                  ],
+                ),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: selected ? .3 : .1),
+                ),
+                boxShadow: selected
+                    ? const [
+                        BoxShadow(
+                          color: Color(0x557F70B0),
+                          blurRadius: 30,
+                        ),
+                      ]
+                    : const [],
+              ),
+              child: CustomPaint(painter: _RegionRelief(index)),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              territory.name,
+              style: TextStyle(
+                fontSize: selected ? 10 : 7,
+                letterSpacing: 2,
+                color: Colors.white.withValues(alpha: selected ? .9 : .45),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RegionRelief extends CustomPainter {
+  final int seed;
+  const _RegionRelief(this.seed);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(seed + 50);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = .7
+      ..color = const Color(0x557F7394);
+    for (var i = 0; i < 5; i++) {
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: size.center(Offset.zero),
+          width: size.width * (.35 + i * .12),
+          height: size.height * (.18 + i * .10),
+        ),
+        paint,
+      );
+    }
+    for (var i = 0; i < 12; i++) {
+      canvas.drawCircle(
+        Offset(random.nextDouble() * size.width, random.nextDouble() * size.height),
+        .5,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RegionRelief old) => false;
+}
+
+class _SpacePainter extends CustomPainter {
+  final double t;
+  const _SpacePainter(this.t);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(412);
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = const RadialGradient(
+          colors: [
+            Color(0xFF19152B),
+            Color(0xFF07070F),
+            Color(0xFF010106),
+          ],
+        ).createShader(Offset.zero & size),
+    );
+    for (var i = 0; i < 260; i++) {
+      canvas.drawCircle(
+        Offset(
+          (random.nextDouble() * size.width + t * size.width * .02) % size.width,
+          random.nextDouble() * size.height,
+        ),
+        .2 + random.nextDouble() * .6,
+        Paint()..color = Colors.white.withValues(alpha: .02),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpacePainter old) => old.t != t;
+}
