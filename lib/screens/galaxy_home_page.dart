@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/world_sections_repository.dart';
 import '../widgets/darkest_world_universe.dart';
+import '../widgets/darkest_world_universe_v2.dart';
 import 'archive_world_page.dart';
 import 'cinema_world_page.dart';
 import 'coming_soon_world_page.dart';
@@ -40,12 +41,10 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
       backgroundColor: const Color(0xFF010105),
       body: FutureBuilder<List<WorldSection>>(
         future: sections,
-        builder: (context, snapshot) {
-          return DarkestWorldUniverse(
-            worlds: _mapWorlds(snapshot.data ?? const []),
-            onWorldTap: _openWorld,
-          );
-        },
+        builder: (context, snapshot) => DarkestWorldUniverseV2(
+          worlds: _mapWorlds(snapshot.data ?? const []),
+          onWorldTap: _openWorld,
+        ),
       ),
     );
   }
