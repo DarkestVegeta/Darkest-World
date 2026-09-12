@@ -99,6 +99,27 @@ class _GamePlanetPainter extends CustomPainter {
       }
       final contour=_territory(projectedCenter+Offset(-side*r*.018,depth*r*.012),projectedW*.96,projectedH*.92,rotation,1200+i*31);
       canvas.drawPath(contour,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0042..color=Colors.black.withValues(alpha:selected==i?.16:.045));
+
+      // GO 13: wrap terrain bands around the sphere so each territory reads as surface, not a flat island.
+      for(var band=0;band<5;band++){
+        final t=(band-2)*.17;
+        final bandY=projectedCenter.dy+t*projectedH;
+        final curvature=(1-math.pow(t.abs(),1.65).toDouble())*.16;
+        final left=projectedCenter.dx-projectedW*.43;
+        final right=projectedCenter.dx+projectedW*.43;
+        final bandPath=Path()..moveTo(left,bandY);
+        for(var step=1;step<=12;step++){
+          final u=step/12;
+          final x=left+(right-left)*u;
+          final y=bandY-math.sin(u*math.pi)*projectedH*curvature+math.sin(u*math.pi*2+band+i)*projectedH*.018;
+          bandPath.lineTo(x,y);
+        }
+        canvas.drawPath(bandPath,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0035..color=Colors.white.withValues(alpha:selected==i?.055:.018));
+      }
+
+      // A darker lower rim gives the landmass a shallow elevation against the globe.
+      final lower=_territory(projectedCenter+Offset(r*.004,r*.016),projectedW*.985,projectedH*.985,rotation,1600+i*23);
+      canvas.drawPath(lower,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.007..color=Colors.black.withValues(alpha:selected==i?.22:.055));
     }
     for(var i=0;i<9;i++){
       final t=-.82+i*.205;
