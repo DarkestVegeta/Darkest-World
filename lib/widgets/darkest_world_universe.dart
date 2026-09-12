@@ -2,64 +2,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 enum GalaxyWorldKind { vegeta, game, identity, cinema, creation, music, family, archive, comingSoon }
-
-class GalaxyWorld {
-  final GalaxyWorldKind kind;
-  final String title;
-  final String description;
-  const GalaxyWorld({required this.kind, required this.title, required this.description});
+class GalaxyWorld { final GalaxyWorldKind kind; final String title; final String description; const GalaxyWorld({required this.kind,required this.title,required this.description}); }
+class DarkestWorldUniverse extends StatefulWidget { final List<GalaxyWorld> worlds; final ValueChanged<GalaxyWorld>? onWorldTap; const DarkestWorldUniverse({super.key,required this.worlds,this.onWorldTap}); @override State<DarkestWorldUniverse> createState()=>_DarkestWorldUniverseState(); }
+class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with SingleTickerProviderStateMixin{
+ GalaxyWorldKind? selected;late final AnimationController clock=AnimationController(vsync:this,duration:const Duration(seconds:32))..repeat();@override void dispose(){clock.dispose();super.dispose();}
+ @override Widget build(BuildContext context){final compact=MediaQuery.sizeOf(context).width<760;GalaxyWorld? current;for(final world in widget.worlds){if(world.kind==selected){current=world;break;}}return Scaffold(backgroundColor:const Color(0xFF010106),body:AnimatedBuilder(animation:clock,builder:(_,__)=>Stack(children:[Positioned.fill(child:CustomPaint(painter:_UniversePainter(t:clock.value,worlds:widget.worlds.length))),Positioned(left:compact?18:34,top:compact?18:28,child:const Text('DARKESTWORLD',style:TextStyle(fontSize:14,letterSpacing:5,fontWeight:FontWeight.w300))),Center(child:SizedBox(width:compact?360:900,height:compact?520:700,child:Stack(children:[for(var i=0;i<widget.worlds.length;i++)_Planet(world:widget.worlds[i],index:i,total:widget.worlds.length,t:clock.value,selected:selected==widget.worlds[i].kind,compact:compact,onTap:()=>setState(()=>selected=selected==widget.worlds[i].kind?null:widget.worlds[i].kind))]))),if(current!=null)Positioned(left:compact?14:34,right:compact?14:34,bottom:compact?14:28,child:_Panel(world:current,compact:compact,onClose:()=>setState(()=>selected=null),onEnter:()=>widget.onWorldTap?.call(current!))) ])));}
 }
-
-class DarkestWorldUniverse extends StatefulWidget {
-  final List<GalaxyWorld> worlds;
-  final ValueChanged<GalaxyWorld>? onWorldTap;
-  const DarkestWorldUniverse({super.key, required this.worlds, this.onWorldTap});
-  @override State<DarkestWorldUniverse> createState() => _DarkestWorldUniverseState();
-}
-
-class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with SingleTickerProviderStateMixin {
-  GalaxyWorldKind? selected;
-  late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 32))..repeat();
-  @override void dispose() { clock.dispose(); super.dispose(); }
-  @override Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 760;
-    GalaxyWorld? current;
-    for (final world in widget.worlds) { if (world.kind == selected) { current = world; break; } }
-    return Scaffold(backgroundColor: const Color(0xFF010106), body: AnimatedBuilder(animation: clock, builder: (_, __) => Stack(children: [
-      Positioned.fill(child: CustomPaint(painter: _UniversePainter(t: clock.value, worlds: widget.worlds.length))),
-      Positioned(left: compact ? 18 : 34, top: compact ? 18 : 28, child: const Text('DARKESTWORLD', style: TextStyle(fontSize: 14, letterSpacing: 5, fontWeight: FontWeight.w300))),
-      Center(child: SizedBox(width: compact ? 360 : 900, height: compact ? 520 : 700, child: Stack(children: [
-        for (var i = 0; i < widget.worlds.length; i++) _Planet(world: widget.worlds[i], index: i, total: widget.worlds.length, t: clock.value, selected: selected == widget.worlds[i].kind, compact: compact, onTap: () { setState(() => selected = selected == widget.worlds[i].kind ? null : widget.worlds[i].kind); }),
-      ]))),
-      if (current != null) Positioned(left: compact ? 14 : 34, right: compact ? 14 : 34, bottom: compact ? 14 : 28, child: _Panel(world: current, compact: compact, onClose: () => setState(() => selected = null), onEnter: () => widget.onWorldTap?.call(current!))),
-    ])));
-  }
-}
-
-class _Planet extends StatelessWidget {
-  final GalaxyWorld world; final int index, total; final double t; final bool selected, compact; final VoidCallback onTap;
-  const _Planet({required this.world, required this.index, required this.total, required this.t, required this.selected, required this.compact, required this.onTap});
-  @override Widget build(BuildContext context) {
-    final a = -math.pi / 2 + index * math.pi * 2 / math.max(1, total) + t * .35;
-    final radius = compact ? 145.0 : 270.0;
-    final center = Offset(compact ? 180 : 450, compact ? 260 : 350);
-    final p = Offset(center.dx + math.cos(a) * radius * .72, center.dy + math.sin(a) * radius * .55);
-    final size = selected ? (compact ? 110.0 : 145.0) : (compact ? 78.0 : 108.0);
-    return Positioned(left: p.dx - size / 2, top: p.dy - size / 2, child: GestureDetector(onTap: onTap, child: Column(children: [
-      Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, gradient: const RadialGradient(center: Alignment(-.28, -.3), colors: [Color(0xFF777090), Color(0xFF332E48), Color(0xFF080810)]), border: Border.all(color: Colors.white.withValues(alpha: selected ? .32 : .10)), boxShadow: selected ? const [BoxShadow(color: Color(0x557F70B0), blurRadius: 35)] : const []), child: CustomPaint(painter: _ReliefPainter(index, selected))),
-      const SizedBox(height: 8), Text(world.title, style: TextStyle(fontSize: selected ? 10 : 7, letterSpacing: 2.2, color: Colors.white.withValues(alpha: selected ? .9 : .45))),
-    ])));
-  }
-}
-
-class _Panel extends StatelessWidget {
-  final GalaxyWorld world; final bool compact; final VoidCallback onClose, onEnter;
-  const _Panel({required this.world, required this.compact, required this.onClose, required this.onEnter});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xEE080812), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0x557F70B0))), child: Row(children: [
-    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(world.title.toUpperCase(), style: const TextStyle(fontSize: 14, letterSpacing: 3)), const SizedBox(height: 5), Text(world.description, style: const TextStyle(fontSize: 8, color: Colors.white38))])),
-    if (!compact) TextButton(onPressed: onClose, child: const Text('CLOSE')), FilledButton(onPressed: onEnter, child: const Text('ENTER')),
-  ]));
-}
-
-class _UniversePainter extends CustomPainter { final double t; final int worlds; const _UniversePainter({required this.t, required this.worlds}); @override void paint(Canvas c, Size s) { final r = math.Random(417); final rect = Offset.zero & s; c.drawRect(rect, Paint()..shader = const RadialGradient(center: Alignment(0, -.1), radius: 1.15, colors: [Color(0xFF1A1630), Color(0xFF07070F), Color(0xFF010105)]).createShader(rect)); for (var i = 0; i < 320; i++) { final x = (r.nextDouble() * s.width + t * s.width * .018) % s.width; final y = r.nextDouble() * s.height; c.drawCircle(Offset(x, y), .15 + r.nextDouble() * .65, Paint()..color = Colors.white.withValues(alpha: .012 + r.nextDouble() * .045)); } c.drawOval(Rect.fromCenter(center: s.center, width: s.width * .58, height: s.height * .72), Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0x119A8CC0)); } @override bool shouldRepaint(covariant _UniversePainter old) => old.t != t || old.worlds != worlds; }
-class _ReliefPainter extends CustomPainter { final int seed; final bool active; const _ReliefPainter(this.seed, this.active); @override void paint(Canvas c, Size s) { final r = math.Random(seed + 7); final p = Paint()..style = PaintingStyle.stroke..strokeWidth = .7..color = Colors.white.withValues(alpha: active ? .11 : .045); for (var k = 0; k < 5; k++) { final rect = Rect.fromCenter(center: s.center, width: s.width * (.35 + k * .13), height: s.height * (.18 + k * .11)); c.drawOval(rect, p); } for (var i = 0; i < 18; i++) { c.drawCircle(Offset(r.nextDouble() * s.width, r.nextDouble() * s.height), .4 + r.nextDouble() * 1.2, Paint()..color = Colors.white.withValues(alpha: .025)); } } @override bool shouldRepaint(covariant _ReliefPainter old) => old.seed != seed || old.active != active; }
+class _Planet extends StatelessWidget{final GalaxyWorld world;final int index,total;final double t;final bool selected,compact;final VoidCallback onTap;const _Planet({required this.world,required this.index,required this.total,required this.t,required this.selected,required this.compact,required this.onTap});@override Widget build(BuildContext context){final a=-math.pi/2+index*math.pi*2/math.max(1,total)+t*.35;final radius=compact?145.0:270.0;final center=Offset(compact?180:450,compact?260:350);final p=Offset(center.dx+math.cos(a)*radius*.72,center.dy+math.sin(a)*radius*.55);final size=selected?(compact?110.0:145.0):(compact?78.0:108.0);return Positioned(left:p.dx-size/2,top:p.dy-size/2,child:GestureDetector(onTap:onTap,child:Column(children:[Container(width:size,height:size,decoration:BoxDecoration(shape:BoxShape.circle,gradient:const RadialGradient(center:Alignment(-.28,-.3),colors:[Color(0xFF777090),Color(0xFF332E48),Color(0xFF080810)]),border:Border.all(color:Colors.white.withValues(alpha:selected?.32:.10)),boxShadow:selected?const[BoxShadow(color:Color(0x557F70B0),blurRadius:35)]:const[]),child:CustomPaint(painter:_ReliefPainter(index,selected))),const SizedBox(height:8),Text(world.title,style:TextStyle(fontSize:selected?10:7,letterSpacing:2.2,color:Colors.white.withValues(alpha:selected?.9:.45)))])));}}
+class _Panel extends StatelessWidget{final GalaxyWorld world;final bool compact;final VoidCallback onClose,onEnter;const _Panel({required this.world,required this.compact,required this.onClose,required this.onEnter});@override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:const Color(0xEE080812),borderRadius:BorderRadius.circular(18),border:Border.all(color:const Color(0x557F70B0))),child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(world.title.toUpperCase(),style:const TextStyle(fontSize:14,letterSpacing:3)),const SizedBox(height:5),Text(world.description,style:const TextStyle(fontSize:8,color:Colors.white38))])),if(!compact)TextButton(onPressed:onClose,child:const Text('CLOSE')),FilledButton(onPressed:onEnter,child:const Text('ENTER'))]));}
+class _UniversePainter extends CustomPainter{final double t;final int worlds;const _UniversePainter({required this.t,required this.worlds});@override void paint(Canvas c,Size s){final r=math.Random(417);final rect=Offset.zero&s;c.drawRect(rect,Paint()..shader=const RadialGradient(center:Alignment(0,-.1),radius:1.15,colors:[Color(0xFF1A1630),Color(0xFF07070F),Color(0xFF010105)]).createShader(rect));for(var i=0;i<320;i++){final x=(r.nextDouble()*s.width+t*s.width*.018)%s.width;final y=r.nextDouble()*s.height;c.drawCircle(Offset(x,y),.15+r.nextDouble()*.65,Paint()..color=Colors.white.withValues(alpha:.012+r.nextDouble()*.045));}c.drawOval(Rect.fromCenter(center:s.center(Offset.zero),width:s.width*.58,height:s.height*.72),Paint()..style=PaintingStyle.stroke..strokeWidth=1..color=const Color(0x119A8CC0));}@override bool shouldRepaint(covariant _UniversePainter old)=>old.t!=t||old.worlds!=worlds;}
+class _ReliefPainter extends CustomPainter{final int seed;final bool active;const _ReliefPainter(this.seed,this.active);@override void paint(Canvas c,Size s){final r=math.Random(seed+7);final p=Paint()..style=PaintingStyle.stroke..strokeWidth=.7..color=Colors.white.withValues(alpha:active?.11:.045);for(var k=0;k<5;k++){final rect=Rect.fromCenter(center:s.center(Offset.zero),width:s.width*(.35+k*.13),height:s.height*(.18+k*.11));c.drawOval(rect,p);}for(var i=0;i<18;i++)c.drawCircle(Offset(r.nextDouble()*s.width,r.nextDouble()*s.height),.4+r.nextDouble()*1.2,Paint()..color=Colors.white.withValues(alpha:.025));}@override bool shouldRepaint(covariant _ReliefPainter old)=>old.seed!=seed||old.active!=active;}
