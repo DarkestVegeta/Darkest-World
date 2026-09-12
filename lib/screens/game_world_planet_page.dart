@@ -31,11 +31,11 @@ class _GamePlanetPainter extends CustomPainter{
       final w=r*(i.isEven ? .43 : .40),h=r*(i<2 ? .30 : .34),rot=(i.isEven ? .20 : -.22)+(i<2 ? .06 : -.06);
       final path=_smoothTerritory(tc,w,h,rot,700+i*19);
       canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:active));
-      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=selected==i?2.5:1..color=colors[i].withValues(alpha:selected==i?.82:.18));
+      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=selected==i?2.5:1..color=colors[i].withValues(alpha:selected==i ? .82 : .18));
       for(var q=1;q<=5;q++){
         final scale=1-q*.105;
         final inner=_smoothTerritory(tc+Offset(-r*.009*q,r*.007*q),w*scale,h*scale,rot,700+i*19+q);
-        canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=.58..color=Colors.white.withValues(alpha:selected==i?.10:.024));
+        canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=.58..color=Colors.white.withValues(alpha:selected==i ? .10 : .024));
       }
     }
     for(var i=0;i<9;i++){
