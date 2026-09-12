@@ -54,7 +54,7 @@ class _GalaxyPlanets extends StatelessWidget {
 class _Planet extends StatelessWidget {
   final GalaxyWorld world; final double size; final bool muted; final VoidCallback onTap;
   const _Planet({required this.world,required this.size,required this.muted,required this.onTap});
-  @override Widget build(BuildContext context){final accent=world.kind==GalaxyWorldKind.vegeta?const Color(0xFF9D7AC6):const Color(0xFF7185A6);return GestureDetector(onTap:onTap,child:Opacity(opacity:muted?.18:1,child:SizedBox(width:size,child:Column(mainAxisSize:MainAxisSize.min,children:[SizedBox(width:size,height:size,child:CustomPaint(painter:_WorldPlanetPainter(seed:world.kind.index+21,accent:accent))),const SizedBox(height:7),Text(world.title,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:Colors.white70,fontSize:world.kind==GalaxyWorldKind.vegeta?11:8,letterSpacing:world.kind==GalaxyWorldKind.vegeta?3:1.7))]))));}
+  @override Widget build(BuildContext context){final accent=world.kind==GalaxyWorldKind.vegeta?const Color(0xFF9D7AC6):const Color(0xFF7185A6);return GestureDetector(onTap:onTap,child:Opacity(opacity:muted ? .18 : 1,child:SizedBox(width:size,child:Column(mainAxisSize:MainAxisSize.min,children:[SizedBox(width:size,height:size,child:CustomPaint(painter:_WorldPlanetPainter(seed:world.kind.index+21,accent:accent))),const SizedBox(height:7),Text(world.title,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:Colors.white70,fontSize:world.kind==GalaxyWorldKind.vegeta?11:8,letterSpacing:world.kind==GalaxyWorldKind.vegeta?3:1.7))]))));}
 }
 class _WorldPlanetPainter extends CustomPainter {
   final int seed; final Color accent; const _WorldPlanetPainter({required this.seed,required this.accent});
