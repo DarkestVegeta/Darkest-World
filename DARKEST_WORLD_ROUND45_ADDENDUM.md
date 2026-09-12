@@ -23,3 +23,8 @@
 - Preserved region selection, ENTER navigation, procedural relief and animated space background.
 - Corrected the `Size.center(Offset.zero)` usage in the relief painter.
 - CI must again pass Analyze → Test → Web Build → Pages Deploy before the site is considered viewable.
+
+## GO 30 — CI recheck after Game World rebuild
+- Verified the rebuilt `game_world_planet_page.dart` is now on `main` in the GO 29 commit.
+- The previous failed CI run analyzed the older GO 28 SHA, so this round triggers a fresh Analyze/Test/Web Build/Pages cycle against the corrected source.
+- No visual architecture was removed; the four-region Game World navigation remains intact.
