@@ -58,7 +58,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage> {
     }),
   );
 
-  Widget _label(String text,double x,double y,int i,double d){final a=(selected==null||selected==i)?.72:.10;return Positioned(left:d*x-90,top:d*y-22,width:180,child:IgnorePointer(child:Center(child:Text(text,style:TextStyle(fontSize:selected==i?11:9,letterSpacing:2.4,color:Colors.white.withValues(alpha:a))))));}
+  Widget _label(String text,double x,double y,int i,double d){final a=selected==null||selected==i?.72:.10;return Positioned(left:d*x-90,top:d*y-22,width:180,child:IgnorePointer(child:Center(child:Text(text,style:TextStyle(fontSize:selected==i?11:9,letterSpacing:2.4,color:Colors.white.withValues(alpha:a))))));}
   int? _hit(Offset p,double d){final o=Offset(d/2,d/2),r=d*.49;const centers=[Offset(-.22,-.25),Offset(.27,-.18),Offset(-.20,.27),Offset(.23,.23)];const scales=[.36,.30,.38,.31];for(var i=0;i<4;i++){final q=o+Offset(centers[i].dx*r,centers[i].dy*r);if((p-q).distance<r*scales[i])return i;}return null;}
 }
 
@@ -81,11 +81,9 @@ class _GamePlanetPainter extends CustomPainter {
       final rotation=(i.isEven?.16:-.28)+(i==1?.14:0);
       final active=selected==null?.30:selected==i?.68:.010;
       final path=_territory(tc,w*perspective,h*perspective,rotation,700+i*19);
-      // A low, offset terrain shadow makes each geographic region read as raised land.
       final shadow=_territory(tc+Offset(r*.014,r*.020),w*perspective*1.015,h*perspective*1.015,rotation,700+i*19);
       canvas.drawPath(shadow,Paint()..color=Colors.black.withValues(alpha:selected==i?.20:.10));
       canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:active));
-      // Lit upper-left terrain edge and darker lower-right edge give the land real relief.
       canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=r*(selected==i?.014:.006)..color=Colors.white.withValues(alpha:selected==i?.34:.055));
       canvas.drawPath(_offsetPath(path,Offset(r*.008,r*.010)),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.005..color=Colors.black.withValues(alpha:selected==i?.25:.075));
       for(var q=1;q<=7;q++){
@@ -94,7 +92,6 @@ class _GamePlanetPainter extends CustomPainter {
         canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0032..color=Colors.white.withValues(alpha:selected==i?.080:.012));
       }
     }
-    // Curved latitude/longitude traces reinforce the globe rather than a flat circular map.
     for(var i=0;i<9;i++){
       final t=-.82+i*.205;
       final half=r*math.sqrt(math.max(0,1-t*t));
