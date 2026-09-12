@@ -28,17 +28,17 @@ class _GamePlanetPainter extends CustomPainter{
     for(var i=0;i<4;i++){
       final tc=c+Offset(centers[i].dx*r,centers[i].dy*r);
       final active=selected==null ? .30 : (selected==i ? .66 : .012);
-      final w=r*(i.isEven?.50:.46),h=r*(i<2?.35:.39),rot=(i.isEven?.18:-.22)+(i<2?.05:-.05);
+      final w=r*(i.isEven ? .50 : .46),h=r*(i<2 ? .35 : .39),rot=(i.isEven ? .18 : -.22)+(i<2 ? .05 : -.05);
       final path=_territory(tc,w,h,rot,700+i*19);
       canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:active));
-      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=selected==i?r*.012:r*.006..color=colors[i].withValues(alpha:selected==i?.84:.16));
+      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=(selected==i ? r*.012 : r*.006)..color=colors[i].withValues(alpha:(selected==i ? .84 : .16)));
       for(var q=1;q<=6;q++){
         final scale=1-q*.105; final inner=_territory(tc+Offset(-r*.010*q,r*.007*q),w*scale,h*scale,rot,700+i*19+q*13);
-        canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0035..color=Colors.white.withValues(alpha:selected==i?.09:.018));
+        canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0035..color=Colors.white.withValues(alpha:(selected==i ? .09 : .018)));
       }
       for(var k=0;k<4;k++){
         final ridge=Rect.fromCenter(center:tc+Offset(r*.015*k,-r*.008*k),width:w*(.48-k*.055),height:h*(.28+k*.018));
-        canvas.drawArc(ridge,.25+k*.34,1.95,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.009..color=Colors.white.withValues(alpha:selected==i?.025:.010));
+        canvas.drawArc(ridge,.25+k*.34,1.95,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.009..color=Colors.white.withValues(alpha:(selected==i ? .025 : .010)));
       }
     }
     for(var i=0;i<11;i++){
