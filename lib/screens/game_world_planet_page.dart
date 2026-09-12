@@ -28,7 +28,7 @@ class _GamePlanetPainter extends CustomPainter{
     for(var i=0;i<4;i++){
       final tc=c+Offset(centers[i].dx*r,centers[i].dy*r);
       final active=selected==null ? .28 : (selected==i ? .62 : .018);
-      final w=r*(i.isEven?.43:.40),h=r*(i<2?.30:.34),rot=(i.isEven?.20:-.22)+(i<2?.06:-.06);
+      final w=r*(i.isEven ? .43 : .40),h=r*(i<2 ? .30 : .34),rot=(i.isEven ? .20 : -.22)+(i<2 ? .06 : -.06);
       final path=_smoothTerritory(tc,w,h,rot,700+i*19);
       canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:active));
       canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=selected==i?2.5:1..color=colors[i].withValues(alpha:selected==i?.82:.18));
@@ -38,7 +38,6 @@ class _GamePlanetPainter extends CustomPainter{
         canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=.58..color=Colors.white.withValues(alpha:selected==i?.10:.024));
       }
     }
-    // Fine world terrain continues underneath the four territories, keeping it one planet.
     for(var i=0;i<9;i++){
       final y=c.dy-r*.62+i*r*.155;
       canvas.drawArc(Rect.fromCenter(center:Offset(c.dx-r*.03,y),width:r*1.72,height:r*.16),math.pi*.08,math.pi*.84,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.010..color=Colors.white.withValues(alpha:.014));
