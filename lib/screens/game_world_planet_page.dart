@@ -44,8 +44,8 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage> {
         Center(child:SizedBox(width:d,height:d,child:GestureDetector(
           onTapUp:(e){final h=_hit(e.localPosition,d);if(h!=null)setState(()=>selected=selected==h?null:h);},
           child:CustomPaint(painter:_GamePlanetPainter(selected:selected),child:Stack(children:[
-            _label('NINTENDO',.28,.25,0,d),_label('SEGA',.70,.30,1,d),_label('PLAYSTATION',.31,.70,2,d),_label('XBOX',.69,.67,3,d),
-            Center(child:Opacity(opacity:selected==null?1:.12,child:const Text('GAME-WORLD',style:TextStyle(fontSize:12,letterSpacing:5,color:Colors.white54)))),
+            _label('NINTENDO',.25,.22,0,d),_label('SEGA',.73,.27,1,d),_label('PLAYSTATION',.27,.73,2,d),_label('XBOX',.73,.66,3,d),
+            Center(child:Opacity(opacity:selected==null?1:.10,child:const Text('GAME-WORLD',style:TextStyle(fontSize:12,letterSpacing:5,color:Colors.white54)))),
           ])),
         ))),
         if(selected!=null)Positioned(left:compact?14:30,right:compact?14:30,bottom:compact?45:58,child:Center(child:Container(
@@ -58,103 +58,168 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage> {
     }),
   );
 
-  Widget _label(String text,double x,double y,int i,double d){final a=selected==null||selected==i?.72:.10;return Positioned(left:d*x-90,top:d*y-22,width:180,child:IgnorePointer(child:Center(child:Text(text,style:TextStyle(fontSize:selected==i?11:9,letterSpacing:2.4,color:Colors.white.withValues(alpha:a))))));}
-  int? _hit(Offset p,double d){final o=Offset(d/2,d/2),r=d*.49;const centers=[Offset(-.22,-.25),Offset(.27,-.18),Offset(-.20,.27),Offset(.23,.23)];const scales=[.36,.30,.38,.31];for(var i=0;i<4;i++){final q=o+Offset(centers[i].dx*r,centers[i].dy*r);if((p-q).distance<r*scales[i])return i;}return null;}
+  Widget _label(String text,double x,double y,int i,double d){final a=selected==null||selected==i?.78:.08;return Positioned(left:d*x-95,top:d*y-22,width:190,child:IgnorePointer(child:Center(child:Text(text,style:TextStyle(fontSize:selected==i?11:9,letterSpacing:2.4,color:Colors.white.withValues(alpha:a))))));}
+  int? _hit(Offset p,double d){final o=Offset(d/2,d/2),r=d*.49;const centers=[Offset(-.22,-.25),Offset(.27,-.18),Offset(-.20,.27),Offset(.23,.23)];const scales=[.38,.32,.40,.33];for(var i=0;i<4;i++){final q=o+Offset(centers[i].dx*r,centers[i].dy*r);if((p-q).distance<r*scales[i])return i;}return null;}
 }
 
 class _GamePlanetPainter extends CustomPainter {
   final int? selected;
   const _GamePlanetPainter({required this.selected});
   static const centers=[Offset(-.22,-.25),Offset(.27,-.18),Offset(-.20,.27),Offset(.23,.23)];
-  static const sizes=[Offset(.72,.48),Offset(.54,.42),Offset(.68,.50),Offset(.55,.45)];
+  static const sizes=[Offset(.70,.45),Offset(.50,.38),Offset(.64,.47),Offset(.50,.40)];
   static const colors=[Color(0xFF9175A9),Color(0xFF66829A),Color(0xFF786C98),Color(0xFF5D847A)];
 
   @override void paint(Canvas canvas,Size size){
-    final c=Offset(size.width*.5,size.height*.5),r=size.shortestSide*.47,sphere=Rect.fromCircle(center:c,radius:r),rnd=math.Random(442);
-    canvas.drawCircle(c,r*1.43,Paint()..shader=const RadialGradient(colors:[Color(0x50687A98),Color(0x1B687A98),Colors.transparent],stops:[0,.46,1]).createShader(Rect.fromCircle(center:c,radius:r*1.43)));
-    canvas.drawCircle(c,r*1.035,Paint()..shader=const RadialGradient(center:Alignment(-.52,-.58),radius:1.08,colors:[Color(0xFFE0D4C3),Color(0xFF918A88),Color(0xFF555660),Color(0xFF1C1F29),Color(0xFF04060B)],stops:[0,.14,.38,.71,1]).createShader(sphere));
-    canvas.save();canvas.clipPath(Path()..addOval(sphere));
+    final c=Offset(size.width*.5,size.height*.5),r=size.shortestSide*.47;
+    final sphere=Rect.fromCircle(center:c,radius:r);
+    final rnd=math.Random(442);
+
+    // Deep-space field and broad atmospheric halo.
+    canvas.drawCircle(c,r*1.55,Paint()..shader=const RadialGradient(colors:[Color(0x506A7FA5),Color(0x1C586D91),Colors.transparent],stops:[0,.48,1]).createShader(Rect.fromCircle(center:c,radius:r*1.55)));
+    canvas.drawCircle(c,r*1.03,Paint()..shader=const RadialGradient(center:Alignment(-.55,-.62),radius:1.12,colors:[Color(0xFFE2D7C8),Color(0xFFAAA19A),Color(0xFF686974),Color(0xFF292C37),Color(0xFF070910)],stops:[0,.12,.34,.68,1]).createShader(sphere)));
+
+    canvas.save();
+    canvas.clipPath(Path()..addOval(sphere));
+
+    // Large-scale planetary structure: subtle plates/regions beneath the named territories.
+    for(var i=0;i<10;i++){
+      final a=-1.35+i*.31;
+      final y=c.dy+math.sin(a)*r*.16;
+      final width=r*(1.45-math.sin(a).abs()*.45);
+      canvas.drawArc(Rect.fromCenter(center:Offset(c.dx,y),width:width,height:r*.48),math.pi*.08,math.pi*.84,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.004..color=Colors.white.withValues(alpha:.010));
+    }
+
     for(var i=0;i<4;i++){
-      final tc=c+Offset(centers[i].dx*r,centers[i].dy*r),w=r*sizes[i].dx,h=r*sizes[i].dy;
+      final tc=c+Offset(centers[i].dx*r,centers[i].dy*r);
       final depth=(tc.dy-c.dy)/r;
       final side=(tc.dx-c.dx)/r;
-      final latitudeCurve=1-.12*depth.abs();
-      final globeCurve=.86+.14*math.sqrt(math.max(.05,1-side*side));
-      final perspective=.72+.28*(1-depth.abs());
-      final rotation=(i.isEven?.16:-.28)+(i==1?.14:0);
-      final active=selected==null?.30:selected==i?.68:.010;
-      final projectedCenter=tc+Offset(-side*r*.035,depth*r*.018);
-      final projectedW=w*perspective*globeCurve;
-      final projectedH=h*perspective*latitudeCurve;
-      final path=_territory(projectedCenter,projectedW,projectedH,rotation,700+i*19);
-      final shadow=_territory(projectedCenter+Offset(r*.014,r*.020),projectedW*1.015,projectedH*1.015,rotation,700+i*19);
-      canvas.drawPath(shadow,Paint()..color=Colors.black.withValues(alpha:selected==i?.20:.10));
-      canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:active));
-      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=r*(selected==i?.014:.006)..color=Colors.white.withValues(alpha:selected==i?.34:.055));
-      canvas.drawPath(_offsetPath(path,Offset(r*.008,r*.010)),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.005..color=Colors.black.withValues(alpha:selected==i?.25:.075));
-      for(var q=1;q<=7;q++){
+      final w=r*sizes[i].dx;
+      final h=r*sizes[i].dy;
+      final perspective=.70+.30*(1-depth.abs());
+      final longitude=.78+.22*math.sqrt(math.max(.04,1-side*side));
+      final latitude=.82+.18*math.sqrt(math.max(.04,1-depth*depth));
+      final center=tc+Offset(-side*r*.045,depth*r*.025);
+      final pw=w*perspective*longitude;
+      final ph=h*perspective*latitude;
+      final rotation=(i==0?.18:i==1?-.22:i==2?-.08:.24);
+      final alpha=selected==null?.30:selected==i?.76:.012;
+
+      // Elevated base and cast edge.
+      final base=_territory(center+Offset(r*.014,r*.026),pw*1.025,ph*1.04,rotation,1900+i*41,.96);
+      canvas.drawPath(base,Paint()..color=Colors.black.withValues(alpha:selected==i?.30:.16));
+      final baseEdge=_territory(center+Offset(r*.006,r*.017),pw*1.008,ph*1.01,rotation,1950+i*41,.98);
+      canvas.drawPath(baseEdge,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.010..color=Colors.black.withValues(alpha:selected==i?.34:.10));
+
+      // Main geographic mass.
+      final path=_territory(center,pw,ph,rotation,700+i*19,1);
+      canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:alpha));
+      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=r*(selected==i?.014:.006)..color=Colors.white.withValues(alpha:selected==i?.38:.065));
+
+      // Uneven inner terrain levels, compressed toward the globe edges.
+      for(var q=1;q<=8;q++){
         final scale=1-q*.085;
-        final inner=_territory(projectedCenter+Offset(-r*.012*q,r*.006*q),projectedW*scale,projectedH*scale,rotation,700+i*19+q*13);
-        canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0032..color=Colors.white.withValues(alpha:selected==i?.080:.012));
+        final drift=Offset(-side*r*.006*q,depth*r*.004*q);
+        final inner=_territory(center+drift,pw*scale,ph*scale,rotation,720+i*19+q*17,1-q*.015);
+        canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0032..color=Colors.white.withValues(alpha:selected==i?.085:.014));
       }
-      final contour=_territory(projectedCenter+Offset(-side*r*.018,depth*r*.012),projectedW*.96,projectedH*.92,rotation,1200+i*31);
-      canvas.drawPath(contour,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0042..color=Colors.black.withValues(alpha:selected==i?.16:.045));
 
-      // GO 13: wrap terrain bands around the sphere so each territory reads as surface, not a flat island.
-      for(var band=0;band<5;band++){
-        final t=(band-2)*.17;
-        final bandY=projectedCenter.dy+t*projectedH;
-        final curvature=(1-math.pow(t.abs(),1.65).toDouble())*.16;
-        final left=projectedCenter.dx-projectedW*.43;
-        final right=projectedCenter.dx+projectedW*.43;
-        final bandPath=Path()..moveTo(left,bandY);
-        for(var step=1;step<=12;step++){
-          final u=step/12;
+      // Curved terrain bands following the globe rather than horizontal map lines.
+      for(var band=0;band<7;band++){
+        final t=(band-3)*.145;
+        final bandY=center.dy+t*ph;
+        final edgeCurve=(1-t.abs()*1.05).clamp(.05,1.0)*.20;
+        final left=center.dx-pw*.44;
+        final right=center.dx+pw*.44;
+        final p=Path()..moveTo(left,bandY);
+        for(var step=1;step<=18;step++){
+          final u=step/18;
           final x=left+(right-left)*u;
-          final y=bandY-math.sin(u*math.pi)*projectedH*curvature+math.sin(u*math.pi*2+band+i)*projectedH*.018;
-          bandPath.lineTo(x,y);
+          final globeBend=math.sin(u*math.pi)*ph*edgeCurve;
+          final terrainWave=math.sin(u*math.pi*2.0+band*1.7+i)*ph*.020;
+          p.lineTo(x,bandY-globeBend+terrainWave);
         }
-        canvas.drawPath(bandPath,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0035..color=Colors.white.withValues(alpha:selected==i?.055:.018));
+        canvas.drawPath(p,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0035..color=Colors.white.withValues(alpha:selected==i?.065:.018));
       }
 
-      // A darker lower rim gives the landmass a shallow elevation against the globe.
-      final lower=_territory(projectedCenter+Offset(r*.004,r*.016),projectedW*.985,projectedH*.985,rotation,1600+i*23);
-      canvas.drawPath(lower,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.007..color=Colors.black.withValues(alpha:selected==i?.22:.055));
+      // Dark lower elevation rim + bright upper terrain edge.
+      final lower=_territory(center+Offset(r*.006,r*.018),pw*.99,ph*.99,rotation,1600+i*23,.99);
+      canvas.drawPath(lower,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.007..color=Colors.black.withValues(alpha:selected==i?.24:.065));
+      final upper=_territory(center+Offset(-r*.004,-r*.006),pw*.975,ph*.975,rotation,1700+i*29,.99);
+      canvas.drawPath(upper,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.004..color=Colors.white.withValues(alpha:selected==i?.10:.026));
+
+      // A few larger geological cuts keep the shapes organic and non-quadrant-like.
+      for(var ridge=0;ridge<3;ridge++){
+        final y=center.dy+(ridge-1)*ph*.19;
+        final p=Path()..moveTo(center.dx-pw*.32,y);
+        for(var s=1;s<=9;s++){
+          final u=s/9;
+          p.lineTo(center.dx-pw*.32+pw*.64*u,y+math.sin(u*math.pi*2.4+ridge+i)*ph*.075);
+        }
+        canvas.drawPath(p,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.004..color=Colors.black.withValues(alpha:selected==i?.10:.025));
+      }
     }
+
+    // Planetary longitude/latitude traces, kept very faint so the world remains calm.
     for(var i=0;i<9;i++){
-      final t=-.82+i*.205;
+      final t=-.80+i*.20;
       final half=r*math.sqrt(math.max(0,1-t*t));
-      canvas.drawOval(Rect.fromCenter(center:Offset(c.dx+t*r*.20,c.dy),width:half*1.45,height:r*.035),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.003..color=Colors.white.withValues(alpha:.012));
+      canvas.drawOval(Rect.fromCenter(center:Offset(c.dx+t*r*.18,c.dy),width:half*1.48,height:r*.028),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0028..color=Colors.white.withValues(alpha:.011));
     }
-    for(var i=0;i<8;i++){
-      final t=-.72+i*.205;
+    for(var i=0;i<7;i++){
+      final t=-.70+i*.233;
       final half=r*math.sqrt(math.max(0,1-t*t));
-      canvas.drawArc(Rect.fromCenter(center:Offset(c.dx,c.dy+t*r*.08),width:r*1.92,height:half*1.18),math.pi*.06,math.pi*.88,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.004..color=Colors.white.withValues(alpha:.014));
+      canvas.drawArc(Rect.fromCenter(center:Offset(c.dx,c.dy+t*r*.10),width:r*1.90,height:half*1.22),math.pi*.08,math.pi*.84,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0035..color=Colors.white.withValues(alpha:.012));
     }
-    for(var i=0;i<42;i++){
-      final a=rnd.nextDouble()*math.pi*2, rr=r*(.18+rnd.nextDouble()*.68);
-      final px=c.dx+math.cos(a)*rr, py=c.dy+math.sin(a)*rr*.74;
-      final len=r*(.018+rnd.nextDouble()*.055);
-      canvas.drawArc(Rect.fromCenter(center:Offset(px,py),width:len*2.5,height:len),a-.7,1.15,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0024..color=Colors.white.withValues(alpha:.018));
-    }
-    for(var i=0;i<150;i++){
-      final x=c.dx+(rnd.nextDouble()*2-1)*r*.89,y=c.dy+(rnd.nextDouble()*2-1)*r*.83;
-      canvas.drawCircle(Offset(x,y),r*(.0007+rnd.nextDouble()*.004),Paint()..color=Colors.white.withValues(alpha:.006+rnd.nextDouble()*.022));
+
+    // Sparse surface texture.
+    for(var i=0;i<125;i++){
+      final a=rnd.nextDouble()*math.pi*2;
+      final rr=r*(.12+rnd.nextDouble()*.79);
+      final x=c.dx+math.cos(a)*rr;
+      final y=c.dy+math.sin(a)*rr*.78;
+      canvas.drawCircle(Offset(x,y),r*(.0007+rnd.nextDouble()*.0035),Paint()..color=Colors.white.withValues(alpha:.005+rnd.nextDouble()*.018));
     }
     canvas.restore();
-    final shadow=c+Offset(r*.57,r*.09);
-    canvas.drawCircle(shadow,r*.94,Paint()..shader=RadialGradient(colors:[Colors.transparent,Colors.black.withValues(alpha:.84)],stops:[.27,1]).createShader(Rect.fromCircle(center:shadow,radius:r*.94)));
-    canvas.drawArc(Rect.fromCircle(center:c,radius:r*1.008),math.pi*.59,math.pi*.91,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.012..color=Colors.white.withValues(alpha:.27));
-    canvas.drawArc(Rect.fromCircle(center:c+Offset(-r*.04,-r*.04),radius:r*.96),math.pi,math.pi*.45,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.028..color=Colors.white.withValues(alpha:.035));
-    canvas.drawArc(Rect.fromCircle(center:c,radius:r*1.018),math.pi*1.06,math.pi*.82,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.018..color=const Color(0x558CA4C7));
+
+    // Stronger spherical depth: daylight rim, atmospheric rim and night terminator.
+    final nightCenter=c+Offset(r*.58,r*.10);
+    canvas.drawCircle(nightCenter,r*.96,Paint()..shader=const RadialGradient(colors:[Colors.transparent,Color(0xDD000208)],stops:[.25,1]).createShader(Rect.fromCircle(center:nightCenter,radius:r*.96)));
+    canvas.drawArc(Rect.fromCircle(center:c,radius:r*1.008),math.pi*.59,math.pi*.92,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.014..color=Colors.white.withValues(alpha:.30));
+    canvas.drawArc(Rect.fromCircle(center:c+Offset(-r*.035,-r*.035),radius:r*.975),math.pi*1.03,math.pi*.52,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.030..color=Colors.white.withValues(alpha:.040));
+    canvas.drawArc(Rect.fromCircle(center:c,radius:r*1.020),math.pi*1.04,math.pi*.86,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.019..color=const Color(0x668CA4C7));
   }
 
-  Path _offsetPath(Path source,Offset delta){final out=Path();for(final metric in source.computeMetrics()){final extract=metric.extractPath(0,metric.length);out.addPath(extract,delta);}return out;}
-  Path _territory(Offset center,double width,double height,double rotation,int seed){final rnd=math.Random(seed),pts=<Offset>[];const n=22;for(var i=0;i<n;i++){final a=i/n*math.pi*2;final wave=math.sin(a*2+seed)*.13+math.sin(a*3.7+seed*.17)*.075+math.sin(a*6.2+seed*.09)*.035;final rad=.80+wave+rnd.nextDouble()*.10;final x=math.cos(a)*width*.5*rad,y=math.sin(a)*height*.5*(.90+.10*math.sin(a*2.3+seed));final xr=x*math.cos(rotation)-y*math.sin(rotation),yr=x*math.sin(rotation)+y*math.cos(rotation);pts.add(Offset(center.dx+xr,center.dy+yr));}final p=Path()..moveTo(pts[0].dx,pts[0].dy);for(var i=0;i<n;i++){final a=pts[i],b=pts[(i+1)%n],m=Offset((a.dx+b.dx)/2,(a.dy+b.dy)/2);p.quadraticBezierTo(a.dx,a.dy,m.dx,m.dy);}p.close();return p;}
+  Path _territory(Offset center,double width,double height,double rotation,int seed,double shape){
+    final rnd=math.Random(seed);const n=30;final pts=<Offset>[];
+    for(var i=0;i<n;i++){
+      final a=i/n*math.pi*2;
+      final wave=math.sin(a*2.1+seed)*.14+math.sin(a*3.6+seed*.11)*.09+math.sin(a*6.7+seed*.07)*.045;
+      final notch=math.sin(a*5.0+seed*.31)*.025;
+      final rad=(.80+wave+notch+rnd.nextDouble()*.075)*shape;
+      final x=math.cos(a)*width*.5*rad;
+      final y=math.sin(a)*height*.5*rad*(.88+.12*math.sin(a*2.6+seed));
+      final xr=x*math.cos(rotation)-y*math.sin(rotation);
+      final yr=x*math.sin(rotation)+y*math.cos(rotation);
+      pts.add(Offset(center.dx+xr,center.dy+yr));
+    }
+    final p=Path()..moveTo(pts[0].dx,pts[0].dy);
+    for(var i=0;i<n;i++){
+      final a=pts[i],b=pts[(i+1)%n],m=Offset((a.dx+b.dx)/2,(a.dy+b.dy)/2);
+      p.quadraticBezierTo(a.dx,a.dy,m.dx,m.dy);
+    }
+    p.close();
+    return p;
+  }
+
   @override bool shouldRepaint(covariant _GamePlanetPainter oldDelegate)=>oldDelegate.selected!=selected;
 }
 
 class _GameSpacePainter extends CustomPainter {
-  @override void paint(Canvas canvas,Size size){final rect=Offset.zero&size;canvas.drawRect(rect,Paint()..shader=const RadialGradient(center:Alignment(0,-.08),radius:1.1,colors:[Color(0xFF15162A),Color(0xFF060710),Color(0xFF010205)]).createShader(rect));final r=math.Random(711);for(var i=0;i<280;i++)canvas.drawCircle(Offset(r.nextDouble()*size.width,r.nextDouble()*size.height),.15+r.nextDouble()*.75,Paint()..color=Colors.white.withValues(alpha:.028+r.nextDouble()*.11));}
+  @override void paint(Canvas canvas,Size size){
+    final rect=Offset.zero&size;
+    canvas.drawRect(rect,Paint()..shader=const RadialGradient(center:Alignment(0,-.08),radius:1.12,colors:[Color(0xFF15162A),Color(0xFF060710),Color(0xFF010205)]).createShader(rect));
+    final r=math.Random(711);
+    for(var i=0;i<280;i++)canvas.drawCircle(Offset(r.nextDouble()*size.width,r.nextDouble()*size.height),.15+r.nextDouble()*.75,Paint()..color=Colors.white.withValues(alpha:.028+r.nextDouble()*.11));
+  }
   @override bool shouldRepaint(covariant _GameSpacePainter oldDelegate)=>false;
 }
