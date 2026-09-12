@@ -85,5 +85,32 @@ class _WorldPlanetPainter extends CustomPainter {
 }
 class _SelectionPanel extends StatelessWidget {
   final GalaxyWorld world;final VoidCallback onClose,onEnter;const _SelectionPanel({required this.world,required this.onClose,required this.onEnter});
-  @override Widget build(BuildContext context)=>Material(color:Colors.transparent,child:Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:const Color(0xE6090914),border:Border.all(color:Colors.white12),borderRadius:BorderRadius.circular(18)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[Text(world.title,style:const TextStyle(color:Colors.white,fontSize:16,letterSpacing:2)),const SizedBox(height:8),Text(world.description,style:const TextStyle(color:Colors.white54)),const SizedBox(height:14),Row(children:[TextButton(onPressed:onClose,child:const Text('Sluiten')),const Spacer(),ElevatedButton(onPressed:onEnter,child:const Text('Openen'))])]));
+  @override Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xE6090914),
+        border: Border.all(color: Colors.white12),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(world.title, style: const TextStyle(color: Colors.white, fontSize: 16, letterSpacing: 2)),
+          const SizedBox(height: 8),
+          Text(world.description, style: const TextStyle(color: Colors.white54)),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              TextButton(onPressed: onClose, child: const Text('Sluiten')),
+              const Spacer(),
+              ElevatedButton(onPressed: onEnter, child: const Text('Openen')),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
 }
