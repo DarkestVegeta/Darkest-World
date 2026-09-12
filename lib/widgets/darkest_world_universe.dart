@@ -140,101 +140,114 @@ class _WorldPlanetPainter extends CustomPainter {
     final sphere = Rect.fromCircle(center: c, radius: r);
     final rnd = math.Random(seed * 137);
 
-    // Deep atmospheric halo, then a softly illuminated solid world.
-    canvas.drawCircle(c, r * 1.34, Paint()..shader = RadialGradient(
-      colors: [accent.withValues(alpha: .30), accent.withValues(alpha: .10), Colors.transparent],
+    // Layered atmosphere: broad halo + thin lit rim.
+    canvas.drawCircle(c, r * 1.42, Paint()..shader = RadialGradient(
+      colors: [accent.withValues(alpha: .22), accent.withValues(alpha: .08), Colors.transparent],
       stops: const [.0, .48, 1],
-    ).createShader(Rect.fromCircle(center: c, radius: r * 1.34)));
+    ).createShader(Rect.fromCircle(center: c, radius: r * 1.42)));
     canvas.drawCircle(c, r * 1.035, Paint()..shader = RadialGradient(
-      center: const Alignment(-.46, -.55), radius: 1.08,
-      colors: [accent.withValues(alpha: .32), const Color(0xFFB9B1A8), const Color(0xFF676773), const Color(0xFF20232D), const Color(0xFF05070C)],
-      stops: const [0, .13, .38, .72, 1],
+      center: const Alignment(-.50, -.55), radius: 1.10,
+      colors: [const Color(0xFFD0C5B7), accent.withValues(alpha: .74), const Color(0xFF666773), const Color(0xFF252833), const Color(0xFF04060B)],
+      stops: const [0, .16, .40, .72, 1],
     ).createShader(sphere));
 
     canvas.save();
     canvas.clipPath(Path()..addOval(sphere));
 
-    // Large, coherent landmasses. They are deliberately few and irregular so the
-    // surface reads as a photographed world instead of a ball covered in dots.
-    final landColors = [
-      accent.withValues(alpha: .46),
-      const Color(0xFFB49A76).withValues(alpha: .29),
-      const Color(0xFF63776E).withValues(alpha: .30),
+    // Three large continuous continents. Smooth curves make them read as terrain,
+    // not as painted blobs. Their shape and scale are deliberately different per world.
+    final continentColors = [
+      accent.withValues(alpha: .48),
+      const Color(0xFF9A876B).withValues(alpha: .31),
+      const Color(0xFF61716B).withValues(alpha: .28),
     ];
-    for (var i = 0; i < 3; i++) {
-      final a = i * 2.08 + rnd.nextDouble() * .22;
-      final center = c + Offset(math.cos(a) * r * .17, math.sin(a) * r * .14);
-      final w = r * (.76 + rnd.nextDouble() * .15);
-      final h = r * (.28 + rnd.nextDouble() * .10);
-      final rot = a * .30 + rnd.nextDouble() * .20;
-      final path = _organicLand(center, w, h, rot, rnd, 32);
-      canvas.drawPath(path, Paint()..color = landColors[i]);
-      canvas.drawPath(path, Paint()..style = PaintingStyle.stroke..strokeWidth = r * .008..color = Colors.white.withValues(alpha: .095));
+    final centers = [
+      c + Offset(-r * .20, -r * .12),
+      c + Offset(r * .18, r * .04),
+      c + Offset(-r * .02, r * .30),
+    ];
+    final widths = [r * .92, r * .74, r * .58];
+    final heights = [r * .38, r * .34, r * .25];
+    final rotations = [-.18, .35, -.52];
 
-      // Topographic rings follow the same continent instead of becoming random blobs.
+    for (var i = 0; i < 3; i++) {
+      final path = _smoothLand(centers[i], widths[i], heights[i], rotations[i], seed + i * 31);
+      canvas.drawPath(path, Paint()..color = continentColors[i]);
+      canvas.drawPath(path, Paint()..style = PaintingStyle.stroke..strokeWidth = r * .009..color = Colors.white.withValues(alpha: .085));
+
+      // Nested terrain contours remain inside the same landmass.
       for (var q = 1; q <= 5; q++) {
-        final scale = 1 - q * .105;
-        final inner = _organicLand(
-          center + Offset(-r * .010 * q, r * .008 * q),
-          w * scale, h * scale, rot, rnd, 32,
+        final scale = 1 - q * .11;
+        final inner = _smoothLand(
+          centers[i] + Offset(-r * .012 * q, r * .008 * q),
+          widths[i] * scale, heights[i] * scale, rotations[i], seed + i * 31 + q * 7,
         );
         canvas.drawPath(inner, Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = r * .0045
-          ..color = Colors.white.withValues(alpha: .025 + (5 - q) * .004));
+          ..strokeWidth = r * .004
+          ..color = Colors.white.withValues(alpha: .020 + (5 - q) * .004));
       }
     }
 
-    // Broad, very faint atmospheric/cloud bands.
-    for (var i = 0; i < 6; i++) {
-      final y = c.dy - r * .55 + i * r * .21;
+    // Fine topographic traces across the visible hemisphere.
+    for (var i = 0; i < 9; i++) {
+      final y = c.dy - r * .62 + i * r * .155;
       canvas.drawArc(
-        Rect.fromCenter(center: Offset(c.dx + r * .03, y), width: r * 1.72, height: r * .20),
+        Rect.fromCenter(center: Offset(c.dx - r * .03, y), width: r * 1.70, height: r * .16),
         math.pi * .08, math.pi * .84, false,
-        Paint()..style = PaintingStyle.stroke..strokeWidth = r * .017..color = Colors.white.withValues(alpha: .018),
+        Paint()..style = PaintingStyle.stroke..strokeWidth = r * .010..color = Colors.white.withValues(alpha: .014),
       );
     }
 
-    // Tiny surface texture only. No obvious craters or Earth-like blue/green noise.
-    for (var i = 0; i < 70; i++) {
-      final x = c.dx + (rnd.nextDouble() * 2 - 1) * r * .86;
-      final y = c.dy + (rnd.nextDouble() * 2 - 1) * r * .76;
-      canvas.drawCircle(Offset(x, y), r * (.001 + rnd.nextDouble() * .005),
-        Paint()..color = Colors.white.withValues(alpha: .018 + rnd.nextDouble() * .035));
+    // Sparse mineral/surface texture; deliberately subtle and non-Earth-like.
+    for (var i = 0; i < 95; i++) {
+      final x = c.dx + (rnd.nextDouble() * 2 - 1) * r * .87;
+      final y = c.dy + (rnd.nextDouble() * 2 - 1) * r * .78;
+      canvas.drawCircle(Offset(x, y), r * (.001 + rnd.nextDouble() * .0045),
+        Paint()..color = Colors.white.withValues(alpha: .012 + rnd.nextDouble() * .035));
+    }
+
+    // A faint atmospheric veil on the day side.
+    for (var i = 0; i < 4; i++) {
+      final veil = Rect.fromCircle(center: c + Offset(-r * .13, -r * .12), radius: r * (.72 + i * .055));
+      canvas.drawArc(veil, math.pi * .92, math.pi * .60, false,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = r * .018..color = Colors.white.withValues(alpha: .012));
     }
     canvas.restore();
 
-    // Strong asymmetric terminator makes the sphere read as a world in space.
-    final shadowCenter = c + Offset(r * .54, r * .10);
-    canvas.drawCircle(shadowCenter, r * .90, Paint()..shader = RadialGradient(
-      colors: [Colors.transparent, Colors.black.withValues(alpha: .77)],
-      stops: const [.35, 1],
-    ).createShader(Rect.fromCircle(center: shadowCenter, radius: r * .90)));
+    // Deep terminator and a soft outer night-side falloff.
+    final shadowCenter = c + Offset(r * .57, r * .10);
+    canvas.drawCircle(shadowCenter, r * .92, Paint()..shader = RadialGradient(
+      colors: [Colors.transparent, Colors.black.withValues(alpha: .80)],
+      stops: const [.31, 1],
+    ).createShader(Rect.fromCircle(center: shadowCenter, radius: r * .92)));
 
-    // Thin atmospheric rim and a soft light-catching crescent.
-    canvas.drawArc(Rect.fromCircle(center: c, radius: r * 1.008), math.pi * .60, math.pi * .88, false,
-      Paint()..style = PaintingStyle.stroke..strokeWidth = r * .010..color = Colors.white.withValues(alpha: .22));
-    canvas.drawArc(Rect.fromCircle(center: c + Offset(-r * .035, -r * .035), radius: r * .94), math.pi * 1.02, math.pi * .42, false,
-      Paint()..style = PaintingStyle.stroke..strokeWidth = r * .032..color = Colors.white.withValues(alpha: .035));
+    canvas.drawArc(Rect.fromCircle(center: c, radius: r * 1.008), math.pi * .59, math.pi * .90, false,
+      Paint()..style = PaintingStyle.stroke..strokeWidth = r * .012..color = Colors.white.withValues(alpha: .24));
+    canvas.drawArc(Rect.fromCircle(center: c + Offset(-r * .03, -r * .03), radius: r * .95), math.pi * 1.01, math.pi * .43, false,
+      Paint()..style = PaintingStyle.stroke..strokeWidth = r * .030..color = Colors.white.withValues(alpha: .032));
   }
 
-  Path _organicLand(Offset center, double width, double height, double rotation, math.Random rnd, int points) {
-    final p = Path();
-    final radii = <double>[];
-    for (var i = 0; i < points; i++) {
-      // Smooth-ish low-frequency variation rather than independent random spikes.
-      final wave = math.sin(i * .73 + seed) * .10 + math.sin(i * .31 + seed * .7) * .08;
-      radii.add(.86 + wave + rnd.nextDouble() * .13);
-    }
-    for (var i = 0; i < points; i++) {
-      final a = i / points * math.pi * 2;
-      final wobble = radii[i];
-      final x = math.cos(a) * width * .5 * wobble;
-      final y = math.sin(a) * height * .5 * (.90 + .10 * math.sin(a * 3 + seed));
+  Path _smoothLand(Offset center, double width, double height, double rotation, int localSeed) {
+    final rnd = math.Random(localSeed * 17);
+    const n = 12;
+    final points = <Offset>[];
+    for (var i = 0; i < n; i++) {
+      final a = i / n * math.pi * 2;
+      final wave = math.sin(a * 2 + localSeed) * .10 + math.sin(a * 3.7 + localSeed * .23) * .065;
+      final radius = .84 + wave + rnd.nextDouble() * .08;
+      final x = math.cos(a) * width * .5 * radius;
+      final y = math.sin(a) * height * .5 * (.92 + .08 * math.sin(a * 2.5 + localSeed));
       final xr = x * math.cos(rotation) - y * math.sin(rotation);
       final yr = x * math.sin(rotation) + y * math.cos(rotation);
-      final pt = Offset(center.dx + xr, center.dy + yr);
-      if (i == 0) { p.moveTo(pt.dx, pt.dy); } else { p.lineTo(pt.dx, pt.dy); }
+      points.add(Offset(center.dx + xr, center.dy + yr));
+    }
+    final p = Path()..moveTo(points[0].dx, points[0].dy);
+    for (var i = 0; i < n; i++) {
+      final a = points[i];
+      final b = points[(i + 1) % n];
+      final mid = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
+      p.quadraticBezierTo(a.dx, a.dy, mid.dx, mid.dy);
     }
     p.close();
     return p;
