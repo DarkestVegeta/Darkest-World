@@ -58,7 +58,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage> {
     }),
   );
 
-  Widget _label(String text,double x,double y,int i,double d){final a=selected==null||selected==i?.72:.10;return Positioned(left:d*x-90,top:d*y-22,width:180,child:IgnorePointer(child:Center(child:Text(text,style:TextStyle(fontSize:selected==i?11:9,letterSpacing:2.4,color:Colors.white.withValues(alpha:a))))));}
+  Widget _label(String text,double x,double y,int i,double d){final a=(selected==null||selected==i)?.72:.10;return Positioned(left:d*x-90,top:d*y-22,width:180,child:IgnorePointer(child:Center(child:Text(text,style:TextStyle(fontSize:selected==i?11:9,letterSpacing:2.4,color:Colors.white.withValues(alpha:a))))));}
   int? _hit(Offset p,double d){final o=Offset(d/2,d/2),r=d*.49;const centers=[Offset(-.22,-.25),Offset(.27,-.18),Offset(-.20,.27),Offset(.23,.23)];const scales=[.36,.30,.38,.31];for(var i=0;i<4;i++){final q=o+Offset(centers[i].dx*r,centers[i].dy*r);if((p-q).distance<r*scales[i])return i;}return null;}
 }
 
@@ -71,13 +71,9 @@ class _GamePlanetPainter extends CustomPainter {
 
   @override void paint(Canvas canvas,Size size){
     final c=Offset(size.width*.5,size.height*.5),r=size.shortestSide*.47,sphere=Rect.fromCircle(center:c,radius:r),rnd=math.Random(442);
-    // Deep space halo: restrained so the sphere reads as a world, not a UI icon.
     canvas.drawCircle(c,r*1.43,Paint()..shader=const RadialGradient(colors:[Color(0x50687A98),Color(0x1B687A98),Colors.transparent],stops:[0,.46,1]).createShader(Rect.fromCircle(center:c,radius:r*1.43)));
     canvas.drawCircle(c,r*1.035,Paint()..shader=const RadialGradient(center:Alignment(-.52,-.58),radius:1.08,colors:[Color(0xFFE0D4C3),Color(0xFF918A88),Color(0xFF555660),Color(0xFF1C1F29),Color(0xFF04060B)],stops:[0,.14,.38,.71,1]).createShader(sphere));
     canvas.save();canvas.clipPath(Path()..addOval(sphere));
-
-    // Geographic territories are projected onto the globe: far-surface regions become
-    // narrower, while the centre remains broad. This removes the flat four-panel look.
     for(var i=0;i<4;i++){
       final tc=c+Offset(centers[i].dx*r,centers[i].dy*r),w=r*sizes[i].dx,h=r*sizes[i].dy;
       final depth=(tc.dy-c.dy)/r;
@@ -92,8 +88,6 @@ class _GamePlanetPainter extends CustomPainter {
         canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0032..color=Colors.white.withValues(alpha:selected==i?.080:.012));
       }
     }
-
-    // Longitude/latitude structure bends around the sphere and is deliberately subtle.
     for(var i=0;i<9;i++){
       final t=-.82+i*.205;
       final half=r*math.sqrt(math.max(0,1-t*t));
@@ -104,8 +98,6 @@ class _GamePlanetPainter extends CustomPainter {
       final half=r*math.sqrt(math.max(0,1-t*t));
       canvas.drawArc(Rect.fromCenter(center:Offset(c.dx,c.dy+t*r*.08),width:r*1.92,height:half*1.18),math.pi*.06,math.pi*.88,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.004..color=Colors.white.withValues(alpha:.014));
     }
-
-    // Low-contrast relief: elevation ridges follow territory contours instead of becoming icons.
     for(var i=0;i<42;i++){
       final a=rnd.nextDouble()*math.pi*2, rr=r*(.18+rnd.nextDouble()*.68);
       final px=c.dx+math.cos(a)*rr, py=c.dy+math.sin(a)*rr*.74;
@@ -117,13 +109,10 @@ class _GamePlanetPainter extends CustomPainter {
       canvas.drawCircle(Offset(x,y),r*(.0007+rnd.nextDouble()*.004),Paint()..color=Colors.white.withValues(alpha:.006+rnd.nextDouble()*.022));
     }
     canvas.restore();
-
-    // A soft terminator creates actual depth rather than a uniformly lit disk.
     final shadow=c+Offset(r*.57,r*.09);
     canvas.drawCircle(shadow,r*.94,Paint()..shader=RadialGradient(colors:[Colors.transparent,Colors.black.withValues(alpha:.84)],stops:[.27,1]).createShader(Rect.fromCircle(center:shadow,radius:r*.94)));
     canvas.drawArc(Rect.fromCircle(center:c,radius:r*1.008),math.pi*.59,math.pi*.91,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.012..color=Colors.white.withValues(alpha:.27));
     canvas.drawArc(Rect.fromCircle(center:c+Offset(-r*.04,-r*.04),radius:r*.96),math.pi,math.pi*.45,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.028..color=Colors.white.withValues(alpha:.035));
-    // Foreground atmospheric depth: brighter on the lit limb, almost invisible on the night side.
     canvas.drawArc(Rect.fromCircle(center:c,radius:r*1.018),math.pi*1.06,math.pi*.82,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.018..color=const Color(0x558CA4C7));
   }
 
