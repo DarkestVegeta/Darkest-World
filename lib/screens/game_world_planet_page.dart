@@ -78,16 +78,23 @@ class _GamePlanetPainter extends CustomPainter {
       final tc=c+Offset(centers[i].dx*r,centers[i].dy*r),w=r*sizes[i].dx,h=r*sizes[i].dy;
       final depth=(tc.dy-c.dy)/r;
       final perspective=.78+.22*(1-depth.abs());
+      final rotation=(i.isEven?.16:-.28)+(i==1?.14:0);
       final active=selected==null?.30:selected==i?.68:.010;
-      final path=_territory(tc,w*perspective,h*perspective,(i.isEven?.16:-.28)+(i==1?.14:0),700+i*19);
+      final path=_territory(tc,w*perspective,h*perspective,rotation,700+i*19);
+      // A low, offset terrain shadow makes each geographic region read as raised land.
+      final shadow=_territory(tc+Offset(r*.014,r*.020),w*perspective*1.015,h*perspective*1.015,rotation,700+i*19);
+      canvas.drawPath(shadow,Paint()..color=Colors.black.withValues(alpha:selected==i?.20:.10));
       canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:active));
-      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=r*(selected==i?.012:.005)..color=colors[i].withValues(alpha:selected==i?.82:.13));
+      // Lit upper-left terrain edge and darker lower-right edge give the land real relief.
+      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=r*(selected==i?.014:.006)..color=Colors.white.withValues(alpha:selected==i?.34:.055));
+      canvas.drawPath(_offsetPath(path,Offset(r*.008,r*.010)),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.005..color=Colors.black.withValues(alpha:selected==i?.25:.075));
       for(var q=1;q<=7;q++){
         final scale=1-q*.085;
-        final inner=_territory(tc+Offset(-r*.012*q,r*.006*q),w*perspective*scale,h*perspective*scale,(i.isEven?.16:-.28)+(i==1?.14:0),700+i*19+q*13);
+        final inner=_territory(tc+Offset(-r*.012*q,r*.006*q),w*perspective*scale,h*perspective*scale,rotation,700+i*19+q*13);
         canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0032..color=Colors.white.withValues(alpha:selected==i?.080:.012));
       }
     }
+    // Curved latitude/longitude traces reinforce the globe rather than a flat circular map.
     for(var i=0;i<9;i++){
       final t=-.82+i*.205;
       final half=r*math.sqrt(math.max(0,1-t*t));
@@ -116,6 +123,7 @@ class _GamePlanetPainter extends CustomPainter {
     canvas.drawArc(Rect.fromCircle(center:c,radius:r*1.018),math.pi*1.06,math.pi*.82,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.018..color=const Color(0x558CA4C7));
   }
 
+  Path _offsetPath(Path source,Offset delta){final out=Path();for(final metric in source.computeMetrics()){final extract=metric.extractPath(0,metric.length);out.addPath(extract,delta);}return out;}
   Path _territory(Offset center,double width,double height,double rotation,int seed){final rnd=math.Random(seed),pts=<Offset>[];const n=22;for(var i=0;i<n;i++){final a=i/n*math.pi*2;final wave=math.sin(a*2+seed)*.13+math.sin(a*3.7+seed*.17)*.075+math.sin(a*6.2+seed*.09)*.035;final rad=.80+wave+rnd.nextDouble()*.10;final x=math.cos(a)*width*.5*rad,y=math.sin(a)*height*.5*(.90+.10*math.sin(a*2.3+seed));final xr=x*math.cos(rotation)-y*math.sin(rotation),yr=x*math.sin(rotation)+y*math.cos(rotation);pts.add(Offset(center.dx+xr,center.dy+yr));}final p=Path()..moveTo(pts[0].dx,pts[0].dy);for(var i=0;i<n;i++){final a=pts[i],b=pts[(i+1)%n],m=Offset((a.dx+b.dx)/2,(a.dy+b.dy)/2);p.quadraticBezierTo(a.dx,a.dy,m.dx,m.dy);}p.close();return p;}
   @override bool shouldRepaint(covariant _GamePlanetPainter oldDelegate)=>oldDelegate.selected!=selected;
 }
