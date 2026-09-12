@@ -54,23 +54,26 @@ class _GalaxyPlanets extends StatelessWidget {
 class _Planet extends StatelessWidget {
   final GalaxyWorld world; final double size; final bool muted; final bool selected; final VoidCallback onTap;
   const _Planet({required this.world,required this.size,required this.muted,required this.selected,required this.onTap});
-  @override Widget build(BuildContext context){final accent=world.kind==GalaxyWorldKind.vegeta?const Color(0xFF9D7AC6):const Color(0xFF7185A6);return GestureDetector(onTap:onTap,child:Opacity(opacity:muted ? .18 : 1,child:TweenAnimationBuilder<double>(tween:Tween(begin:1,end:selected?1.12:1),duration:const Duration(milliseconds:420),curve:Curves.easeOutCubic,builder:(context,scale,child)=>Transform.scale(scale:scale,child:child),child:SizedBox(width:size,child:Column(mainAxisSize:MainAxisSize.min,children:[SizedBox(width:size,height:size,child:CustomPaint(painter:_WorldPlanetPainter(seed:world.kind.index+21,accent:accent,selected:selected))),const SizedBox(height:7),Text(world.title,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:selected?Colors.white:Colors.white70,fontSize:world.kind==GalaxyWorldKind.vegeta?11:8,letterSpacing:world.kind==GalaxyWorldKind.vegeta?3:1.7,fontWeight:selected?FontWeight.w400:FontWeight.w300))])))));}
+  @override Widget build(BuildContext context){final accent=world.kind==GalaxyWorldKind.vegeta?const Color(0xFF9D7AC6):const Color(0xFF7185A6);return GestureDetector(onTap:onTap,child:Opacity(opacity:muted ? .18 : 1,child:TweenAnimationBuilder<double>(tween:Tween(begin:1,end:selected?1.12:1),duration:const Duration(milliseconds:420),curve:Curves.easeOutCubic,builder:(context,scale,child)=>Transform.scale(scale:scale,child:child),child:SizedBox(width:size,child:Column(mainAxisSize:MainAxisSize.min,children:[SizedBox(width:size,height:size,child:CustomPaint(painter:_WorldPlanetPainter(seed:world.kind.index+21,accent:accent,selected:selected,kind:world.kind))),const SizedBox(height:7),Text(world.title,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:selected?Colors.white:Colors.white70,fontSize:world.kind==GalaxyWorldKind.vegeta?11:8,letterSpacing:world.kind==GalaxyWorldKind.vegeta?3:1.7,fontWeight:selected?FontWeight.w400:FontWeight.w300))])))));}
 }
 class _WorldPlanetPainter extends CustomPainter {
-  final int seed; final Color accent; final bool selected; const _WorldPlanetPainter({required this.seed,required this.accent,required this.selected});
+  final int seed; final Color accent; final bool selected; final GalaxyWorldKind kind;
+  const _WorldPlanetPainter({required this.seed,required this.accent,required this.selected,required this.kind});
   @override void paint(Canvas canvas,Size size){
     final c=Offset(size.width*.5,size.height*.5),r=size.shortestSide*.438,sphere=Rect.fromCircle(center:c,radius:r),rnd=math.Random(seed*137);
     canvas.drawCircle(c,r*1.46,Paint()..shader=RadialGradient(colors:[accent.withValues(alpha:selected?.28:.20),accent.withValues(alpha:selected?.09:.065),Colors.transparent],stops:const[0,.48,1]).createShader(Rect.fromCircle(center:c,radius:r*1.46)));
     canvas.drawCircle(c,r*1.055,Paint()..shader=RadialGradient(center:const Alignment(-.52,-.58),radius:1.08,colors:[const Color(0xFFE0D4C3),accent.withValues(alpha:.78),const Color(0xFF6C7075),const Color(0xFF292C34),const Color(0xFF03050A)],stops:const[0,.13,.37,.70,1]).createShader(sphere));
     canvas.save();canvas.clipPath(Path()..addOval(sphere));
+    if (kind == GalaxyWorldKind.game) _drawGameRegions(canvas,c,r);
     final centers=[c+Offset(-r*.20,-r*.10),c+Offset(r*.20,r*.02),c+Offset(-r*.04,r*.29)],widths=[r*.96,r*.73,r*.59],heights=[r*.40,r*.33,r*.25],rotations=[-.18,.34,-.52];
     final terrain=[accent.withValues(alpha:.43),const Color(0xFF9C886A).withValues(alpha:.30),const Color(0xFF64736D).withValues(alpha:.27)];
     for(var i=0;i<3;i++){
-      final land=_smoothLand(centers[i],widths[i],heights[i],rotations[i],seed+i*31);canvas.drawPath(land,Paint()..color=terrain[i]);
+      final land=_smoothLand(centers[i],widths[i],heights[i],rotations[i],seed+i*31);canvas.drawPath(land,Paint()..color:terrain[i]);
       for(var q=1;q<=6;q++){final scale=1-q*.105,inner=_smoothLand(centers[i]+Offset(-r*.012*q,r*.008*q),widths[i]*scale,heights[i]*scale,rotations[i],seed+i*31+q*7);canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.004..color=Colors.white.withValues(alpha:.018+(6-q)*.004));}
       final ridgePaint=Paint()..style=PaintingStyle.stroke..strokeWidth=r*.010..color=Colors.white.withValues(alpha:.025);
       for(var k=0;k<3;k++){canvas.drawArc(Rect.fromCenter(center:centers[i]+Offset(r*.02*k,-r*.01*k),width:widths[i]*(.52-k*.06),height:heights[i]*(.40-k*.04)),.35+k*.28,1.9,false,ridgePaint);}
     }
+    if (kind == GalaxyWorldKind.game) _drawGameBorders(canvas,c,r);
     for(var i=0;i<10;i++){final y=c.dy-r*.67+i*r*.145;canvas.drawArc(Rect.fromCenter(center:Offset(c.dx-r*.04,y),width:r*1.82,height:r*.18),math.pi*.10,math.pi*.80,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.008..color=Colors.white.withValues(alpha:.012));}
     for(var i=0;i<150;i++){final x=c.dx+(rnd.nextDouble()*2-1)*r*.88,y=c.dy+(rnd.nextDouble()*2-1)*r*.82,light=1-((x-c.dx)/r*.45+.30).clamp(-.25,.65);canvas.drawCircle(Offset(x,y),r*(.0008+rnd.nextDouble()*.0048),Paint()..color=Colors.white.withValues(alpha:(.008+rnd.nextDouble()*.035)*light));}
     for(var i=0;i<5;i++){final veil=Rect.fromCenter(center:c+Offset(-r*.16,-r*.16+i*r*.025),width:r*1.62,height:r*(.16+i*.012));canvas.drawArc(veil,math.pi*.93,math.pi*.58,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.014..color=Colors.white.withValues(alpha:.010));}
@@ -80,8 +83,28 @@ class _WorldPlanetPainter extends CustomPainter {
     canvas.drawArc(Rect.fromCircle(center:c+Offset(-r*.04,-r*.04),radius:r*.96),math.pi*1.00,math.pi*.45,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.028..color=Colors.white.withValues(alpha:selected?.055:.035));
     canvas.drawCircle(c+Offset(-r*.27,-r*.30),r*.075,Paint()..shader=RadialGradient(colors:[Colors.white.withValues(alpha:selected?.11:.08),Colors.transparent]).createShader(Rect.fromCircle(center:c+Offset(-r*.27,-r*.30),radius:r*.075)));
   }
+  void _drawGameRegions(Canvas canvas,Offset c,double r){
+    final regions=[
+      (Offset(-.23,-.18),.55,.30,-.22,0xFF8E779F),
+      (Offset(.24,-.04),.43,.27,.30,0xFF667D78),
+      (Offset(-.02,.23),.40,.25,-.48,0xFF9A846B),
+      (Offset(.18,.33),.25,.16,.12,0xFF6F7891),
+    ];
+    for(final region in regions){
+      final center=c+Offset(r*region.$1.dx,r*region.$1.dy);
+      final path=_smoothLand(center,r*region.$2,r*region.$3,region.$4,seed+region.$5);
+      canvas.drawPath(path,Paint()..color=Color(region.$6).withValues(alpha:.055));
+      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.006..color=Colors.white.withValues(alpha:.055));
+    }
+  }
+  void _drawGameBorders(Canvas canvas,Offset c,double r){
+    final paint=Paint()..style=PaintingStyle.stroke..strokeWidth=r*.006..color=Colors.white.withValues(alpha:selected?.10:.045);
+    canvas.drawArc(Rect.fromCenter(center:c+Offset(-r*.05,-r*.10),width:r*1.05,height:r*.55),math.pi*.98,math.pi*.58,false,paint);
+    canvas.drawArc(Rect.fromCenter(center:c+Offset(r*.13,r*.09),width:r*.82,height:r*.72),math.pi*.08,math.pi*.62,false,paint);
+    canvas.drawArc(Rect.fromCenter(center:c+Offset(-r*.05,r*.24),width:r*.72,height:r*.38),math.pi*1.02,math.pi*.58,false,paint);
+  }
   Path _smoothLand(Offset center,double width,double height,double rotation,int localSeed){final rnd=math.Random(localSeed*17);const n=14;final points=<Offset>[];for(var i=0;i<n;i++){final a=i/n*math.pi*2,wave=math.sin(a*2+localSeed)*.105+math.sin(a*3.7+localSeed*.23)*.065+math.sin(a*6.1+localSeed*.11)*.025,radius=.82+wave+rnd.nextDouble()*.09,x=math.cos(a)*width*.5*radius,y=math.sin(a)*height*.5*(.91+.09*math.sin(a*2.5+localSeed)),xr=x*math.cos(rotation)-y*math.sin(rotation),yr=x*math.sin(rotation)+y*math.cos(rotation);points.add(Offset(center.dx+xr,center.dy+yr));}final p=Path()..moveTo(points[0].dx,points[0].dy);for(var i=0;i<n;i++){final a=points[i],b=points[(i+1)%n],mid=Offset((a.dx+b.dx)/2,(a.dy+b.dy)/2);p.quadraticBezierTo(a.dx,a.dy,mid.dx,mid.dy);}p.close();return p;}
-  @override bool shouldRepaint(covariant _WorldPlanetPainter oldDelegate)=>oldDelegate.seed!=seed||oldDelegate.accent!=accent||oldDelegate.selected!=selected;
+  @override bool shouldRepaint(covariant _WorldPlanetPainter oldDelegate)=>oldDelegate.seed!=seed||oldDelegate.accent!=accent||oldDelegate.selected!=selected||oldDelegate.kind!=kind;
 }
 class _SelectionPanel extends StatelessWidget {
   final GalaxyWorld world;final VoidCallback onClose,onEnter;const _SelectionPanel({required this.world,required this.onClose,required this.onEnter});
