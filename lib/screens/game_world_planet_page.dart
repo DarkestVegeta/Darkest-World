@@ -71,44 +71,60 @@ class _GamePlanetPainter extends CustomPainter {
 
   @override void paint(Canvas canvas,Size size){
     final c=Offset(size.width*.5,size.height*.5),r=size.shortestSide*.47,sphere=Rect.fromCircle(center:c,radius:r),rnd=math.Random(442);
+    // Deep space halo: restrained so the sphere reads as a world, not a UI icon.
     canvas.drawCircle(c,r*1.43,Paint()..shader=const RadialGradient(colors:[Color(0x50687A98),Color(0x1B687A98),Colors.transparent],stops:[0,.46,1]).createShader(Rect.fromCircle(center:c,radius:r*1.43)));
     canvas.drawCircle(c,r*1.035,Paint()..shader=const RadialGradient(center:Alignment(-.52,-.58),radius:1.08,colors:[Color(0xFFE0D4C3),Color(0xFF918A88),Color(0xFF555660),Color(0xFF1C1F29),Color(0xFF04060B)],stops:[0,.14,.38,.71,1]).createShader(sphere));
     canvas.save();canvas.clipPath(Path()..addOval(sphere));
 
-    // Uneven continental regions: different sizes, positions and rotations make one connected planet instead of four quadrants.
+    // Geographic territories are projected onto the globe: far-surface regions become
+    // narrower, while the centre remains broad. This removes the flat four-panel look.
     for(var i=0;i<4;i++){
       final tc=c+Offset(centers[i].dx*r,centers[i].dy*r),w=r*sizes[i].dx,h=r*sizes[i].dy;
+      final depth=(tc.dy-c.dy)/r;
+      final perspective=.78+.22*(1-depth.abs());
       final active=selected==null?.30:selected==i?.68:.010;
-      final path=_territory(tc,w,h,(i.isEven?.16:-.28)+(i==1?.14:0),700+i*19);
+      final path=_territory(tc,w*perspective,h*perspective,(i.isEven?.16:-.28)+(i==1?.14:0),700+i*19);
       canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:active));
       canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=r*(selected==i?.012:.005)..color=colors[i].withValues(alpha:selected==i?.82:.13));
-      for(var q=1;q<=8;q++){
+      for(var q=1;q<=7;q++){
         final scale=1-q*.085;
-        final inner=_territory(tc+Offset(-r*.012*q,r*.006*q),w*scale,h*scale,(i.isEven?.16:-.28)+(i==1?.14:0),700+i*19+q*13);
+        final inner=_territory(tc+Offset(-r*.012*q,r*.006*q),w*perspective*scale,h*perspective*scale,(i.isEven?.16:-.28)+(i==1?.14:0),700+i*19+q*13);
         canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0032..color=Colors.white.withValues(alpha:selected==i?.080:.012));
       }
     }
 
-    // Natural transition bands cross the regions so the borders feel geographic rather than graphic UI panels.
-    for(var i=0;i<7;i++){
-      final rr=r*(.35+i*.085);
-      final rect=Rect.fromCircle(center:c+Offset(-r*.025,r*.02),radius:rr);
-      canvas.drawArc(rect,.35+i*.23,1.20, false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.004..color=Colors.white.withValues(alpha:.012));
+    // Longitude/latitude structure bends around the sphere and is deliberately subtle.
+    for(var i=0;i<9;i++){
+      final t=-.82+i*.205;
+      final half=r*math.sqrt(math.max(0,1-t*t));
+      canvas.drawOval(Rect.fromCenter(center:Offset(c.dx+t*r*.20,c.dy),width:half*1.45,height:r*.035),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.003..color=Colors.white.withValues(alpha:.012));
     }
-    for(var i=0;i<13;i++){
-      final y=c.dy-r*.70+i*r*.115;
-      canvas.drawArc(Rect.fromCenter(center:Offset(c.dx-r*.03,y),width:r*1.86,height:r*.16),.10,.80*math.pi,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.006..color=Colors.white.withValues(alpha:.011));
+    for(var i=0;i<8;i++){
+      final t=-.72+i*.205;
+      final half=r*math.sqrt(math.max(0,1-t*t));
+      canvas.drawArc(Rect.fromCenter(center:Offset(c.dx,c.dy+t*r*.08),width:r*1.92,height:half*1.18),math.pi*.06,math.pi*.88,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.004..color=Colors.white.withValues(alpha:.014));
     }
-    for(var i=0;i<190;i++){
+
+    // Low-contrast relief: elevation ridges follow territory contours instead of becoming icons.
+    for(var i=0;i<42;i++){
+      final a=rnd.nextDouble()*math.pi*2, rr=r*(.18+rnd.nextDouble()*.68);
+      final px=c.dx+math.cos(a)*rr, py=c.dy+math.sin(a)*rr*.74;
+      final len=r*(.018+rnd.nextDouble()*.055);
+      canvas.drawArc(Rect.fromCenter(center:Offset(px,py),width:len*2.5,height:len),a-.7,1.15,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0024..color=Colors.white.withValues(alpha:.018));
+    }
+    for(var i=0;i<150;i++){
       final x=c.dx+(rnd.nextDouble()*2-1)*r*.89,y=c.dy+(rnd.nextDouble()*2-1)*r*.83;
-      canvas.drawCircle(Offset(x,y),r*(.0007+rnd.nextDouble()*.004),Paint()..color=Colors.white.withValues(alpha:.007+rnd.nextDouble()*.027));
+      canvas.drawCircle(Offset(x,y),r*(.0007+rnd.nextDouble()*.004),Paint()..color=Colors.white.withValues(alpha:.006+rnd.nextDouble()*.022));
     }
     canvas.restore();
 
+    // A soft terminator creates actual depth rather than a uniformly lit disk.
     final shadow=c+Offset(r*.57,r*.09);
     canvas.drawCircle(shadow,r*.94,Paint()..shader=RadialGradient(colors:[Colors.transparent,Colors.black.withValues(alpha:.84)],stops:[.27,1]).createShader(Rect.fromCircle(center:shadow,radius:r*.94)));
     canvas.drawArc(Rect.fromCircle(center:c,radius:r*1.008),math.pi*.59,math.pi*.91,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.012..color=Colors.white.withValues(alpha:.27));
     canvas.drawArc(Rect.fromCircle(center:c+Offset(-r*.04,-r*.04),radius:r*.96),math.pi,math.pi*.45,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.028..color=Colors.white.withValues(alpha:.035));
+    // Foreground atmospheric depth: brighter on the lit limb, almost invisible on the night side.
+    canvas.drawArc(Rect.fromCircle(center:c,radius:r*1.018),math.pi*1.06,math.pi*.82,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.018..color=const Color(0x558CA4C7));
   }
 
   Path _territory(Offset center,double width,double height,double rotation,int seed){final rnd=math.Random(seed),pts=<Offset>[];const n=22;for(var i=0;i<n;i++){final a=i/n*math.pi*2;final wave=math.sin(a*2+seed)*.13+math.sin(a*3.7+seed*.17)*.075+math.sin(a*6.2+seed*.09)*.035;final rad=.80+wave+rnd.nextDouble()*.10;final x=math.cos(a)*width*.5*rad,y=math.sin(a)*height*.5*(.90+.10*math.sin(a*2.3+seed));final xr=x*math.cos(rotation)-y*math.sin(rotation),yr=x*math.sin(rotation)+y*math.cos(rotation);pts.add(Offset(center.dx+xr,center.dy+yr));}final p=Path()..moveTo(pts[0].dx,pts[0].dy);for(var i=0;i<n;i++){final a=pts[i],b=pts[(i+1)%n],m=Offset((a.dx+b.dx)/2,(a.dy+b.dy)/2);p.quadraticBezierTo(a.dx,a.dy,m.dx,m.dy);}p.close();return p;}
