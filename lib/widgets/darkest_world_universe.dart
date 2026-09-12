@@ -54,7 +54,7 @@ class _GalaxyPlanets extends StatelessWidget {
 class _Planet extends StatelessWidget {
   final GalaxyWorld world; final double size; final bool muted; final bool selected; final VoidCallback onTap;
   const _Planet({required this.world,required this.size,required this.muted,required this.selected,required this.onTap});
-  @override Widget build(BuildContext context){final accent=world.kind==GalaxyWorldKind.vegeta?const Color(0xFF9D7AC6):const Color(0xFF7185A6);return GestureDetector(onTap:onTap,child:Opacity(opacity:muted ? .18 : 1,child:Transform.scale(scale:selected ? 1.12 : 1,child:SizedBox(width:size,child:Column(mainAxisSize:MainAxisSize.min,children:[SizedBox(width:size,height:size,child:CustomPaint(painter:_WorldPlanetPainter(seed:world.kind.index+21,accent:accent,selected:selected))),const SizedBox(height:7),Text(world.title,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:selected?Colors.white:Colors.white70,fontSize:world.kind==GalaxyWorldKind.vegeta?11:8,letterSpacing:world.kind==GalaxyWorldKind.vegeta?3:1.7,fontWeight:selected?FontWeight.w400:FontWeight.w300))])))));}
+  @override Widget build(BuildContext context){final accent=world.kind==GalaxyWorldKind.vegeta?const Color(0xFF9D7AC6):const Color(0xFF7185A6);return GestureDetector(onTap:onTap,child:Opacity(opacity:muted ? .18 : 1,child:TweenAnimationBuilder<double>(tween:Tween(begin:1,end:selected?1.12:1),duration:const Duration(milliseconds:420),curve:Curves.easeOutCubic,builder:(context,scale,child)=>Transform.scale(scale:scale,child:child),child:SizedBox(width:size,child:Column(mainAxisSize:MainAxisSize.min,children:[SizedBox(width:size,height:size,child:CustomPaint(painter:_WorldPlanetPainter(seed:world.kind.index+21,accent:accent,selected:selected))),const SizedBox(height:7),Text(world.title,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:selected?Colors.white:Colors.white70,fontSize:world.kind==GalaxyWorldKind.vegeta?11:8,letterSpacing:world.kind==GalaxyWorldKind.vegeta?3:1.7,fontWeight:selected?FontWeight.w400:FontWeight.w300))])))));}
 }
 class _WorldPlanetPainter extends CustomPainter {
   final int seed; final Color accent; final bool selected; const _WorldPlanetPainter({required this.seed,required this.accent,required this.selected});
@@ -90,17 +90,20 @@ class _SelectionPanel extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xE6090914),
+        gradient: const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xEA151321),Color(0xE8080912)]),
         border: Border.all(color: Colors.white12),
         borderRadius: BorderRadius.circular(18),
+        boxShadow: const [BoxShadow(color:Color(0x55000000),blurRadius:28,offset:Offset(0,14))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(world.title, style: const TextStyle(color: Colors.white, fontSize: 16, letterSpacing: 2)),
-          const SizedBox(height: 8),
-          Text(world.description, style: const TextStyle(color: Colors.white54)),
+          Row(children:[Expanded(child:Text(world.title,style:const TextStyle(color:Colors.white,fontSize:16,letterSpacing:2))),IconButton(onPressed:onClose,icon:const Icon(Icons.close,size:17,color:Colors.white54),tooltip:'Sluiten')]),
+          const SizedBox(height:4),
+          Container(height:1,width:42,color:Colors.white24),
+          const SizedBox(height:10),
+          Text(world.description, style: const TextStyle(color: Colors.white54,height:1.35)),
           const SizedBox(height: 14),
           Row(
             children: [
