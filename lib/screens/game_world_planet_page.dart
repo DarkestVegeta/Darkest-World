@@ -4,41 +4,34 @@ import 'game_platform_page.dart';
 
 class GameWorldPlanetPage extends StatefulWidget { const GameWorldPlanetPage({super.key}); @override State<GameWorldPlanetPage> createState()=>_GameWorldPlanetPageState(); }
 class _TerritoryData { final String name,description; final List<GamePlatformGroup> groups; _TerritoryData(this.name,this.description,this.groups); }
-
 class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>{
   int? selected;
   late final territories=<_TerritoryData>[
     _TerritoryData('NINTENDO','Nintendo generations.',[GamePlatformGroup('HOME CONSOLES','Home generations.',[GamePlatform('NES',[18]),GamePlatform('SNES',[19]),GamePlatform('N64',[4]),GamePlatform('GameCube',[21]),GamePlatform('Wii',[5]),GamePlatform('Wii U',[41]),GamePlatform('Switch',[130])]),GamePlatformGroup('HANDHELD','Portable generations.',[GamePlatform('Game Boy',[33]),GamePlatform('Game Boy Color',[22]),GamePlatform('Game Boy Advance',[24]),GamePlatform('DS',[20]),GamePlatform('3DS',[37])])]),
     _TerritoryData('SEGA','Sega generations.',[GamePlatformGroup('CONSOLES','Console generations.',[GamePlatform('Master System',[64]),GamePlatform('Mega Drive',[29]),GamePlatform('Saturn',[32]),GamePlatform('Dreamcast',[23])]),GamePlatformGroup('PORTABLE','Portable generation.',[GamePlatform('Game Gear',[35])])]),
     _TerritoryData('PLAYSTATION','PlayStation generations.',[GamePlatformGroup('GENERATIONS','Main generations.',[GamePlatform('PlayStation',[7]),GamePlatform('PlayStation 2',[8]),GamePlatform('PlayStation 3',[9]),GamePlatform('PlayStation 4',[48]),GamePlatform('PlayStation 5',[167])])]),
-    _TerritoryData('XBOX','Xbox generations.',[GamePlatformGroup('GENERATIONS','Main generations.',[GamePlatform('Xbox',[11]),GamePlatform('Xbox 360',[12]),GamePlatform('Xbox One',[49]),GamePlatform('Xbox Series',[169])])])
-  ];
+    _TerritoryData('XBOX','Xbox generations.',[GamePlatformGroup('GENERATIONS','Main generations.',[GamePlatform('Xbox',[11]),GamePlatform('Xbox 360',[12]),GamePlatform('Xbox One',[49]),GamePlatform('Xbox Series',[169])])])];
   void enter(int i)=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>GamePlatformPage(territory:territories[i].name,groups:territories[i].groups)));
   @override Widget build(BuildContext context)=>Scaffold(backgroundColor:const Color(0xFF010307),body:LayoutBuilder(builder:(context,box){final compact=box.maxWidth<760,d=math.min(box.maxWidth*.82,box.maxHeight*.82);return Stack(children:[Positioned.fill(child:CustomPaint(painter:_GameSpacePainter())),SafeArea(child:Padding(padding:EdgeInsets.all(compact?14:28),child:Row(children:[IconButton(onPressed:()=>Navigator.of(context).pop(),icon:const Icon(Icons.arrow_back_ios_new,size:16)),const SizedBox(width:10),const Text('GAME-WORLD',style:TextStyle(fontSize:16,letterSpacing:4)),const Spacer(),const Text('WORLD',style:TextStyle(fontSize:8,letterSpacing:3,color:Colors.white30))]))),Center(child:SizedBox(width:d,height:d,child:GestureDetector(onTapUp:(e){final h=_hit(e.localPosition,d);if(h!=null)setState(()=>selected=selected==h?null:h);},child:CustomPaint(painter:_GamePlanetPainter(selected:selected),child:Stack(children:[_label('NINTENDO',.28,.29,0,d),_label('SEGA',.72,.29,1,d),_label('PLAYSTATION',.28,.71,2,d),_label('XBOX',.72,.71,3,d),Center(child:Opacity(opacity:selected==null?1:.18,child:const Text('GAME-WORLD',style:TextStyle(fontSize:12,letterSpacing:5,color:Colors.white54))))]))))),if(selected!=null)Positioned(left:compact?14:30,right:compact?14:30,bottom:compact?45:58,child:Center(child:Container(padding:const EdgeInsets.all(16),constraints:const BoxConstraints(maxWidth:620),decoration:BoxDecoration(color:const Color(0xE6090913),borderRadius:BorderRadius.circular(16),border:Border.all(color:const Color(0x337F70B0))),child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(territories[selected!].name,style:const TextStyle(fontSize:13,letterSpacing:3)),const SizedBox(height:5),Text(territories[selected!].description,style:const TextStyle(fontSize:9,color:Colors.white38))])),TextButton(onPressed:()=>enter(selected!),child:const Text('ENTER'))])))),Positioned(left:compact?16:30,bottom:compact?18:26,child:Text(selected==null?'SELECT A REGION':'SELECTED REGION  •  ENTER TO OPEN',style:const TextStyle(fontSize:8,letterSpacing:2.4,color:Colors.white24))) ]);}));
-  Widget _label(String text,double x,double y,int i,double d){final a=(selected==null||selected==i)?.72:.13;return Positioned(left:d*x-80,top:d*y-22,width:160,child:IgnorePointer(child:Center(child:Text(text,style:TextStyle(fontSize:selected==i?11:9,letterSpacing:2.4,color:Colors.white.withValues(alpha:a))))));}
+  Widget _label(String text,double x,double y,int i,double d){final a=(selected==null||selected==i)? .72 : .13;return Positioned(left:d*x-80,top:d*y-22,width:160,child:IgnorePointer(child:Center(child:Text(text,style:TextStyle(fontSize:selected==i?11:9,letterSpacing:2.4,color:Colors.white.withValues(alpha:a))))));}
   int? _hit(Offset p,double d){final o=Offset(d/2,d/2),r=d*.49;const centers=[Offset(-.29,-.25),Offset(.29,-.25),Offset(-.29,.26),Offset(.29,.26)];for(var i=0;i<4;i++){final q=o+Offset(centers[i].dx*r,centers[i].dy*r);if((p-q).distance<r*.30)return i;}return null;}
 }
-
 class _GamePlanetPainter extends CustomPainter{
   final int? selected; const _GamePlanetPainter({required this.selected});
-  static const centers=[Offset(-.29,-.25),Offset(.29,-.25),Offset(-.29,.26),Offset(.29,.26)];
-  static const colors=[Color(0xFF9175A9),Color(0xFF66829A),Color(0xFF786C98),Color(0xFF5D847A)];
+  static const centers=[Offset(-.29,-.25),Offset(.29,-.25),Offset(-.29,.26),Offset(.29,.26)]; static const colors=[Color(0xFF9175A9),Color(0xFF66829A),Color(0xFF786C98),Color(0xFF5D847A)];
   @override void paint(Canvas canvas,Size size){
     final c=Offset(size.width*.5,size.height*.5),r=size.shortestSide*.47,sphere=Rect.fromCircle(center:c,radius:r);
     canvas.drawCircle(c,r*1.22,Paint()..shader=const RadialGradient(colors:[Color(0x335E7396),Color(0x145E7396),Colors.transparent],stops:[0,.5,1]).createShader(Rect.fromCircle(center:c,radius:r*1.22)));
     canvas.drawCircle(c,r,Paint()..shader=const RadialGradient(center:Alignment(-.45,-.55),radius:1.12,colors:[Color(0xFFB1A9A8),Color(0xFF6E6C76),Color(0xFF303540),Color(0xFF07090F)],stops:[0,.30,.67,1]).createShader(sphere));
-    canvas.save();canvas.clipPath(Path()..addOval(sphere));
-    final rnd=math.Random(442);
+    canvas.save();canvas.clipPath(Path()..addOval(sphere)); final rnd=math.Random(442);
     for(var i=0;i<4;i++){
-      final tc=c+Offset(centers[i].dx*r,centers[i].dy*r),active=selected==null?.27:(selected==i?.62:.035);
-      final path=_territory(tc,r*.31,r*.22,(i-.5)*.45,rnd);
-      canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:active));
-      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=selected==i?2:1..color=colors[i].withValues(alpha:selected==i?.72:.18));
-      for(var q=1;q<=3;q++) canvas.drawPath(_territory(Offset(tc.dx-r*.018*q,tc.dy+r*.012*q),r*.31*(1-q*.14),r*.22*(1-q*.14),(i-.5)*.45,rnd),Paint()..style=PaintingStyle.stroke..strokeWidth=.55..color=Colors.white.withValues(alpha:selected==i?.10:.035));
+      final tc=c+Offset(centers[i].dx*r,centers[i].dy*r); final active=selected==null ? .27 : (selected==i ? .62 : .035);
+      final path=_territory(tc,r*.31,r*.22,(i-.5)*.45,rnd); canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:active));
+      canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=selected==i?2:1..color=colors[i].withValues(alpha:selected==i ? .72 : .18));
+      for(var q=1;q<=3;q++) canvas.drawPath(_territory(Offset(tc.dx-r*.018*q,tc.dy+r*.012*q),r*.31*(1-q*.14),r*.22*(1-q*.14),(i-.5)*.45,rnd),Paint()..style=PaintingStyle.stroke..strokeWidth=.55..color=Colors.white.withValues(alpha:selected==i ? .10 : .035));
     }
     for(var i=0;i<48;i++){final p=Offset(c.dx+(rnd.nextDouble()*2-1)*r*.82,c.dy+(rnd.nextDouble()*2-1)*r*.72);canvas.drawCircle(p,r*(.002+rnd.nextDouble()*.008),Paint()..color=Colors.white.withValues(alpha:.035+rnd.nextDouble()*.04));}
-    canvas.restore();
-    final sh=c+Offset(r*.46,r*.08);canvas.drawCircle(sh,r*.86,Paint()..shader=RadialGradient(colors:[Colors.transparent,Colors.black.withValues(alpha:.69)],stops:const[.42,1]).createShader(Rect.fromCircle(center:sh,radius:r*.86)));
+    canvas.restore(); final sh=c+Offset(r*.46,r*.08); canvas.drawCircle(sh,r*.86,Paint()..shader=RadialGradient(colors:[Colors.transparent,Colors.black.withValues(alpha:.69)],stops:const[.42,1]).createShader(Rect.fromCircle(center:sh,radius:r*.86)));
     canvas.drawArc(Rect.fromCircle(center:c,radius:r*1.005),math.pi*.60,math.pi*.88,false,Paint()..style=PaintingStyle.stroke..strokeWidth=1.25..color=Colors.white.withValues(alpha:.22));
   }
   Path _territory(Offset c,double w,double h,double rot,math.Random rnd){final p=Path();for(var j=0;j<17;j++){final a=j/17*math.pi*2,wob=.78+rnd.nextDouble()*.40;var x=math.cos(a)*w*.5*wob,y=math.sin(a)*h*.5*wob;final xr=x*math.cos(rot)-y*math.sin(rot),yr=x*math.sin(rot)+y*math.cos(rot);if(j==0)p.moveTo(c.dx+xr,c.dy+yr);else p.lineTo(c.dx+xr,c.dy+yr);}p.close();return p;}
