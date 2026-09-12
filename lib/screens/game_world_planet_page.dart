@@ -77,20 +77,28 @@ class _GamePlanetPainter extends CustomPainter {
     for(var i=0;i<4;i++){
       final tc=c+Offset(centers[i].dx*r,centers[i].dy*r),w=r*sizes[i].dx,h=r*sizes[i].dy;
       final depth=(tc.dy-c.dy)/r;
-      final perspective=.78+.22*(1-depth.abs());
+      final side=(tc.dx-c.dx)/r;
+      final latitudeCurve=1-.12*depth.abs();
+      final globeCurve=.86+.14*math.sqrt(math.max(.05,1-side*side));
+      final perspective=.72+.28*(1-depth.abs());
       final rotation=(i.isEven?.16:-.28)+(i==1?.14:0);
       final active=selected==null?.30:selected==i?.68:.010;
-      final path=_territory(tc,w*perspective,h*perspective,rotation,700+i*19);
-      final shadow=_territory(tc+Offset(r*.014,r*.020),w*perspective*1.015,h*perspective*1.015,rotation,700+i*19);
+      final projectedCenter=tc+Offset(-side*r*.035,depth*r*.018);
+      final projectedW=w*perspective*globeCurve;
+      final projectedH=h*perspective*latitudeCurve;
+      final path=_territory(projectedCenter,projectedW,projectedH,rotation,700+i*19);
+      final shadow=_territory(projectedCenter+Offset(r*.014,r*.020),projectedW*1.015,projectedH*1.015,rotation,700+i*19);
       canvas.drawPath(shadow,Paint()..color=Colors.black.withValues(alpha:selected==i?.20:.10));
       canvas.drawPath(path,Paint()..color=colors[i].withValues(alpha:active));
       canvas.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=r*(selected==i?.014:.006)..color=Colors.white.withValues(alpha:selected==i?.34:.055));
       canvas.drawPath(_offsetPath(path,Offset(r*.008,r*.010)),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.005..color=Colors.black.withValues(alpha:selected==i?.25:.075));
       for(var q=1;q<=7;q++){
         final scale=1-q*.085;
-        final inner=_territory(tc+Offset(-r*.012*q,r*.006*q),w*perspective*scale,h*perspective*scale,rotation,700+i*19+q*13);
+        final inner=_territory(projectedCenter+Offset(-r*.012*q,r*.006*q),projectedW*scale,projectedH*scale,rotation,700+i*19+q*13);
         canvas.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0032..color=Colors.white.withValues(alpha:selected==i?.080:.012));
       }
+      final contour=_territory(projectedCenter+Offset(-side*r*.018,depth*r*.012),projectedW*.96,projectedH*.92,rotation,1200+i*31);
+      canvas.drawPath(contour,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.0042..color=Colors.black.withValues(alpha:selected==i?.16:.045));
     }
     for(var i=0;i<9;i++){
       final t=-.82+i*.205;
