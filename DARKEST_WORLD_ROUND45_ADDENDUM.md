@@ -8,3 +8,10 @@
 - Preserved Nintendo / Sega / PlayStation / Xbox navigation and procedural visuals.
 - Changes committed in `8d1f86e884d782ff7e97059999932238efd24a6f`.
 - CI must pass Analyze → Test → Web Build → Pages Deploy before the site is considered viewable.
+
+## GO 28 — CI-driven syntax repair
+- CI exposed 32 remaining Dart analyzer errors in the four affected rendering screens/widgets.
+- Repaired invalid `?.number` conditional expressions to valid ternary expressions.
+- Repaired the Game Library `Container` constructor to use named arguments.
+- Kept procedural rendering and platform/world navigation intact.
+- This round is committed together with the code fixes so CI tests the exact logged state.
