@@ -15,7 +15,8 @@ class GalaxyWorld {
 class DarkestWorldUniverse extends StatefulWidget {
   final List<GalaxyWorld> worlds;
   final ValueChanged<GalaxyWorld>? onWorldTap;
-  const DarkestWorldUniverse({super.key, required this.worlds, this.onWorldTap});
+  final ValueChanged<GalaxyWorld>? onWorldSelect;
+  const DarkestWorldUniverse({super.key, required this.worlds, this.onWorldTap, this.onWorldSelect});
   @override State<DarkestWorldUniverse> createState() => _UniverseState();
 }
 
@@ -29,13 +30,15 @@ class _UniverseState extends State<DarkestWorldUniverse> with SingleTickerProvid
   bool labels = true;
   bool detail = true;
   bool safeMode = false;
+  bool locked = false;
 
   @override void dispose() { clock.dispose(); super.dispose(); }
 
   void select(int index, {bool open = false}) {
     if (index < 0 || index >= widget.worlds.length) return;
-    setState(() => selected = selected == index ? null : index);
-    if (open && selected != null) widget.onWorldTap?.call(widget.worlds[index]);
+    setState(() { selected = index; locked = true; });
+    widget.onWorldSelect?.call(widget.worlds[index]);
+    if (open) visitSelected();
   }
 
   void move(int delta) {
@@ -47,10 +50,11 @@ class _UniverseState extends State<DarkestWorldUniverse> with SingleTickerProvid
 
   void visitSelected() {
     final index = selected;
-    if (index != null && index >= 0 && index < widget.worlds.length) widget.onWorldTap?.call(widget.worlds[index]);
+    if (index == null || index < 0 || index >= widget.worlds.length) return;
+    widget.onWorldTap?.call(widget.worlds[index]);
   }
 
-  void cycleSelection(int delta) => move(delta);
+  void resetTarget() => setState(() { selected = null; locked = false; });
 
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
@@ -70,7 +74,7 @@ class _UniverseState extends State<DarkestWorldUniverse> with SingleTickerProvid
     if (key == LogicalKeyboardKey.keyD) { setState(() => detail = !detail); return KeyEventResult.handled; }
     if (key == LogicalKeyboardKey.keyS) { setState(() => safeMode = !safeMode); return KeyEventResult.handled; }
     if (key == LogicalKeyboardKey.space) { setState(() => autoOrbit = !autoOrbit); return KeyEventResult.handled; }
-    if (key == LogicalKeyboardKey.escape) { setState(() => selected = null); return KeyEventResult.handled; }
+    if (key == LogicalKeyboardKey.escape) { resetTarget(); return KeyEventResult.handled; }
     return KeyEventResult.ignored;
   }
 
@@ -82,46 +86,42 @@ class _UniverseState extends State<DarkestWorldUniverse> with SingleTickerProvid
         onPointerSignal: (event) { if (event is PointerScrollEvent) setState(() => zoom = (zoom - event.scrollDelta.dy * .00065).clamp(.65, 1.7).toDouble()); },
         child: GestureDetector(
           onPanUpdate: (details) { if (!autoOrbit && !map) setState(() => manualPhase += details.delta.dx / math.max(220, MediaQuery.sizeOf(context).width)); },
-          onDoubleTap: () => setState(() { zoom = 1; manualPhase = 0; selected = null; }),
+          onDoubleTap: () => setState(() { zoom = 1; manualPhase = 0; selected = null; locked = false; }),
           child: AnimatedBuilder(
             animation: clock,
             builder: (_, __) {
               final phase = autoOrbit ? clock.value * math.pi * 2 : manualPhase;
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  CustomPaint(painter: SpacePainter(clock.value, safeMode: safeMode)),
-                  if (map) MapView(worlds: widget.worlds, selected: selected, onSelect: (i) => select(i, open: true))
-                  else OrbitView(worlds: widget.worlds, phase: phase, selected: selected, labels: labels, zoom: zoom, detail: detail, safeMode: safeMode, onSelect: (i) => select(i, open: true)),
-                  Positioned(left: 18, top: 18, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('DARKESTWORLD', style: TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 5, fontWeight: FontWeight.w300)),
-                    const SizedBox(height: 7),
-                    Text(map ? 'MAP VIEW' : 'GALAXY VIEW', style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 7, letterSpacing: 2.2)),
-                  ])),
-                  if (selected != null) Positioned(right: 18, bottom: 58, child: WorldPanel(
-                    world: widget.worlds[selected!],
-                    onPrevious: () => cycleSelection(-1),
-                    onCurrent: visitSelected,
-                    onNext: () => cycleSelection(1),
-                    onEnter: visitSelected,
-                    onClose: () => setState(() => selected = null),
-                  )),
-                  Positioned(left: 18, bottom: 16, child: Hud(worlds: widget.worlds.length, selected: selected, zoom: zoom, map: map, orbit: autoOrbit, detail: detail, safeMode: safeMode)),
-                  Positioned(right: 18, bottom: 16, child: Row(children: [
-                    Control(label: autoOrbit ? 'ORBIT ON' : 'ORBIT OFF', onTap: () => setState(() => autoOrbit = !autoOrbit)),
-                    const SizedBox(width: 5), Control(label: map ? 'PLANET' : 'MAP', onTap: () => setState(() => map = !map)),
-                    const SizedBox(width: 5), Control(label: labels ? 'LABELS' : 'NO LABELS', onTap: () => setState(() => labels = !labels)),
-                    const SizedBox(width: 5), Control(label: detail ? 'DETAIL ON' : 'DETAIL OFF', onTap: () => setState(() => detail = !detail)),
-                    const SizedBox(width: 5), Control(label: safeMode ? 'SAFE ON' : 'SAFE OFF', onTap: () => setState(() => safeMode = !safeMode)),
-                    const SizedBox(width: 5), Control(label: 'PAUSE', onTap: () => setState(() => autoOrbit = false)),
-                    const SizedBox(width: 5), Control(label: 'MOTION', onTap: () => setState(() => autoOrbit = !autoOrbit)),
-                    const SizedBox(width: 5), Control(label: 'RESET', onTap: () => setState(() { zoom = 1; manualPhase = 0; selected = null; autoOrbit = true; })),
-                    const SizedBox(width: 5), Control(label: '−', onTap: () => setState(() => zoom = math.max(.65, zoom - .1))),
-                    const SizedBox(width: 3), Control(label: '+', onTap: () => setState(() => zoom = math.min(1.7, zoom + .1))),
-                  ])),
-                  Positioned(left: 18, top: 58, child: Text('← → SELECT  •  ENTER VISIT  •  M MAP  •  L LABELS  •  D DETAIL  •  S SAFE  •  SPACE MOTION', style: const TextStyle(color: Color(0x36FFFFFF), fontSize: 5.5, letterSpacing: .8))),
-                ],
-              );
+              final target = selected == null ? null : widget.worlds[selected!];
+              return Stack(fit: StackFit.expand, children: [
+                CustomPaint(painter: SpacePainter(clock.value, safeMode: safeMode)),
+                if (map)
+                  MapView(worlds: widget.worlds, selected: selected, onSelect: (i) => select(i, open: true))
+                else
+                  OrbitView(worlds: widget.worlds, phase: phase, selected: selected, labels: labels, zoom: zoom, detail: detail, safeMode: safeMode, onSelect: (i) => select(i, open: true)),
+                Positioned(left: 18, top: 18, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('DARKESTWORLD', style: TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 5, fontWeight: FontWeight.w300)),
+                  const SizedBox(height: 7),
+                  Text(map ? 'MAP VIEW' : 'GALAXY VIEW', style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 7, letterSpacing: 2.2)),
+                  const SizedBox(height: 5),
+                  Text(target == null ? 'NO TARGET LOCK' : 'TARGET LOCK / ${target.title}', style: TextStyle(color: target == null ? const Color(0x44FFFFFF) : const Color(0xAAFFFFFF), fontSize: 6, letterSpacing: 1.4)),
+                ])),
+                if (selected != null) Positioned(right: 18, bottom: 58, child: WorldPanel(
+                  world: widget.worlds[selected!], locked: locked,
+                  onPrevious: () => move(-1), onCurrent: visitSelected, onNext: () => move(1), onEnter: visitSelected, onClose: resetTarget,
+                )),
+                Positioned(left: 18, bottom: 16, child: Hud(worlds: widget.worlds.length, selected: selected, zoom: zoom, map: map, orbit: autoOrbit, detail: detail, safeMode: safeMode, locked: locked)),
+                Positioned(right: 18, bottom: 16, child: Row(children: [
+                  Control(label: autoOrbit ? 'ORBIT ON' : 'ORBIT OFF', onTap: () => setState(() => autoOrbit = !autoOrbit)),
+                  const SizedBox(width: 5), Control(label: map ? 'PLANET' : 'MAP', onTap: () => setState(() => map = !map)),
+                  const SizedBox(width: 5), Control(label: labels ? 'LABELS' : 'NO LABELS', onTap: () => setState(() => labels = !labels)),
+                  const SizedBox(width: 5), Control(label: detail ? 'DETAIL ON' : 'DETAIL OFF', onTap: () => setState(() => detail = !detail)),
+                  const SizedBox(width: 5), Control(label: safeMode ? 'SAFE ON' : 'SAFE OFF', onTap: () => setState(() => safeMode = !safeMode)),
+                  const SizedBox(width: 5), Control(label: 'RESET', onTap: () => setState(() { zoom = 1; manualPhase = 0; selected = null; locked = false; autoOrbit = true; })),
+                  const SizedBox(width: 5), Control(label: '−', onTap: () => setState(() => zoom = math.max(.65, zoom - .1))),
+                  const SizedBox(width: 3), Control(label: '+', onTap: () => setState(() => zoom = math.min(1.7, zoom + .1))),
+                ])),
+                Positioned(left: 18, top: 78, child: Text('← → SELECT  •  ENTER VISIT  •  M MAP  •  L LABELS  •  D DETAIL  •  S SAFE  •  SPACE MOTION', style: const TextStyle(color: Color(0x36FFFFFF), fontSize: 5.5, letterSpacing: .8))),
+              ]);
             },
           ),
         ),
@@ -165,7 +165,7 @@ class Node extends StatelessWidget {
     final base = detail ? 38.0 : 32.0;
     final size = (base + depth * (detail ? 22 : 14) + (selected ? (detail ? 18 : 12) : 0)) * zoom;
     return Align(alignment: Alignment(x * 2 - 1, y * 2 - 1), child: Semantics(label: world.title, button: true, selected: selected, child: GestureDetector(onTap: onTap, child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, gradient: const RadialGradient(colors: [Color(0xFF77718D), Color(0xFF211D32), Color(0xFF05060C)]), border: Border.all(color: selected ? const Color(0xCCFFFFFF) : const Color(0x445F5870)), boxShadow: selected && detail && !safeMode ? const [BoxShadow(color: Color(0x555D4F79), blurRadius: 24)] : const [])),
+      AnimatedContainer(duration: const Duration(milliseconds: 180), width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, gradient: const RadialGradient(colors: [Color(0xFF77718D), Color(0xFF211D32), Color(0xFF05060C)]), border: Border.all(color: selected ? const Color(0xCCFFFFFF) : const Color(0x445F5870), width: selected ? 1.5 : 1), boxShadow: selected && detail && !safeMode ? const [BoxShadow(color: Color(0x555D4F79), blurRadius: 24)] : const [])),
       if (labels) Text(world.title.toUpperCase(), style: TextStyle(color: selected ? Colors.white : const Color(0x99FFFFFF), fontSize: selected ? (detail ? 8 : 7) : 6, letterSpacing: 1.3)),
     ]))));
   }
@@ -185,10 +185,10 @@ class MapView extends StatelessWidget {
 }
 
 class WorldPanel extends StatelessWidget {
-  final GalaxyWorld world; final VoidCallback onPrevious, onCurrent, onNext, onEnter, onClose;
-  const WorldPanel({super.key, required this.world, required this.onPrevious, required this.onCurrent, required this.onNext, required this.onEnter, required this.onClose});
-  @override Widget build(BuildContext context) => Container(width: 300, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xE8070910), border: Border.all(color: const Color(0x44FFFFFF))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Text('TARGET LOCK', style: TextStyle(color: Color(0x66FFFFFF), fontSize: 6, letterSpacing: 2)), const SizedBox(height: 7),
+  final GalaxyWorld world; final bool locked; final VoidCallback onPrevious, onCurrent, onNext, onEnter, onClose;
+  const WorldPanel({super.key, required this.world, required this.locked, required this.onPrevious, required this.onCurrent, required this.onNext, required this.onEnter, required this.onClose});
+  @override Widget build(BuildContext context) => Container(width: 310, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xE8070910), border: Border.all(color: locked ? const Color(0x667D7399) : const Color(0x44FFFFFF))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(locked ? 'TARGET LOCK / ACQUIRED' : 'TARGET LOCK', style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 6, letterSpacing: 2)), const SizedBox(height: 7),
     Text(world.title.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 13, letterSpacing: 1.5)), const SizedBox(height: 5),
     Text(world.description, style: const TextStyle(color: Color(0x77FFFFFF), fontSize: 7)), const SizedBox(height: 12),
     Row(children: [Expanded(child: Control(label: 'PREVIOUS', onTap: onPrevious)), const SizedBox(width: 4), Expanded(child: Control(label: 'CURRENT', onTap: onCurrent)), const SizedBox(width: 4), Expanded(child: Control(label: 'NEXT', onTap: onNext))]),
@@ -197,13 +197,13 @@ class WorldPanel extends StatelessWidget {
 }
 
 class Hud extends StatelessWidget {
-  final int worlds; final int? selected; final double zoom; final bool map, orbit, detail, safeMode;
-  const Hud({super.key, required this.worlds, required this.selected, required this.zoom, required this.map, required this.orbit, required this.detail, required this.safeMode});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(9), decoration: BoxDecoration(color: const Color(0xB805060D), border: Border.all(color: const Color(0x1AFFFFFF))), child: Text('${map ? 'MAP' : 'GALAXY'} • $worlds WORLDS • ZOOM ${(zoom * 100).round()}% • ${selected == null ? 'SCANNING' : 'TARGET ${selected! + 1}'} • ${orbit ? 'AUTO ORBIT' : 'MANUAL'} • ${detail ? 'DETAIL' : 'LIGHT'} • ${safeMode ? 'SAFE' : 'FULL'}', style: const TextStyle(color: Color(0x59FFFFFF), fontSize: 5.5, letterSpacing: 1)));
+  final int worlds; final int? selected; final double zoom; final bool map, orbit, detail, safeMode, locked;
+  const Hud({super.key, required this.worlds, required this.selected, required this.zoom, required this.map, required this.orbit, required this.detail, required this.safeMode, required this.locked});
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(9), decoration: BoxDecoration(color: const Color(0xB805060D), border: Border.all(color: const Color(0x1AFFFFFF))), child: Text('${map ? 'MAP' : 'GALAXY'}  /  WORLDS $worlds  /  ${selected == null ? 'NO TARGET' : 'TARGET ${selected! + 1}'}  /  ${locked ? 'LOCKED' : 'SCAN'}  /  ZOOM ${(zoom * 100).round()}%  /  ${orbit ? 'AUTO' : 'MANUAL'}  /  ${detail ? 'DETAIL' : 'LIGHT'}  /  ${safeMode ? 'SAFE' : 'FULL'}', style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 5.5, letterSpacing: 1)));
 }
 
 class Control extends StatelessWidget {
   final String label; final VoidCallback onTap;
   const Control({super.key, required this.label, required this.onTap});
-  @override Widget build(BuildContext context) => Semantics(label: label, button: true, child: InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7), decoration: BoxDecoration(color: const Color(0xB805060D), border: Border.all(color: const Color(0x2EFFFFFF))), child: Text(label, style: const TextStyle(color: Color(0x8AFFFFFF), fontSize: 6)))));
+  @override Widget build(BuildContext context) => Material(color: const Color(0xB805060D), child: InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7), decoration: BoxDecoration(border: Border.all(color: const Color(0x22FFFFFF))), child: Text(label, style: const TextStyle(color: Color(0x77FFFFFF), fontSize: 5, letterSpacing: .8)))));
 }
