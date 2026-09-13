@@ -50,11 +50,7 @@ class DarkestWorldApp extends StatelessWidget {
   final bool configurationMissing;
   const DarkestWorldApp({super.key, this.configurationMissing = false});
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: 'Darkest-World',
-        theme: ThemeData.dark(useMaterial3: true),
-        home: configurationMissing ? const _ConfigurationMissingPage() : const _AccessControlledHome(),
-      );
+  Widget build(BuildContext context) => MaterialApp(title: 'Darkest-World', theme: ThemeData.dark(useMaterial3: true), home: configurationMissing ? const _ConfigurationMissingPage() : const _AccessControlledHome());
 }
 
 class _ConfigurationMissingPage extends StatelessWidget {
@@ -90,8 +86,7 @@ class _AccessControlledHomeState extends State<_AccessControlledHome> {
     super.initState();
     _signedIn = Supabase.instance.client.auth.currentUser != null;
     _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      if (!mounted) return;
-      setState(() => _signedIn = data.session != null);
+      if (mounted) setState(() => _signedIn = data.session != null);
     });
   }
 
@@ -104,38 +99,13 @@ class _AccessControlledHomeState extends State<_AccessControlledHome> {
   @override
   Widget build(BuildContext context) {
     if (!DarkestWorldAccessPolicy.canEnterGalaxy(signedIn: _signedIn)) return const GuestModePage();
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const GalaxyHomePage(),
-        Positioned(
-          right: 18,
-          bottom: 18,
-          child: Semantics(
-            button: true,
-            label: 'Open Galaxy Command Center',
-            child: Material(
-              color: const Color(0xE0060710),
-              child: InkWell(
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => GalaxyCommandCenterPage(
-                    worlds: _worlds,
-                    selected: null,
-                    visited: const <GalaxyWorldKind>{},
-                    onOpen: (world) => _openCommandWorld(context, world),
-                  ),
-                )),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-                  decoration: BoxDecoration(border: Border.all(color: Colors.white24), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 18)]),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white70, fontSize: 7, letterSpacing: 1.8)), SizedBox(width: 9), Text('⌘', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 10))]),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+    return Stack(fit: StackFit.expand, children: [
+      const GalaxyHomePage(),
+      Positioned(right: 18, bottom: 18, child: Semantics(button: true, label: 'Open Galaxy Command Center', child: Material(color: const Color(0xE0060710), child: InkWell(
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GalaxyCommandCenterPage(worlds: _worlds, selected: null, visited: const <GalaxyWorldKind>{}, onOpen: (world) => _openCommandWorld(context, world)))),
+        child: Container(padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10), decoration: BoxDecoration(border: Border.all(color: Colors.white24), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 18)]), child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white70, fontSize: 7, letterSpacing: 1.8)), SizedBox(width: 9), Text('⌘', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 10))])),
+      ))),
+    ]);
   }
 
   void _openCommandWorld(BuildContext context, GalaxyWorld world) {
@@ -167,53 +137,25 @@ class _HomePageState extends State<_HomePage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Darkest-World'), backgroundColor: Colors.black.withValues(alpha: 0.35), actions: [IconButton(tooltip: 'Vernieuwen', onPressed: _reloadSections, icon: const Icon(Icons.refresh)), const SizedBox(width: 8)]),
-        body: LivingWorldScene(
-          child: FutureBuilder<List<WorldSection>>(
-            future: _sections,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-              if (snapshot.hasError) return Center(child: Card(color: Colors.black.withValues(alpha: 0.70), child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Worlds laden mislukt: ${snapshot.error}'), const SizedBox(height: 16), OutlinedButton(onPressed: _reloadSections, child: const Text('Opnieuw'))]))));
-              final sections = snapshot.data ?? const <WorldSection>[];
-              if (sections.isEmpty) return const Center(child: Text('Geen worlds beschikbaar.'));
-              return ListView(padding: const EdgeInsets.all(24), children: [
-                Card(color: Colors.black.withValues(alpha: 0.48), child: const Padding(padding: EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Darkest-World', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)), SizedBox(height: 8), Text('Een levende wereld. De werelden en content groeien mee met het systeem.')])),
-                const SizedBox(height: 18),
-                Card(color: Colors.black.withValues(alpha: 0.42), child: Padding(padding: const EdgeInsets.all(18), child: Text('${sections.length} worlds geladen uit Supabase.'))),
-                const SizedBox(height: 24), const Text('Worlds', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)), const SizedBox(height: 12),
-                for (final section in sections) _SectionButton(label: section.name, onTap: () => _openSection(context, section)),
-                const SizedBox(height: 24), const Text('Development', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)), const SizedBox(height: 12),
-                _SectionButton(label: 'DarkestVegeta Visual Hub', onTap: () => _openVisualHub(context)),
-                _SectionButton(label: 'Timeline / Chronology', onTap: () => _openTimeline(context)),
-                _SectionButton(label: 'Suggestions', onTap: () => _openSuggestions(context)),
-                _SectionButton(label: 'Gallery', onTap: () => _openGallery(context)),
-                _SectionButton(label: '10-Artbox Test Lab', onTap: () => _openTestLab(context)),
-                _SectionButton(label: 'World Status', onTap: () => _openStatus(context)),
-              ]);
-            },
-          ),
-        ),
-      );
+    appBar: AppBar(title: const Text('Darkest-World'), backgroundColor: Colors.black.withValues(alpha: 0.35), actions: [IconButton(tooltip: 'Vernieuwen', onPressed: _reloadSections, icon: const Icon(Icons.refresh)), const SizedBox(width: 8)]),
+    body: LivingWorldScene(child: FutureBuilder<List<WorldSection>>(future: _sections, builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+      if (snapshot.hasError) return Center(child: Card(color: Colors.black.withValues(alpha: 0.70), child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Worlds laden mislukt: ${snapshot.error}'), const SizedBox(height: 16), OutlinedButton(onPressed: _reloadSections, child: const Text('Opnieuw'))]))));
+      final sections = snapshot.data ?? const <WorldSection>[];
+      if (sections.isEmpty) return const Center(child: Text('Geen worlds beschikbaar.'));
+      return ListView(padding: const EdgeInsets.all(24), children: [
+        Card(color: Colors.black.withValues(alpha: 0.48), child: const Padding(padding: EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Darkest-World', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)), SizedBox(height: 8), Text('Een levende wereld. De werelden en content groeien mee met het systeem.')])),
+        const SizedBox(height: 18), Card(color: Colors.black.withValues(alpha: 0.42), child: Padding(padding: const EdgeInsets.all(18), child: Text('${sections.length} worlds geladen uit Supabase.'))),
+        const SizedBox(height: 24), const Text('Worlds', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)), const SizedBox(height: 12),
+        ...sections.map((section) => _SectionButton(label: section.name, onTap: () => _openSection(context, section))),
+        const SizedBox(height: 24), const Text('Development', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)), const SizedBox(height: 12),
+        _SectionButton(label: 'DarkestVegeta Visual Hub', onTap: () => _openVisualHub(context)), _SectionButton(label: 'Timeline / Chronology', onTap: () => _openTimeline(context)), _SectionButton(label: 'Suggestions', onTap: () => _openSuggestions(context)), _SectionButton(label: 'Gallery', onTap: () => _openGallery(context)), _SectionButton(label: '10-Artbox Test Lab', onTap: () => _openTestLab(context)), _SectionButton(label: 'World Status', onTap: () => _openStatus(context)),
+      ]);
+    })),
+  );
 
-  void _openSection(BuildContext context, WorldSection section) {
-    switch (WorldNavigation.destinationForSlug(section.slug)) {
-      case WorldDestination.gameContent: _openContent(context, section.name, 'game'); return;
-      case WorldDestination.movieContent: _openContent(context, section.name, 'movie'); return;
-      case WorldDestination.seriesContent: _openContent(context, section.name, 'series'); return;
-      case WorldDestination.music: Navigator.push(context, MaterialPageRoute(builder: (_) => MusicWorldPage(title: section.name, description: section.description))); return;
-      case WorldDestination.chat: _openChat(context, marathonChatActive: true); return;
-      case WorldDestination.chatbox: _openChat(context, marathonChatActive: false); return;
-      case WorldDestination.events: Navigator.push(context, MaterialPageRoute(builder: (_) => EventsWorldPage(title: section.name, description: section.description))); return;
-      case WorldDestination.marathons: Navigator.push(context, MaterialPageRoute(builder: (_) => MarathonsWorldPage(title: section.name, description: section.description))); return;
-      case WorldDestination.socialMedia: Navigator.push(context, MaterialPageRoute(builder: (_) => SocialMediaWorldPage(title: section.name, description: section.description))); return;
-      case WorldDestination.createYourWorld: Navigator.push(context, MaterialPageRoute(builder: (_) => CreateYourWorldPage(title: section.name, description: section.description))); return;
-      case WorldDestination.timeline: _openTimeline(context, title: section.name, description: section.description); return;
-      case WorldDestination.identityWorld: Navigator.push(context, MaterialPageRoute(builder: (_) => IdentityWorldPage(title: section.name, description: section.description))); return;
-      case WorldDestination.darkCore: Navigator.push(context, MaterialPageRoute(builder: (_) => DarkCorePage(title: section.name, description: section.description))); return;
-      case WorldDestination.basic: _openBasic(context, section.name, section.description); return;
-    }
-  }
-
+  void _openSection(BuildContext context, WorldSection section) { switch (WorldNavigation.destinationForSlug(section.slug)) {
+    case WorldDestination.gameContent: _openContent(context, section.name, 'game'); return; case WorldDestination.movieContent: _openContent(context, section.name, 'movie'); return; case WorldDestination.seriesContent: _openContent(context, section.name, 'series'); return; case WorldDestination.music: Navigator.push(context, MaterialPageRoute(builder: (_) => MusicWorldPage(title: section.name, description: section.description))); return; case WorldDestination.chat: _openChat(context, marathonChatActive: true); return; case WorldDestination.chatbox: _openChat(context, marathonChatActive: false); return; case WorldDestination.events: Navigator.push(context, MaterialPageRoute(builder: (_) => EventsWorldPage(title: section.name, description: section.description))); return; case WorldDestination.marathons: Navigator.push(context, MaterialPageRoute(builder: (_) => MarathonsWorldPage(title: section.name, description: section.description))); return; case WorldDestination.socialMedia: Navigator.push(context, MaterialPageRoute(builder: (_) => SocialMediaWorldPage(title: section.name, description: section.description))); return; case WorldDestination.createYourWorld: Navigator.push(context, MaterialPageRoute(builder: (_) => CreateYourWorldPage(title: section.name, description: section.description))); return; case WorldDestination.timeline: _openTimeline(context, title: section.name, description: section.description); return; case WorldDestination.identityWorld: Navigator.push(context, MaterialPageRoute(builder: (_) => IdentityWorldPage(title: section.name, description: section.description))); return; case WorldDestination.darkCore: Navigator.push(context, MaterialPageRoute(builder: (_) => DarkCorePage(title: section.name, description: section.description))); return; case WorldDestination.basic: _openBasic(context, section.name, section.description); return; }}
   void _openVisualHub(BuildContext context) => Navigator.push(context, MaterialPageRoute(builder: (_) => const DarkestVegetaVisualHubPage()));
   void _openTimeline(BuildContext context, {String title = 'Timeline / Chronology', String description = 'Chronological navigation across connected DarkestWorld content.'}) => Navigator.push(context, MaterialPageRoute(builder: (_) => TimelineWorldPage(title: title, description: description)));
   void _openContent(BuildContext context, String title, String type) => Navigator.push(context, MaterialPageRoute(builder: (_) => ContentBrowserPage(title: title, contentType: type)));
@@ -225,10 +167,4 @@ class _HomePageState extends State<_HomePage> {
   void _openBasic(BuildContext context, String title, String description) => Navigator.push(context, MaterialPageRoute(builder: (_) => BasicSectionPage(title: title, description: description)));
 }
 
-class _SectionButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _SectionButton({required this.label, required this.onTap});
-  @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 12), child: FilledButton(onPressed: onTap, child: Padding(padding: const EdgeInsets.all(16), child: Text(label))));
-}
+class _SectionButton extends StatelessWidget { final String label; final VoidCallback onTap; const _SectionButton({required this.label, required this.onTap}); @override Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 12), child: FilledButton(onPressed: onTap, child: Padding(padding: const EdgeInsets.all(16), child: Text(label)))); }
