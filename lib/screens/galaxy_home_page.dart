@@ -44,6 +44,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
     if (active != _appActive && mounted) setState(() => _appActive = active);
   }
   void _reload() { setState(() => sections = repository.load()); }
+  void _clearHistory() { setState(() { _history.clear(); _lastVisited = null; }); }
 
   @override Widget build(BuildContext context) {
     return FutureBuilder<List<WorldSection>>(
@@ -58,6 +59,8 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
         for (final kind in _history.reversed) {
           for (final world in worlds) { if (world.kind == kind) { recent.add(world); break; } }
         }
+        final explored = _history.length;
+        final exploration = worlds.isEmpty ? 0.0 : explored / worlds.length;
         return Stack(fit: StackFit.expand, children: [
           TickerMode(enabled: _appActive, child: DarkestWorldUniverse(worlds: worlds, onWorldTap: _openWorld)),
           Positioned(left: compact ? 12 : 30, bottom: compact ? 12 : 28, child: _GalaxyStatus(synced: synced, loading: snapshot.connectionState == ConnectionState.waiting, error: snapshot.hasError, count: worlds.length, onReload: _reload)),
@@ -65,8 +68,8 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
           if (selected != null && !compact) Positioned(left: 30, bottom: 86, child: _GalaxyCommandTarget(world: selected, onOpen: () => _openWorld(selected!))),
           if (selected != null && !compact) Positioned(left: 340, bottom: 30, child: _GalaxyRouteDeck(worlds: worlds, current: selected!, onOpen: _openWorld)),
           if (!compact) Positioned(top: 28, left: 0, right: 0, child: Center(child: _GalaxyModeStrip(worldCount: worlds.length, synced: synced))),
-          if (!compact && recent.isNotEmpty) Positioned(right: 26, top: 118, child: _GalaxyRecent(recent: recent.take(4).toList(), onOpen: _openWorld)),
-          if (!compact) Positioned(right: 26, top: recent.isEmpty ? 118 : 252, child: _GalaxyTelemetry(synced: synced, loading: snapshot.connectionState == ConnectionState.waiting, worldCount: worlds.length, lastVisited: _lastVisited, visitCount: _visitCount)),
+          if (!compact && recent.isNotEmpty) Positioned(right: 26, top: 118, child: _GalaxyRecent(recent: recent.take(4).toList(), onOpen: _openWorld, onClear: _clearHistory)),
+          if (!compact) Positioned(right: 26, top: recent.isEmpty ? 118 : 252, child: _GalaxyTelemetry(synced: synced, loading: snapshot.connectionState == ConnectionState.waiting, worldCount: worlds.length, exploredCount: explored, lastVisited: _lastVisited, visitCount: _visitCount, exploration: exploration)),
         ]);
       },
     );
@@ -150,21 +153,21 @@ class _GalaxyModeStrip extends StatelessWidget {
 }
 
 class _GalaxyRecent extends StatelessWidget {
-  final List<GalaxyWorld> recent; final ValueChanged<GalaxyWorld> onOpen;
-  const _GalaxyRecent({required this.recent, required this.onOpen});
+  final List<GalaxyWorld> recent; final ValueChanged<GalaxyWorld> onOpen; final VoidCallback onClear;
+  const _GalaxyRecent({required this.recent, required this.onOpen, required this.onClear});
   @override Widget build(BuildContext context) => Semantics(label: 'Recently visited galaxy gates', child: Container(width: 190, padding: const EdgeInsets.fromLTRB(11, 9, 11, 10), decoration: BoxDecoration(color: const Color(0xA805060C), border: Border.all(color: Colors.white10)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Text('RECENT GATES', style: TextStyle(color: Colors.white28, fontSize: 5.5, letterSpacing: 1.6)), const SizedBox(height: 6),
+    Row(children: [const Text('RECENT GATES', style: TextStyle(color: Colors.white28, fontSize: 5.5, letterSpacing: 1.6)), const Spacer(), Semantics(button: true, label: 'Clear recent galaxy gates', child: InkWell(onTap: onClear, child: const Padding(padding: EdgeInsets.symmetric(horizontal: 3, vertical: 2), child: Text('CLEAR', style: TextStyle(color: Colors.white24, fontSize: 4.8, letterSpacing: .9))))]), const SizedBox(height: 6),
     for (var i = 0; i < recent.length; i++) Semantics(button: true, label: 'Open ${recent[i].title}', child: InkWell(onTap: () => onOpen(recent[i]), child: Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: Row(children: [Text('${i + 1}'.padLeft(2, '0'), style: const TextStyle(color: Colors.white14, fontSize: 5)), const SizedBox(width: 8), Expanded(child: Text(recent[i].title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white48, fontSize: 6.2, letterSpacing: 1.0))), const Text('OPEN', style: TextStyle(color: Colors.white20, fontSize: 4.8, letterSpacing: .8))])))),
   ]));
 }
 
 class _GalaxyTelemetry extends StatelessWidget {
-  final bool synced, loading; final int worldCount, visitCount; final String? lastVisited;
-  const _GalaxyTelemetry({required this.synced, required this.loading, required this.worldCount, required this.lastVisited, required this.visitCount});
+  final bool synced, loading; final int worldCount, exploredCount, visitCount; final String? lastVisited; final double exploration;
+  const _GalaxyTelemetry({required this.synced, required this.loading, required this.worldCount, required this.exploredCount, required this.lastVisited, required this.visitCount, required this.exploration});
   @override Widget build(BuildContext context) {
     final state = loading ? 'SYNCING' : synced ? 'ONLINE' : 'FALLBACK';
     return Container(width: 190, padding: const EdgeInsets.fromLTRB(11, 10, 11, 11), decoration: BoxDecoration(color: const Color(0xB805060C), border: Border.all(color: Colors.white10), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [const Text('GALAXY TELEMETRY', style: TextStyle(color: Colors.white54, fontSize: 6.5, letterSpacing: 1.7)), const Spacer(), Text(state, style: const TextStyle(color: Colors.white30, fontSize: 5.5, letterSpacing: 1.1))]), const SizedBox(height: 8), Row(children: [Expanded(child: _Metric(label: 'GATES', value: '$worldCount')), Expanded(child: _Metric(label: 'VISITS', value: '$visitCount'))]), const SizedBox(height: 8), const Text('LAST GATE', style: TextStyle(color: Colors.white20, fontSize: 5.5, letterSpacing: 1.2)), const SizedBox(height: 3), Text(lastVisited?.toUpperCase() ?? 'NO GATE VISITED', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 7, letterSpacing: 1.1)),
+      Row(children: [const Text('GALAXY TELEMETRY', style: TextStyle(color: Colors.white54, fontSize: 6.5, letterSpacing: 1.7)), const Spacer(), Text(state, style: const TextStyle(color: Colors.white30, fontSize: 5.5, letterSpacing: 1.1))]), const SizedBox(height: 8), Row(children: [Expanded(child: _Metric(label: 'EXPLORED', value: '$exploredCount / $worldCount')), Expanded(child: _Metric(label: 'VISITS', value: '$visitCount'))]), const SizedBox(height: 7), ClipRRect(borderRadius: BorderRadius.circular(2), child: LinearProgressIndicator(value: exploration.clamp(0.0, 1.0), minHeight: 2, backgroundColor: Colors.white10, valueColor: const AlwaysStoppedAnimation<Color>(Colors.white54))), const SizedBox(height: 8), const Text('LAST GATE', style: TextStyle(color: Colors.white20, fontSize: 5.5, letterSpacing: 1.2)), const SizedBox(height: 3), Text(lastVisited?.toUpperCase() ?? 'NO GATE VISITED', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 7, letterSpacing: 1.1)),
     ]));
   }
 }
