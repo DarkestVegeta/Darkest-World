@@ -13,8 +13,7 @@ import 'music_world_page.dart';
 
 class GalaxyHomePage extends StatefulWidget {
   const GalaxyHomePage({super.key});
-  @override
-  State<GalaxyHomePage> createState() => _GalaxyHomePageState();
+  @override State<GalaxyHomePage> createState() => _GalaxyHomePageState();
 }
 
 class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObserver {
@@ -34,27 +33,13 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
     GalaxyWorld(kind: GalaxyWorldKind.comingSoon, title: 'COMING SOON', description: 'What DarkestWorld can become.'),
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
+  @override void initState() { super.initState(); WidgetsBinding.instance.addObserver(this); }
+  @override void dispose() { WidgetsBinding.instance.removeObserver(this); super.dispose(); }
+  @override void didChangeAppLifecycleState(AppLifecycleState state) {
     final active = state == AppLifecycleState.resumed;
     if (active != _appActive && mounted) setState(() => _appActive = active);
   }
-
-  void _reload() {
-    setState(() => sections = repository.load());
-  }
+  void _reload() { setState(() => sections = repository.load()); }
 
   @override
   Widget build(BuildContext context) {
@@ -63,154 +48,81 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
       builder: (context, snapshot) {
         final worlds = _mapWorlds(snapshot.data ?? const []);
         final synced = snapshot.connectionState == ConnectionState.done && !snapshot.hasError;
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            TickerMode(
-              enabled: _appActive,
-              child: DarkestWorldUniverse(
-                worlds: worlds,
-                onWorldTap: _openWorld,
-              ),
-            ),
-            Positioned(
-              left: 30,
-              bottom: 28,
-              child: _GalaxyStatus(
-                synced: synced,
-                loading: snapshot.connectionState == ConnectionState.waiting,
-                error: snapshot.hasError,
-                count: worlds.length,
-                onReload: _reload,
-              ),
-            ),
-          ],
-        );
+        return Stack(fit: StackFit.expand, children: [
+          TickerMode(enabled: _appActive, child: DarkestWorldUniverse(worlds: worlds, onWorldTap: _openWorld)),
+          Positioned(left: 30, bottom: 28, child: _GalaxyStatus(synced: synced, loading: snapshot.connectionState == ConnectionState.waiting, error: snapshot.hasError, count: worlds.length, onReload: _reload)),
+          Positioned(right: 26, bottom: 28, child: _GalaxyIndex(worlds: worlds, loading: snapshot.connectionState == ConnectionState.waiting, onSelect: _openWorld)),
+        ]);
       },
     );
   }
 
-  List<GalaxyWorld> _mapWorlds(List<WorldSection> source) {
-    return _fallback.map((fallback) {
-      final matches = source.where((s) => _matches(s, fallback));
-      final section = matches.isEmpty ? null : matches.first;
-      if (section == null) return fallback;
-      return GalaxyWorld(
-        kind: fallback.kind,
-        title: fallback.title,
-        description: section.description,
-      );
-    }).toList();
-  }
+  List<GalaxyWorld> _mapWorlds(List<WorldSection> source) => _fallback.map((fallback) {
+    final matches = source.where((s) => _matches(s, fallback));
+    final section = matches.isEmpty ? null : matches.first;
+    return section == null ? fallback : GalaxyWorld(kind: fallback.kind, title: fallback.title, description: section.description);
+  }).toList();
 
   bool _matches(WorldSection section, GalaxyWorld world) {
     final text = '${section.name} ${section.slug}'.toLowerCase();
     switch (world.kind) {
-      case GalaxyWorldKind.vegeta:
-        return text.contains('vegeta');
-      case GalaxyWorldKind.game:
-        return text.contains('game');
-      case GalaxyWorldKind.music:
-        return text.contains('music');
-      case GalaxyWorldKind.identity:
-        return text.contains('identity');
-      case GalaxyWorldKind.family:
-        return text.contains('family');
-      case GalaxyWorldKind.cinema:
-        return text.contains('cinema');
-      case GalaxyWorldKind.creation:
-        return text.contains('creation');
-      case GalaxyWorldKind.archive:
-        return text.contains('archive');
-      case GalaxyWorldKind.comingSoon:
-        return text.contains('coming');
+      case GalaxyWorldKind.vegeta: return text.contains('vegeta');
+      case GalaxyWorldKind.game: return text.contains('game');
+      case GalaxyWorldKind.music: return text.contains('music');
+      case GalaxyWorldKind.identity: return text.contains('identity');
+      case GalaxyWorldKind.family: return text.contains('family');
+      case GalaxyWorldKind.cinema: return text.contains('cinema');
+      case GalaxyWorldKind.creation: return text.contains('creation');
+      case GalaxyWorldKind.archive: return text.contains('archive');
+      case GalaxyWorldKind.comingSoon: return text.contains('coming');
     }
   }
 
   void _openWorld(GalaxyWorld world) {
     switch (world.kind) {
-      case GalaxyWorldKind.game:
-        _push(const GameWorldPlanetPage());
-        return;
-      case GalaxyWorldKind.music:
-        _push(MusicWorldPage(title: 'MUSIC-WORLD', description: world.description));
-        return;
-      case GalaxyWorldKind.identity:
-        _push(IdentityWorldPage(title: 'DARKEST-IDENTITY', description: world.description));
-        return;
-      case GalaxyWorldKind.family:
-        _push(FamilyWorldPage(title: 'DARKESTFAMILY', description: world.description));
-        return;
-      case GalaxyWorldKind.cinema:
-        _push(CinemaWorldPage(title: 'CINEMA-WORLD', description: world.description));
-        return;
-      case GalaxyWorldKind.creation:
-        _push(const CreationWorldPage());
-        return;
-      case GalaxyWorldKind.archive:
-        _push(const ArchiveWorldPage());
-        return;
-      case GalaxyWorldKind.comingSoon:
-        _push(const ComingSoonWorldPage());
-        return;
-      case GalaxyWorldKind.vegeta:
-        _push(DarkCorePage(title: 'VEGETA WORLD', description: world.description));
-        return;
+      case GalaxyWorldKind.game: _push(const GameWorldPlanetPage()); return;
+      case GalaxyWorldKind.music: _push(MusicWorldPage(title: 'MUSIC-WORLD', description: world.description)); return;
+      case GalaxyWorldKind.identity: _push(IdentityWorldPage(title: 'DARKEST-IDENTITY', description: world.description)); return;
+      case GalaxyWorldKind.family: _push(FamilyWorldPage(title: 'DARKESTFAMILY', description: world.description)); return;
+      case GalaxyWorldKind.cinema: _push(CinemaWorldPage(title: 'CINEMA-WORLD', description: world.description)); return;
+      case GalaxyWorldKind.creation: _push(const CreationWorldPage()); return;
+      case GalaxyWorldKind.archive: _push(const ArchiveWorldPage()); return;
+      case GalaxyWorldKind.comingSoon: _push(const ComingSoonWorldPage()); return;
+      case GalaxyWorldKind.vegeta: _push(DarkCorePage(title: 'VEGETA WORLD', description: world.description)); return;
     }
   }
 
-  void _push(Widget page) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
-  }
+  void _push(Widget page) { Navigator.of(context).push(MaterialPageRoute(builder: (_) => page)); }
 }
 
 class _GalaxyStatus extends StatelessWidget {
-  final bool synced;
-  final bool loading;
-  final bool error;
-  final int count;
-  final VoidCallback onReload;
-
-  const _GalaxyStatus({
-    required this.synced,
-    required this.loading,
-    required this.error,
-    required this.count,
-    required this.onReload,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final status = error
-        ? 'SYNC / FALLBACK'
-        : loading
-            ? 'SYNC / LOADING'
-            : synced
-                ? 'SYNC / CONNECTED'
-                : 'SYNC / FALLBACK';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(.62),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 5, height: 5, decoration: BoxDecoration(shape: BoxShape.circle, color: error ? Colors.redAccent : Colors.white54)),
-          const SizedBox(width: 8),
-          Text('$status  •  $count WORLDS', style: const TextStyle(color: Colors.white54, fontSize: 7, letterSpacing: 1.4)),
-          const SizedBox(width: 8),
-          InkWell(
-            onTap: onReload,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-              child: Text('↻', style: TextStyle(color: Colors.white38, fontSize: 13)),
-            ),
-          ),
-        ],
-      ),
-    );
+  final bool synced, loading, error; final int count; final VoidCallback onReload;
+  const _GalaxyStatus({required this.synced, required this.loading, required this.error, required this.count, required this.onReload});
+  @override Widget build(BuildContext context) {
+    final status = error ? 'SYNC / FALLBACK' : loading ? 'SYNC / LOADING' : synced ? 'SYNC / CONNECTED' : 'SYNC / FALLBACK';
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(color: Colors.black.withOpacity(.62), border: Border.all(color: Colors.white12)), child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 5, height: 5, decoration: BoxDecoration(shape: BoxShape.circle, color: error ? Colors.redAccent : Colors.white54)), const SizedBox(width: 8),
+      Text('$status  •  $count WORLDS', style: const TextStyle(color: Colors.white54, fontSize: 7, letterSpacing: 1.4)), const SizedBox(width: 8),
+      InkWell(onTap: onReload, child: const Padding(padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2), child: Text('↻', style: TextStyle(color: Colors.white38, fontSize: 13)))),
+    ]));
   }
+}
+
+class _GalaxyIndex extends StatelessWidget {
+  final List<GalaxyWorld> worlds; final bool loading; final ValueChanged<GalaxyWorld> onSelect;
+  const _GalaxyIndex({required this.worlds, required this.loading, required this.onSelect});
+  @override Widget build(BuildContext context) => Container(
+    width: 220,
+    padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+    decoration: BoxDecoration(color: const Color(0xCC05060D), border: Border.all(color: Colors.white10), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 24)]),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [const Text('GALAXY INDEX', style: TextStyle(color: Colors.white70, fontSize: 7, letterSpacing: 2.1)), const Spacer(), Text(loading ? 'SYNC' : '${worlds.length} WORLDS', style: const TextStyle(color: Colors.white24, fontSize: 5.5, letterSpacing: 1.1))]),
+      const SizedBox(height: 7),
+      for (var i = 0; i < worlds.length; i++) InkWell(onTap: () => onSelect(worlds[i]), child: Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: Row(children: [
+        SizedBox(width: 20, child: Text('${(i + 1).toString().padLeft(2, '0')}', style: const TextStyle(color: Colors.white18, fontSize: 5.5))),
+        Expanded(child: Text(worlds[i].title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white45, fontSize: 6.5, letterSpacing: 1.0))),
+        const Icon(Icons.chevron_right, size: 10, color: Colors.white12),
+      ]))),
+    ]),
+  );
 }
