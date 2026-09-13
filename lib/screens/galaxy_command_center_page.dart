@@ -7,7 +7,8 @@ class GalaxyCommandCenterPage extends StatefulWidget {
   final GalaxyWorldKind? selected;
   final Set<GalaxyWorldKind> visited;
   final ValueChanged<GalaxyWorld> onOpen;
-  const GalaxyCommandCenterPage({super.key, required this.worlds, required this.selected, required this.visited, required this.onOpen});
+  final VoidCallback onClose;
+  const GalaxyCommandCenterPage({super.key, required this.worlds, required this.selected, required this.visited, required this.onOpen, required this.onClose});
   @override State<GalaxyCommandCenterPage> createState() => _GalaxyCommandCenterPageState();
 }
 
@@ -29,7 +30,7 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
   void openSelected() { final list = items; if (list.isNotEmpty) widget.onOpen(list[cursor.clamp(0, list.length - 1)]); }
   KeyEventResult key(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.escape) { Navigator.of(context).maybePop(); return KeyEventResult.handled; }
+    if (event.logicalKey == LogicalKeyboardKey.escape) { widget.onClose(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown || event.logicalKey == LogicalKeyboardKey.keyJ) { move(1); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.keyK) { move(-1); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.enter) { openSelected(); return KeyEventResult.handled; }
@@ -49,7 +50,7 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
               SizedBox(height: 5), Text('NAVIGATION / DISCOVERY / GATE CONTROL', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 7, letterSpacing: 1.5)),
             ])),
             Text('${widget.visited.length}/${widget.worlds.length} MAPPED', style: const TextStyle(color: Color(0x59FFFFFF), fontSize: 7)),
-            TextButton(onPressed: () => Navigator.of(context).maybePop(), child: const Text('CLOSE')),
+            TextButton(onPressed: widget.onClose, child: const Text('CLOSE')),
           ]),
           const SizedBox(height: 16),
           TextField(
