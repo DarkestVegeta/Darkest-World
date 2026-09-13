@@ -77,7 +77,6 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
 
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.keyA) {
       setState(() => atlas = !atlas);
       return KeyEventResult.handled;
@@ -155,16 +154,12 @@ class HudButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   const HudButton({super.key, required this.label, required this.onTap});
-
   @override
   Widget build(BuildContext context) => InkWell(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-          decoration: BoxDecoration(
-            color: const Color(0xB805060D),
-            border: Border.all(color: const Color(0x2EFFFFFF)),
-          ),
+          decoration: BoxDecoration(color: const Color(0xB805060D), border: Border.all(color: const Color(0x2EFFFFFF))),
           child: Text(label, style: const TextStyle(color: Color(0x8AFFFFFF), fontSize: 5.5, letterSpacing: 1)),
         ),
       );
@@ -173,14 +168,10 @@ class HudButton extends StatelessWidget {
 class Info extends StatelessWidget {
   final String text;
   const Info({super.key, required this.text});
-
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: const Color(0xB805060D),
-          border: Border.all(color: const Color(0x1AFFFFFF)),
-        ),
+        decoration: BoxDecoration(color: const Color(0xB805060D), border: Border.all(color: const Color(0x1AFFFFFF))),
         child: Text(text, style: const TextStyle(color: Color(0x59FFFFFF), fontSize: 5.5, letterSpacing: 1)),
       );
 }
@@ -192,7 +183,6 @@ class Atlas extends StatelessWidget {
   final VoidCallback close;
   final ValueChanged<GalaxyWorld> open;
   const Atlas({super.key, required this.worlds, required this.visited, required this.selected, required this.close, required this.open});
-
   @override
   Widget build(BuildContext context) {
     final columns = MediaQuery.sizeOf(context).width < 760 ? 2 : 3;
@@ -202,56 +192,40 @@ class Atlas extends StatelessWidget {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Row(children: [
-                  const Expanded(child: Text('GALAXY ATLAS', style: TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 4))),
-                  HudButton(label: 'CLOSE', onTap: close),
-                ]),
-                const SizedBox(height: 14),
-                Expanded(
-                  child: GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 2.2,
-                    ),
-                    itemCount: worlds.length,
-                    itemBuilder: (_, index) {
-                      final world = worlds[index];
-                      final active = selected == world.kind;
-                      return InkWell(
-                        onTap: () => open(world),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: active ? const Color(0x12FFFFFF) : const Color(0x05FFFFFF),
-                            border: Border.all(color: active ? const Color(0x66FFFFFF) : const Color(0x1AFFFFFF)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(world.title, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 9, letterSpacing: 1.2)),
-                              const SizedBox(height: 5),
-                              Text(visited.contains(world.kind) ? 'MAPPED' : 'UNMAPPED', style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 5)),
-                              const SizedBox(height: 5),
-                              Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 6)),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+            child: Column(children: [
+              Row(children: [
+                const Expanded(child: Text('GALAXY ATLAS', style: TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 4))),
+                HudButton(label: 'CLOSE', onTap: close),
+              ]),
+              const SizedBox(height: 14),
+              Expanded(
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 2.2),
+                  itemCount: worlds.length,
+                  itemBuilder: (_, index) {
+                    final world = worlds[index];
+                    final active = selected == world.kind;
+                    return InkWell(
+                      onTap: () => open(world),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(color: active ? const Color(0x12FFFFFF) : const Color(0x05FFFFFF), border: Border.all(color: active ? const Color(0x66FFFFFF) : const Color(0x1AFFFFFF))),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Text(world.title, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 9, letterSpacing: 1.2)),
+                          const SizedBox(height: 5),
+                          Text(visited.contains(world.kind) ? 'MAPPED' : 'UNMAPPED', style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 5)),
+                          const SizedBox(height: 5),
+                          Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 6)),
+                        ]),
+                      ),
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ]),
           ),
         ),
       ),
     );
   }
 }
-
-class _CommandButton extends StatelessWidget { final VoidCallback onTap; const _CommandButton({required this.onTap}); @override Widget build(BuildContext context) => Semantics(button: true, label: 'Open galaxy command center', child: Material(color: const Color(0xD905060D), child: InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(border: Border.all(color: Colors.white18)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white65, fontSize: 7, letterSpacing: 1.6)), SizedBox(width: 7), Text('G', style: TextStyle(color: Colors.white25, fontSize: 6))]))))); }
