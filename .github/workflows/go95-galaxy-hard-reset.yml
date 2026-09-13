@@ -1,0 +1,67 @@
+name: GO95 Galaxy Hard Reset
+
+on:
+  push:
+    branches: [go59-galaxy-systems]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: !contains(github.event.head_commit.message, '[GO95-REPAIRED]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: go59-galaxy-systems
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Repair Galaxy source
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('lib')
+          for p in root.rglob('*.dart'):
+              s = p.read_text()
+              s = re.sub(r'Colors\\.white(\\d+)', lambda m: 'Color(0x%02XFFFFFF)' % round(int(m.group(1))*255/100), s)
+              if 'PointerScrollEvent' in s and "package:flutter/gestures.dart" not in s:
+                  s = "import 'package:flutter/gestures.dart';\\n" + s
+              if ('KeyDownEvent' in s or 'LogicalKeyboardKey' in s) and "package:flutter/services.dart" not in s:
+                  s = "import 'package:flutter/services.dart';\\n" + s
+              p.write_text(s)
+
+          p = Path('lib/main.dart')
+          s = p.read_text()
+          s = re.sub(r'for \(final section in sections\) _SectionButton\(label: section\.name, onTap: \(\) => _openSection\(context, section\)\),', "...sections.map((section) => _SectionButton(label: section.name, onTap: () => _openSection(context, section))),", s)
+          p.write_text(s)
+
+          home = Path('lib/screens/galaxy_home_page.dart')
+          s = home.read_text()
+          # Remove accidental repeated command methods and key handlers introduced by earlier patch passes.
+          block = "  void _openCommand() => setState(() => _commandOpen = true);\\n  void _closeCommand() => setState(() => _commandOpen = false);\\n"
+          s = re.sub(r'(?:' + re.escape(block) + r'){2,}', block, s)
+          key = "    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }\\n"
+          s = re.sub(r'(?:' + re.escape(key) + r'){2,}', key, s)
+          home.write_text(s)
+          PY
+          dart format lib test
+          flutter pub get
+          flutter analyze --no-fatal-infos
+          flutter test
+      - name: Commit repaired source
+        shell: bash
+        run: |
+          git config user.name 'DarkestVegeta'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'GO95: Galaxy compatibility repair [GO95-REPAIRED]'
+          git push origin go59-galaxy-systems
