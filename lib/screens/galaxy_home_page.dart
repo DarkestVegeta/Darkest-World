@@ -23,6 +23,8 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   int visits = 0;
   final visited = <GalaxyWorldKind>{};
   final mapped = <GalaxyWorldKind>{};
+  final discoveryOrder = <GalaxyWorldKind>[];
+  final routeHistory = <GalaxyWorldKind>[];
 
   static const worlds = <GalaxyWorld>[
     GalaxyWorld(kind: GalaxyWorldKind.vegeta, title: 'VEGETA', description: 'The darker heart of DarkestWorld.'),
@@ -36,15 +38,21 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
     GalaxyWorld(kind: GalaxyWorldKind.comingSoon, title: 'COMING SOON', description: 'What DarkestWorld can become.'),
   ];
 
-  void selectWorld(GalaxyWorld world) => setState(() {
-    selected = world.kind;
-    mapped.add(world.kind);
-  });
+  GalaxyWorld _world(GalaxyWorldKind kind) => worlds.firstWhere((world) => world.kind == kind);
 
-  void openWorld(GalaxyWorld world) {
+  void selectWorld(GalaxyWorld world) {
     setState(() {
       selected = world.kind;
       mapped.add(world.kind);
+      if (!discoveryOrder.contains(world.kind)) discoveryOrder.add(world.kind);
+      if (routeHistory.isEmpty || routeHistory.last != world.kind) routeHistory.add(world.kind);
+      if (routeHistory.length > 12) routeHistory.removeAt(0);
+    });
+  }
+
+  void openWorld(GalaxyWorld world) {
+    selectWorld(world);
+    setState(() {
       visited.add(world.kind);
       visits++;
     });
@@ -63,6 +71,16 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
   }
 
+  void routeMove(int delta) {
+    if (selected == null) {
+      selectWorld(worlds[delta < 0 ? worlds.length - 1 : 0]);
+      return;
+    }
+    final index = worlds.indexWhere((world) => world.kind == selected);
+    final next = (index + delta + worlds.length) % worlds.length;
+    selectWorld(worlds[next]);
+  }
+
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.keyG) {
@@ -71,6 +89,14 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
     }
     if (event.logicalKey == LogicalKeyboardKey.keyA) {
       setState(() => atlas = !atlas);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      routeMove(-1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      routeMove(1);
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape && (atlas || command)) {
@@ -91,7 +117,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
         Positioned(top: 18, left: 18, right: 18, child: Row(children: [
           const Text('GALAXY', style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 8, letterSpacing: 2.2)),
           const SizedBox(width: 10),
-          const Text('ONLINE', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 6)),
+          Text('ONLINE / ${mapped.length} MAPPED', style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 6)),
           const Spacer(),
           HudButton(label: 'GATES ${worlds.length}', onTap: () => setState(() => atlas = true)),
           const SizedBox(width: 6),
@@ -100,8 +126,18 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
           HudButton(label: 'COMMAND', onTap: () => setState(() => command = true)),
         ])),
         Positioned(left: 18, bottom: 18, child: Info(text: selected == null ? 'SCANNING / SELECT A WORLD' : 'TARGET ${selected.toString().split('.').last.toUpperCase()} / LOCKED')),
-        Positioned(right: 18, bottom: 18, child: Info(text: 'VISITS $visits / MAPPED ${mapped.length}/${worlds.length} / VISITED ${visited.length}')),
-        if (atlas) Atlas(worlds: worlds, mapped: mapped, visited: visited, selected: selected, close: () => setState(() => atlas = false), open: openWorld),
+        Positioned(right: 18, bottom: 18, child: Info(text: 'VISITS $visits / MAPPED ${mapped.length}/${worlds.length} / VISITED ${visited.length} / ROUTE ${routeHistory.length}')),
+        if (selected != null)
+          Positioned(left: 18, bottom: 58, right: 18, child: RouteBar(
+            worlds: worlds,
+            selected: selected!,
+            mapped: mapped,
+            visited: visited,
+            onPrevious: () => routeMove(-1),
+            onNext: () => routeMove(1),
+            onCurrent: () => openWorld(_world(selected!)),
+          )),
+        if (atlas) Atlas(worlds: worlds, mapped: mapped, visited: visited, selected: selected, discoveryOrder: discoveryOrder, close: () => setState(() => atlas = false), open: openWorld),
         if (command) Positioned.fill(child: Material(color: const Color(0xF0020308), child: GalaxyCommandCenterPage(
           worlds: worlds,
           selected: selected,
@@ -144,13 +180,63 @@ class Info extends StatelessWidget {
   );
 }
 
+class RouteBar extends StatelessWidget {
+  final List<GalaxyWorld> worlds;
+  final GalaxyWorldKind selected;
+  final Set<GalaxyWorldKind> mapped;
+  final Set<GalaxyWorldKind> visited;
+  final VoidCallback onPrevious, onNext, onCurrent;
+  const RouteBar({super.key, required this.worlds, required this.selected, required this.mapped, required this.visited, required this.onPrevious, required this.onNext, required this.onCurrent});
+
+  @override
+  Widget build(BuildContext context) {
+    final index = worlds.indexWhere((world) => world.kind == selected);
+    final previous = worlds[(index - 1 + worlds.length) % worlds.length];
+    final current = worlds[index];
+    final next = worlds[(index + 1) % worlds.length];
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(color: const Color(0xE805060D), border: Border.all(color: const Color(0x24FFFFFF))),
+      child: Row(children: [
+        RouteCell(label: 'PREVIOUS', world: previous, onTap: onPrevious),
+        RouteCell(label: 'CURRENT', world: current, active: true, onTap: onCurrent),
+        RouteCell(label: 'NEXT', world: next, onTap: onNext),
+      ]),
+    );
+  }
+}
+
+class RouteCell extends StatelessWidget {
+  final String label;
+  final GalaxyWorld world;
+  final bool active;
+  final VoidCallback onTap;
+  const RouteCell({super.key, required this.label, required this.world, this.active = false, required this.onTap});
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(border: Border(right: BorderSide(color: const Color(0x1AFFFFFF))), color: active ? const Color(0x0FFFFFFF) : Colors.transparent),
+        child: Row(children: [
+          Text(label, style: TextStyle(color: active ? const Color(0xAAFFFFFF) : const Color(0x4DFFFFFF), fontSize: 5, letterSpacing: 1.2)),
+          const SizedBox(width: 10),
+          Expanded(child: Text(world.title, overflow: TextOverflow.ellipsis, style: TextStyle(color: active ? Colors.white : const Color(0x70FFFFFF), fontSize: 7, letterSpacing: 1))),
+        ]),
+      ),
+    ),
+  );
+}
+
 class Atlas extends StatelessWidget {
   final List<GalaxyWorld> worlds;
   final Set<GalaxyWorldKind> mapped, visited;
   final GalaxyWorldKind? selected;
+  final List<GalaxyWorldKind> discoveryOrder;
   final VoidCallback close;
   final ValueChanged<GalaxyWorld> open;
-  const Atlas({super.key, required this.worlds, required this.mapped, required this.visited, required this.selected, required this.close, required this.open});
+  const Atlas({super.key, required this.worlds, required this.mapped, required this.visited, required this.selected, required this.discoveryOrder, required this.close, required this.open});
   @override
   Widget build(BuildContext context) {
     final columns = MediaQuery.sizeOf(context).width < 760 ? 2 : 3;
@@ -163,6 +249,8 @@ class Atlas extends StatelessWidget {
             child: Column(children: [
               Row(children: [
                 const Expanded(child: Text('GALAXY ATLAS', style: TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 4))),
+                Text('${discoveryOrder.length}/${worlds.length} DISCOVERED', style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 6, letterSpacing: 1)),
+                const SizedBox(width: 14),
                 HudButton(label: 'CLOSE', onTap: close),
               ]),
               const SizedBox(height: 14),
@@ -172,6 +260,8 @@ class Atlas extends StatelessWidget {
                 itemBuilder: (_, index) {
                   final world = worlds[index];
                   final active = selected == world.kind;
+                  final discovery = discoveryOrder.indexOf(world.kind);
+                  final state = visited.contains(world.kind) ? 'VISITED / MAPPED' : mapped.contains(world.kind) ? 'MAPPED / UNVISITED' : 'UNMAPPED';
                   return InkWell(
                     onTap: () => open(world),
                     child: Container(
@@ -181,9 +271,12 @@ class Atlas extends StatelessWidget {
                         border: Border.all(color: active ? const Color(0x66FFFFFF) : const Color(0x1AFFFFFF)),
                       ),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Text(world.title, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 9, letterSpacing: 1.2)),
+                        Row(children: [
+                          Expanded(child: Text(world.title, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 9, letterSpacing: 1.2))),
+                          Text(discovery < 0 ? '—' : '#${discovery + 1}', style: const TextStyle(color: Color(0x55FFFFFF), fontSize: 5)),
+                        ]),
                         const SizedBox(height: 5),
-                        Text(visited.contains(world.kind) ? 'VISITED / MAPPED' : mapped.contains(world.kind) ? 'MAPPED / UNVISITED' : 'UNMAPPED', style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 5)),
+                        Text(state, style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 5)),
                         const SizedBox(height: 5),
                         Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 6)),
                       ]),
