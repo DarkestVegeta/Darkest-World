@@ -81,7 +81,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
         Positioned(right: 18, bottom: 18, child: Info(text: 'VISITS $visits / MAPPED ${mapped.length}/${worlds.length} / VISITED ${visited.length}')),
         if (atlas) Atlas(worlds: worlds, mapped: mapped, visited: visited, selected: selected, close: () => setState(() => atlas = false), open: openWorld),
         if (command) Positioned.fill(child: Material(color: const Color(0xF0020308), child: GalaxyCommandCenterPage(
-          worlds: worlds, selected: selected, visited: visited,
+          worlds: worlds, selected: selected, mapped: mapped, visited: visited,
           onOpen: (world) { setState(() => command = false); openWorld(world); },
           onClose: () => setState(() => command = false),
         ))),
