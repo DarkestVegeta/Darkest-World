@@ -105,7 +105,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
         Positioned(right: 18, bottom: 18, child: Info(text: 'VISITS ${session.visits} / MAPPED ${session.mapped.length}/${worlds.length} / VISITED ${session.visited.length} / ROUTE ${session.routeHistory.length}')),
         if (session.selected != null) Positioned(left: 18, bottom: 58, right: 18, child: RouteBar(worlds: worlds, selected: session.selected!, onPrevious: () => routeMove(-1), onNext: () => routeMove(1), onCurrent: () => openWorld(worldFor(session.selected!)))),
         if (atlas) Atlas(worlds: worlds, mapped: session.mapped, visited: session.visited, selected: session.selected, discoveryOrder: session.discoveryOrder, gateHistory: session.gateHistory, close: () => setState(() => atlas = false), open: openWorld, revisit: revisitLastGate),
-        if (command) Positioned.fill(child: Material(color: const Color(0xF0020308), child: GalaxyCommandCenterPage(worlds: worlds, selected: session.selected, mapped: session.mapped, visited: session.visited, routeHistory: session.routeHistory, onHistoryPrevious: () => historyMove(-1), onHistoryNext: () => historyMove(1), onOpen: (world) { setState(() => command = false); openWorld(world); }, onClose: () => setState(() => command = false)))),
+        if (command) Positioned.fill(child: Material(color: const Color(0xF0020308), child: GalaxyCommandCenterPage(worlds: worlds, selected: session.selected, mapped: session.mapped, visited: session.visited, routeHistory: session.routeHistory, onHistoryPrevious: () => historyMove(-1), onHistoryNext: () => historyMove(1), onOpen: (world) { setState(() => command = false); openWorld(world); }, onClose: () => setState(() => command = false))),
       ]),
     ),
   );
