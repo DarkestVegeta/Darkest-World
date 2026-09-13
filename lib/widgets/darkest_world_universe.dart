@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 enum GalaxyWorldKind { vegeta, game, identity, cinema, creation, music, family, archive, comingSoon }
 
@@ -26,12 +27,10 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
   bool systemMap = false;
   bool labels = true;
   bool detail = true;
+  bool cinematic = true;
 
   @override void dispose() { clock.dispose(); super.dispose(); }
-  GalaxyWorld? get current {
-    for (final w in widget.worlds) { if (w.kind == selected) return w; }
-    return null;
-  }
+  GalaxyWorld? get current => selected == null ? null : widget.worlds.cast<GalaxyWorld?>().firstWhere((w) => w!.kind == selected, orElse: () => null);
   void select(GalaxyWorld w) => setState(() => selected = selected == w.kind ? null : w.kind);
   void visit() { final w = current; if (w != null) widget.onWorldTap?.call(w); }
 
@@ -54,7 +53,7 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
         body: GestureDetector(
           onScaleUpdate: (d) => setState(() {
             if (d.pointerCount > 1) {
-              zoom = (zoom * d.scale).clamp(.68, 1.62).toDouble();
+              zoom = (zoom * d.scale).clamp(.66, 1.70).toDouble();
             } else {
               orbit += d.focalPointDelta.dx / math.max(220.0, size.width);
             }
@@ -62,8 +61,12 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
           child: AnimatedBuilder(
             animation: clock,
             builder: (_, __) => Stack(fit: StackFit.expand, children: [
-              CustomPaint(painter: _DeepSpacePainter(clock.value, systemMap)),
-              Transform.scale(scale: zoom, child: CustomPaint(painter: _OrbitArchitecturePainter(clock.value, orbit, systemMap))),
+              CustomPaint(painter: _DeepSpacePainter(clock.value, detail, cinematic)),
+              CustomPaint(painter: _GalaxyDustPainter(clock.value, cinematic)),
+              Transform.scale(
+                scale: zoom,
+                child: CustomPaint(painter: _OrbitArchitecturePainter(clock.value, orbit, systemMap, detail)),
+              ),
               _WorldOrbit(
                 worlds: widget.worlds,
                 phase: clock.value,
@@ -72,26 +75,29 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
                 hovered: hovered,
                 labels: labels,
                 detail: detail,
+                cinematic: cinematic,
                 compact: compact,
                 onTap: select,
                 onHover: (w) => setState(() => hovered = w?.kind),
               ),
-              _Header(systemMap: systemMap, compact: compact),
-              Positioned(right: compact ? 12 : 30, top: compact ? 16 : 28, child: _Controls(
+              _Header(systemMap: systemMap, compact: compact, cinematic: cinematic),
+              Positioned(right: compact ? 10 : 26, top: compact ? 70 : 26, child: _Controls(
                 map: systemMap,
                 labels: labels,
                 detail: detail,
-                onIn: () => setState(() => zoom = (zoom + .1).clamp(.68, 1.62).toDouble()),
-                onOut: () => setState(() => zoom = (zoom - .1).clamp(.68, 1.62).toDouble()),
+                cinematic: cinematic,
+                onIn: () => setState(() => zoom = (zoom + .1).clamp(.66, 1.70).toDouble()),
+                onOut: () => setState(() => zoom = (zoom - .1).clamp(.66, 1.70).toDouble()),
                 onMap: () => setState(() => systemMap = !systemMap),
                 onLabels: () => setState(() => labels = !labels),
                 onDetail: () => setState(() => detail = !detail),
-                onReset: () => setState(() { orbit = 0; zoom = 1; selected = null; hovered = null; systemMap = false; }),
+                onCinematic: () => setState(() => cinematic = !cinematic),
+                onReset: () => setState(() { orbit = 0; zoom = 1; selected = null; hovered = null; systemMap = false; detail = true; cinematic = true; }),
               )),
-              Positioned(left: compact ? 12 : 30, top: compact ? 82 : 92, child: _Telemetry(phase: clock.value, selected: chosen, hovered: hovered, map: systemMap, zoom: zoom)),
+              Positioned(left: compact ? 12 : 30, top: compact ? 112 : 92, child: _Telemetry(phase: clock.value, selected: chosen, hovered: hovered, map: systemMap, zoom: zoom, cinematic: cinematic)),
               if (chosen != null)
                 _FloatingVisitPanel(world: chosen, compact: compact, phase: clock.value, orbit: orbit, count: widget.worlds.length, index: widget.worlds.indexOf(chosen), onVisit: visit, onClose: () => setState(() => selected = null))
-              else const Positioned(left: 0, right: 0, bottom: 24, child: Center(child: _Hint())),
+              else const Positioned(left: 0, right: 0, bottom: 22, child: Center(child: _Hint())),
             ]),
           ),
         ),
@@ -101,139 +107,182 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
 }
 
 class _Header extends StatelessWidget {
-  final bool systemMap, compact;
-  const _Header({required this.systemMap, required this.compact});
+  final bool systemMap, compact, cinematic;
+  const _Header({required this.systemMap, required this.compact, required this.cinematic});
   @override Widget build(BuildContext context) => Positioned(left: compact ? 16 : 34, top: compact ? 16 : 28, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     const Text('DARKESTWORLD', style: TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 5)),
     const SizedBox(height: 7),
     Text(systemMap ? 'GALAXY / SYSTEM MAP' : 'GALAXY / DEEP ORBIT', style: const TextStyle(color: Colors.white38, fontSize: 7, letterSpacing: 2.6)),
     const SizedBox(height: 5),
-    Text(compact ? '09 WORLD NODES' : '09 WORLD NODES  •  PROCEDURAL DEEP SPACE', style: const TextStyle(color: Colors.white24, fontSize: 6, letterSpacing: 1.6)),
+    Text(cinematic ? '09 WORLD NODES  •  DEEP SPACE' : '09 WORLD NODES  •  PERFORMANCE MODE', style: const TextStyle(color: Colors.white24, fontSize: 6, letterSpacing: 1.6)),
   ]));
 }
 
 class _Controls extends StatelessWidget {
-  final bool map, labels, detail;
-  final VoidCallback onIn, onOut, onMap, onLabels, onDetail, onReset;
-  const _Controls({required this.map, required this.labels, required this.detail, required this.onIn, required this.onOut, required this.onMap, required this.onLabels, required this.onDetail, required this.onReset});
-  @override Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-    _Btn('+', onIn), _Btn('−', onOut), _Btn(map ? 'ORBIT' : 'MAP', onMap), _Btn(labels ? 'LABELS' : 'CLEAN', onLabels), _Btn(detail ? 'DETAIL' : 'MINIMAL', onDetail), _Btn('RESET', onReset),
+  final bool map, labels, detail, cinematic;
+  final VoidCallback onIn, onOut, onMap, onLabels, onDetail, onCinematic, onReset;
+  const _Controls({required this.map, required this.labels, required this.detail, required this.cinematic, required this.onIn, required this.onOut, required this.onMap, required this.onLabels, required this.onDetail, required this.onCinematic, required this.onReset});
+  @override Widget build(BuildContext context) => Wrap(spacing: 4, children: [
+    _Btn('+', onIn), _Btn('−', onOut), _Btn(map ? 'ORBIT' : 'MAP', onMap), _Btn(labels ? 'LABELS' : 'CLEAN', onLabels), _Btn(detail ? 'DETAIL' : 'MINIMAL', onDetail), _Btn(cinematic ? 'CINEMATIC' : 'EFFICIENT', onCinematic), _Btn('RESET', onReset),
   ]);
 }
+
 class _Btn extends StatelessWidget {
   final String text; final VoidCallback onTap;
   const _Btn(this.text, this.onTap);
-  @override Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(left: 5), child: InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7), decoration: BoxDecoration(color: Colors.black54, border: Border.all(color: Colors.white12)), child: Text(text, style: const TextStyle(color: Colors.white54, fontSize: 6, letterSpacing: 1.2)))));
+  @override Widget build(BuildContext context) => InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7), decoration: BoxDecoration(color: Colors.black.withValues(alpha: .62), border: Border.all(color: Colors.white12)), child: Text(text, style: const TextStyle(color: Colors.white54, fontSize: 6, letterSpacing: 1.1))));
 }
 
 class _Telemetry extends StatelessWidget {
-  final double phase, zoom; final GalaxyWorld? selected; final GalaxyWorldKind? hovered; final bool map;
-  const _Telemetry({required this.phase, required this.selected, required this.hovered, required this.map, required this.zoom});
+  final double phase, zoom; final GalaxyWorld? selected; final GalaxyWorldKind? hovered; final bool map, cinematic;
+  const _Telemetry({required this.phase, required this.selected, required this.hovered, required this.map, required this.zoom, required this.cinematic});
   @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Text('${map ? 'SYSTEM MAP' : 'DEEP ORBIT'}  •  ${selected?.title.toUpperCase() ?? 'SCANNING'}', style: const TextStyle(color: Colors.white24, fontSize: 7, letterSpacing: 1.5)),
     const SizedBox(height: 4),
-    Text('AZ ${(phase * 360).round() % 360}'.padLeft(9, '0') + '°  •  Z ${(zoom * 100).round()}%  •  ${hovered == null ? 'NO TARGET' : 'TARGET LOCK'}', style: const TextStyle(color: Colors.white12, fontSize: 6, letterSpacing: 1.1)),
+    Text('AZ ${(phase * 360).round() % 360}°  •  Z ${(zoom * 100).round()}%  •  ${hovered == null ? 'NO TARGET' : 'TARGET LOCK'}', style: const TextStyle(color: Colors.white12, fontSize: 6, letterSpacing: 1.1)),
+    const SizedBox(height: 3),
+    Text(cinematic ? 'RENDER / CINEMATIC' : 'RENDER / EFFICIENT', style: const TextStyle(color: Colors.white10, fontSize: 5.5, letterSpacing: 1.2)),
   ]);
 }
 
 class _WorldOrbit extends StatelessWidget {
-  final List<GalaxyWorld> worlds; final double phase, orbit; final GalaxyWorldKind? selected, hovered; final bool labels, detail, compact; final ValueChanged<GalaxyWorld> onTap; final ValueChanged<GalaxyWorld?> onHover;
-  const _WorldOrbit({required this.worlds, required this.phase, required this.orbit, required this.selected, required this.hovered, required this.labels, required this.detail, required this.compact, required this.onTap, required this.onHover});
+  final List<GalaxyWorld> worlds; final double phase, orbit; final GalaxyWorldKind? selected, hovered; final bool labels, detail, cinematic, compact; final ValueChanged<GalaxyWorld> onTap; final ValueChanged<GalaxyWorld?> onHover;
+  const _WorldOrbit({required this.worlds, required this.phase, required this.orbit, required this.selected, required this.hovered, required this.labels, required this.detail, required this.cinematic, required this.compact, required this.onTap, required this.onHover});
   @override Widget build(BuildContext context) => LayoutBuilder(builder: (_, c) => Stack(children: [
-    CustomPaint(size: Size(c.maxWidth, c.maxHeight), painter: _CentralSystemPainter(phase, orbit, detail)),
-    for (var i = 0; i < worlds.length; i++) _WorldNode(world: worlds[i], index: i, count: worlds.length, phase: phase, orbit: orbit, selected: selected == worlds[i].kind, hovered: hovered == worlds[i].kind, labels: labels, detail: detail, compact: compact, onTap: () => onTap(worlds[i]), onHover: (v) => onHover(v ? worlds[i] : null)),
+    CustomPaint(size: Size(c.maxWidth, c.maxHeight), painter: _CentralSystemPainter(phase, orbit, detail, cinematic)),
+    for (var i = 0; i < worlds.length; i++) _WorldNode(world: worlds[i], index: i, count: worlds.length, phase: phase, orbit: orbit, selected: selected == worlds[i].kind, hovered: hovered == worlds[i].kind, labels: labels, detail: detail, cinematic: cinematic, compact: compact, onTap: () => onTap(worlds[i]), onHover: (v) => onHover(v ? worlds[i] : null)),
   ]));
 }
 
 class _WorldNode extends StatelessWidget {
-  final GalaxyWorld world; final int index, count; final double phase, orbit; final bool selected, hovered, labels, detail, compact; final VoidCallback onTap; final ValueChanged<bool> onHover;
-  const _WorldNode({required this.world, required this.index, required this.count, required this.phase, required this.orbit, required this.selected, required this.hovered, required this.labels, required this.detail, required this.compact, required this.onTap, required this.onHover});
+  final GalaxyWorld world; final int index, count; final double phase, orbit; final bool selected, hovered, labels, detail, cinematic, compact; final VoidCallback onTap; final ValueChanged<bool> onHover;
+  const _WorldNode({required this.world, required this.index, required this.count, required this.phase, required this.orbit, required this.selected, required this.hovered, required this.labels, required this.detail, required this.cinematic, required this.compact, required this.onTap, required this.onHover});
   @override Widget build(BuildContext context) => LayoutBuilder(builder: (_, c) {
     final minSide = math.min(c.maxWidth, c.maxHeight);
     final angle = index / math.max(1, count) * math.pi * 2 + orbit * .9;
-    final rr = minSide * (compact ? .27 : .30);
-    final x = c.maxWidth * .52 + math.cos(angle) * rr * 1.5;
-    final y = c.maxHeight * .52 + math.sin(angle) * rr * .62;
+    final rr = minSide * (compact ? .255 : .285);
+    final x = c.maxWidth * .52 + math.cos(angle) * rr * 1.62;
+    final y = c.maxHeight * .52 + math.sin(angle) * rr * .72;
     final depth = (math.sin(angle) + 1) / 2;
-    final radius = minSide * (.040 + depth * .022 + (selected ? .018 : 0) + (hovered ? .010 : 0));
-    final size = radius * 3.15;
-    return Positioned(left: x - size / 2, top: y - size / 2, width: size, height: size, child: MouseRegion(cursor: SystemMouseCursors.click, onEnter: (_) => onHover(true), onExit: (_) => onHover(false), child: GestureDetector(onTap: onTap, child: CustomPaint(painter: _NodePainter(world.kind, phase, index, selected, hovered, labels, detail, world.title)))));
+    final radius = minSide * (.041 + depth * .024 + (selected ? .019 : 0) + (hovered ? .011 : 0));
+    final size = radius * 3.45;
+    return Positioned(left: x - size / 2, top: y - size / 2, width: size, height: size, child: MouseRegion(cursor: SystemMouseCursors.click, onEnter: (_) => onHover(true), onExit: (_) => onHover(false), child: GestureDetector(onTap: onTap, child: CustomPaint(painter: _NodePainter(world.kind, phase, index, selected, hovered, labels, detail, cinematic, world.title)))));
   });
 }
 
 class _CentralSystemPainter extends CustomPainter {
-  final double phase, orbit; final bool detail;
-  _CentralSystemPainter(this.phase, this.orbit, this.detail);
+  final double phase, orbit; final bool detail, cinematic;
+  _CentralSystemPainter(this.phase, this.orbit, this.detail, this.cinematic);
   @override void paint(Canvas c, Size s) {
     final center = Offset(s.width * .52, s.height * .52); final m = math.min(s.width, s.height); final p = Paint()..style = PaintingStyle.stroke;
-    for (var i = 0; i < 16; i++) { final r = m * (.11 + i * .029); p.color = Colors.white.withValues(alpha: .018 + (i % 4) * .008); p.strokeWidth = i == 7 ? 1.1 : .42; final tilt = .28 + (i % 5) * .045; c.drawOval(Rect.fromCenter(center: center, width: r * 2.4, height: r * tilt * 2), p); }
-    for (var i = 0; i < 36; i++) { final a = phase * math.pi * 2 * (.22 + (i % 5) * .045) + orbit * .4 + i * math.pi * 2 / 36; final r = m * (.14 + (i % 9) * .023); final q = Offset(center.dx + math.cos(a) * r * 1.25, center.dy + math.sin(a) * r * .42); c.drawCircle(q, .7 + i % 3 * .45, Paint()..color = Colors.white.withValues(alpha: .10 + (i % 4) * .025)); }
-    final glow = Paint()..shader = RadialGradient(colors: [Colors.white.withValues(alpha: .24), const Color(0xFF6D4A8B).withValues(alpha: .12), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: m * .19)); c.drawCircle(center, m * .19, glow);
-    c.drawCircle(center, m * .052, Paint()..shader = RadialGradient(colors: [Colors.white54, const Color(0xFF6A4A82), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: m * .052)));
-    if (detail) { for (var i = 0; i < 8; i++) { final a = phase * 4 + i * math.pi / 4; final r = m * (.075 + (i % 3) * .012); final q = Offset(center.dx + math.cos(a) * r, center.dy + math.sin(a) * r * .6); c.drawLine(center, q, Paint()..color = Colors.white.withValues(alpha: .025)..strokeWidth = .8); } }
+    final bands = cinematic ? 20 : 13;
+    for (var i = 0; i < bands; i++) { final r = m * (.075 + i * .032); p.color = Colors.white.withValues(alpha: .012 + (i % 4) * .007); p.strokeWidth = i % 6 == 0 ? 1.0 : .38; final tilt = .25 + (i % 6) * .035; c.drawOval(Rect.fromCenter(center: center, width: r * 2.55, height: r * tilt * 2), p); }
+    final markers = cinematic ? 52 : 28;
+    for (var i = 0; i < markers; i++) { final a = phase * math.pi * 2 * (.18 + (i % 7) * .032) + orbit * .45 + i * math.pi * 2 / markers; final r = m * (.12 + (i % 13) * .022); final q = Offset(center.dx + math.cos(a) * r * 1.34, center.dy + math.sin(a) * r * .46); c.drawCircle(q, .65 + (i % 3) * .42, Paint()..color = Colors.white.withValues(alpha: .075 + (i % 4) * .018)); }
+    final glowRadius = m * (cinematic ? .22 : .17);
+    final glow = Paint()..shader = RadialGradient(colors: [Colors.white.withValues(alpha: .28), const Color(0xFF76538F).withValues(alpha: .14), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: glowRadius));
+    c.drawCircle(center, glowRadius, glow);
+    c.drawCircle(center, m * .055, Paint()..shader = RadialGradient(colors: [Colors.white70, const Color(0xFF72508A), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: m * .055)));
+    if (detail) { for (var i = 0; i < (cinematic ? 12 : 7); i++) { final a = phase * 3.6 + i * math.pi / 6; final r = m * (.065 + (i % 4) * .014); final q = Offset(center.dx + math.cos(a) * r, center.dy + math.sin(a) * r * .58); c.drawLine(center, q, Paint()..color = Colors.white.withValues(alpha: .022)..strokeWidth = .75); } }
   }
-  @override bool shouldRepaint(covariant _CentralSystemPainter old) => old.phase != phase || old.orbit != orbit || old.detail != detail;
+  @override bool shouldRepaint(covariant _CentralSystemPainter old) => old.phase != phase || old.orbit != orbit || old.detail != detail || old.cinematic != cinematic;
 }
 
 class _OrbitArchitecturePainter extends CustomPainter {
-  final double phase, orbit; final bool map;
-  _OrbitArchitecturePainter(this.phase, this.orbit, this.map);
+  final double phase, orbit; final bool map, detail;
+  _OrbitArchitecturePainter(this.phase, this.orbit, this.map, this.detail);
   @override void paint(Canvas c, Size s) {
     final center = Offset(s.width * .52, s.height * .52); final m = math.min(s.width, s.height); final p = Paint()..style = PaintingStyle.stroke;
-    for (var i = 0; i < 13; i++) { final r = m * (.13 + i * .027); p.color = Colors.white.withValues(alpha: map ? .050 : .030 + (i % 3) * .007); p.strokeWidth = i == 6 ? 1.2 : .45; c.drawOval(Rect.fromCenter(center: center, width: r * 2.35, height: r * (.34 + (i % 4) * .07) * 2), p); }
-    for (var i = 0; i < 24; i++) { final a = phase * math.pi * 2 * (.25 + i % 4 * .06) + orbit * .5 + i * math.pi * 2 / 24; final r = m * (.15 + (i % 6) * .025); final q = Offset(center.dx + math.cos(a) * r * 1.17, center.dy + math.sin(a) * r * .42); c.drawCircle(q, 1.2 + (i % 3) * .5, Paint()..color = Colors.white.withValues(alpha: .13)); }
+    for (var i = 0; i < 16; i++) { final r = m * (.12 + i * .030); p.color = Colors.white.withValues(alpha: map ? .045 : .022 + (i % 3) * .006); p.strokeWidth = i == 7 ? 1.1 : .42; c.drawOval(Rect.fromCenter(center: center, width: r * 2.4, height: r * (.31 + (i % 5) * .065) * 2), p); }
+    if (detail) { for (var i = 0; i < 13; i++) { final r = m * (.15 + i * .035); p.color = Colors.white.withValues(alpha: map ? .025 : .014); p.strokeWidth = .34; c.drawOval(Rect.fromCenter(center: center, width: r * 2.7, height: r * .28), p); } }
+    for (var i = 0; i < 40; i++) { final a = phase * math.pi * 2 * (.22 + i % 5 * .045) + orbit * .5 + i * math.pi * 2 / 40; final r = m * (.15 + (i % 8) * .027); final q = Offset(center.dx + math.cos(a) * r * 1.20, center.dy + math.sin(a) * r * .43); c.drawCircle(q, 1.0 + (i % 3) * .45, Paint()..color = Colors.white.withValues(alpha: .095)); }
   }
-  @override bool shouldRepaint(covariant _OrbitArchitecturePainter old) => old.phase != phase || old.orbit != orbit || old.map != map;
+  @override bool shouldRepaint(covariant _OrbitArchitecturePainter old) => old.phase != phase || old.orbit != orbit || old.map != map || old.detail != detail;
 }
 
 class _NodePainter extends CustomPainter {
-  final GalaxyWorldKind kind; final double phase; final int index; final bool selected, hovered, labels, detail; final String title;
-  _NodePainter(this.kind, this.phase, this.index, this.selected, this.hovered, this.labels, this.detail, this.title);
+  final GalaxyWorldKind kind; final double phase; final int index; final bool selected, hovered, labels, detail, cinematic; final String title;
+  _NodePainter(this.kind, this.phase, this.index, this.selected, this.hovered, this.labels, this.detail, this.cinematic, this.title);
   @override void paint(Canvas c, Size s) {
-    final p = Offset(s.width / 2, s.height / 2); final r = s.width * .31; final rect = Rect.fromCircle(center: p, radius: r);
-    c.drawCircle(p, r * (hovered ? 1.8 : 1.55), Paint()..shader = RadialGradient(colors: [Colors.white.withValues(alpha: selected ? .23 : hovered ? .14 : .07), Colors.transparent]).createShader(rect.inflate(r)));
-    c.drawCircle(p, r, Paint()..shader = RadialGradient(center: const Alignment(-.38, -.42), radius: 1.05, colors: [const Color(0xFF9AA7B8), _tone(kind), const Color(0xFF02030A)]).createShader(rect));
-    c.save(); c.clipPath(Path()..addOval(rect));
-    final terrain = Paint()..color = Colors.white.withValues(alpha: detail ? .085 : .045);
-    for (var i = 0; i < 30; i++) { final a = i * 2.41 + index * .7; final rr = r * (.10 + (i % 8) * .105); final q = p + Offset(math.cos(a) * rr, math.sin(a) * rr * .68); c.drawOval(Rect.fromCenter(center: q, width: r * (.07 + (i % 5) * .085), height: r * (.04 + (i % 4) * .065)), terrain); }
-    if (detail) { final ridge = Paint()..color = Colors.white.withValues(alpha: .10)..style = PaintingStyle.stroke..strokeWidth = .65; for (var i = 0; i < 7; i++) { final rr = r * (.22 + i * .10); c.drawArc(Rect.fromCircle(center: p + Offset(-r * .18, r * .08), radius: rr), .25 + i * .11, 1.2 + (i % 3) * .22, false, ridge); } }
-    final clouds = Paint()..color = Colors.white.withValues(alpha: .075)..style = PaintingStyle.stroke..strokeWidth = r * .06; for (var i = 0; i < 4; i++) { final y = p.dy - r * .55 + i * r * .37; c.drawArc(Rect.fromCenter(center: Offset(p.dx, y), width: r * 1.8, height: r * .5), phase * 6 + i, 1.6, false, clouds); }
-    c.restore();
-    c.drawCircle(p, r, Paint()..style = PaintingStyle.stroke..strokeWidth = r * .035..color = Colors.white.withValues(alpha: selected ? .68 : hovered ? .48 : .20));
-    if (selected) { c.drawCircle(p, r * 1.23, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.3..color = Colors.white38); c.drawCircle(p, r * 1.36, Paint()..style = PaintingStyle.stroke..strokeWidth = .55..color = Colors.white12); }
-    if (labels) { final tp = TextPainter(text: TextSpan(text: title.toUpperCase(), style: TextStyle(color: Colors.white.withValues(alpha: selected ? .82 : hovered ? .58 : .35), fontSize: 7, letterSpacing: 1.2)), textDirection: TextDirection.ltr)..layout(maxWidth: 150); tp.paint(c, Offset(p.dx - tp.width / 2, r * 1.48)); }
+    final center = Offset(s.width / 2, s.height / 2); final r = s.width * .30; final rect = Rect.fromCircle(center: center, radius: r);
+    c.drawCircle(center, r * (hovered ? 1.95 : 1.62), Paint()..shader = RadialGradient(colors: [Colors.white.withValues(alpha: selected ? .24 : hovered ? .16 : .06), Colors.transparent]).createShader(rect.inflate(r)));
+    c.drawCircle(center, r, Paint()..shader = RadialGradient(center: const Alignment(-.38, -.42), radius: 1.04, colors: [const Color(0xFFB5BFCA), _tone(kind), const Color(0xFF03040A)]).createShader(rect));
+    final dark = Paint()..shader = RadialGradient(center: const Alignment(.70, .62), radius: .92, colors: [Colors.transparent, Colors.black.withValues(alpha: .72)]).createShader(rect); c.drawCircle(center, r, dark);
+    final surface = Paint()..style = PaintingStyle.stroke;
+    final contourCount = cinematic ? 9 : 5;
+    for (var j = 0; j < contourCount; j++) {
+      final rr = r * (.42 + j * .055); final path = Path();
+      for (var k = 0; k <= 26; k++) { final a = k / 26 * math.pi * 2; final wave = math.sin(a * (2 + j % 3) + index * .8) * r * .025 + math.cos(a * 5 + j) * r * .014; final q = Offset(center.dx + math.cos(a) * (rr + wave), center.dy + math.sin(a) * (rr + wave) * .60); if (k == 0) { path.moveTo(q.dx, q.dy); } else { path.lineTo(q.dx, q.dy); } }
+      surface.color = Colors.white.withValues(alpha: .055 - j * .003); surface.strokeWidth = .55; c.drawPath(path, surface);
+    }
+    final details = cinematic ? 38 : 18;
+    for (var i = 0; i < details; i++) { final a = i * 2.399 + index * .73; final rr = r * (.30 + ((i * 17) % 54) / 100); final q = Offset(center.dx + math.cos(a) * rr, center.dy + math.sin(a) * rr * .63); final cr = .7 + (i % 3) * .45; c.drawCircle(q, cr, Paint()..color = Colors.white.withValues(alpha: .055 + (i % 4) * .012)); }
+    final cloudCount = cinematic ? 7 : 3;
+    for (var i = 0; i < cloudCount; i++) { final a = phase * math.pi * 2 * (.16 + i * .025) + index * .4 + i; final rr = r * (.68 + (i % 2) * .08); final q = Offset(center.dx + math.cos(a) * rr, center.dy + math.sin(a) * rr * .34); c.drawArc(Rect.fromCenter(center: q, width: r * .78, height: r * .20), a, 1.0, false, Paint()..color = Colors.white.withValues(alpha: .035)..style = PaintingStyle.stroke..strokeWidth = 1.2); }
+    if (selected) { c.drawCircle(center, r * 1.22, Paint()..color = Colors.white38..style = PaintingStyle.stroke..strokeWidth = 1.0); c.drawCircle(center, r * 1.32, Paint()..color = Colors.white12..style = PaintingStyle.stroke..strokeWidth = .6); }
+    if (labels) { final tp = TextPainter(text: TextSpan(text: title.toUpperCase(), style: TextStyle(color: Colors.white.withValues(alpha: selected ? .82 : hovered ? .72 : .42), fontSize: math.max(6, s.width * .025), letterSpacing: 1.2)), textDirection: TextDirection.ltr)..layout(maxWidth: s.width * 2.2); tp.paint(c, Offset(center.dx - tp.width / 2, center.dy + r * 1.38)); }
   }
-  Color _tone(GalaxyWorldKind k) { switch (k) { case GalaxyWorldKind.game: return const Color(0xFF244B54); case GalaxyWorldKind.identity: return const Color(0xFF4B385E); case GalaxyWorldKind.cinema: return const Color(0xFF484062); case GalaxyWorldKind.creation: return const Color(0xFF31584E); case GalaxyWorldKind.music: return const Color(0xFF55395A); case GalaxyWorldKind.family: return const Color(0xFF4B4058); case GalaxyWorldKind.archive: return const Color(0xFF4C4939); case GalaxyWorldKind.comingSoon: return const Color(0xFF353C4F); case GalaxyWorldKind.vegeta: return const Color(0xFF523D66); } }
-  @override bool shouldRepaint(covariant _NodePainter old) => old.phase != phase || old.kind != kind || old.index != index || old.selected != selected || old.hovered != hovered || old.labels != labels || old.detail != detail || old.title != title;
+  @override bool shouldRepaint(covariant _NodePainter old) => old.kind != kind || old.phase != phase || old.index != index || old.selected != selected || old.hovered != hovered || old.labels != labels || old.detail != detail || old.cinematic != cinematic || old.title != title;
 }
 
 class _DeepSpacePainter extends CustomPainter {
-  final double phase; final bool map;
-  _DeepSpacePainter(this.phase, this.map);
+  final double phase; final bool detail, cinematic;
+  _DeepSpacePainter(this.phase, this.detail, this.cinematic);
   @override void paint(Canvas c, Size s) {
-    c.drawRect(Offset.zero & s, Paint()..color = const Color(0xFF010107));
-    final rnd = math.Random(812);
-    for (var i = 0; i < 1100; i++) { final z = rnd.nextDouble(); final a = (.025 + z * .14 + math.sin(phase * math.pi * 2 * (1 + z * 3) + i) * .018).clamp(.01, .18); c.drawCircle(Offset(rnd.nextDouble() * s.width, rnd.nextDouble() * s.height), .22 + z * 1.05, Paint()..color = Colors.white.withValues(alpha: a)); }
-    final haze = Paint()..shader = RadialGradient(colors: [const Color(0xFF37245A).withValues(alpha: map ? .17 : .10), const Color(0xFF18213A).withValues(alpha: .035), Colors.transparent]).createShader(Rect.fromCenter(center: Offset(s.width * .53, s.height * .52), width: s.width * .95, height: s.height * .82));
-    c.drawOval(Rect.fromCenter(center: Offset(s.width * .53, s.height * .52), width: s.width * .95, height: s.height * .82), haze);
-    final dust = Paint()..style = PaintingStyle.stroke..strokeWidth = 1; for (var i = 0; i < 7; i++) { final y = s.height * (.12 + i * .13) + math.sin(phase * 4 + i) * 12; dust.color = const Color(0xFF6A5285).withValues(alpha: .025); c.drawArc(Rect.fromCenter(center: Offset(s.width * .55, y), width: s.width * 1.1, height: s.height * .32), 2.7, 1.1, false, dust); }
+    final m = math.min(s.width, s.height); c.drawRect(Offset.zero & s, Paint()..color = const Color(0xFF010107));
+    final haze = Paint()..shader = RadialGradient(colors: [const Color(0xFF3B2458).withValues(alpha: .12), const Color(0xFF111B38).withValues(alpha: .045), Colors.transparent]).createShader(Rect.fromCircle(center: Offset(s.width * .48, s.height * .48), radius: m * .75)); c.drawCircle(Offset(s.width * .48, s.height * .48), m * .75, haze);
+    final stars = cinematic ? 1250 : 720;
+    for (var i = 0; i < stars; i++) { final x = _noise(i * 2.13) * s.width; final y = _noise(i * 4.71 + 3) * s.height; final tw = .55 + .45 * math.sin(phase * math.pi * 2 * (1 + i % 5) + i); final r = .25 + (i % 4) * .16; c.drawCircle(Offset(x, y), r, Paint()..color = Colors.white.withValues(alpha: (.035 + (i % 7) * .009) * tw)); }
+    if (detail) { final p = Paint()..style = PaintingStyle.stroke; for (var i = 0; i < 7; i++) { final rr = m * (.30 + i * .075); p.color = const Color(0xFF6A4B82).withValues(alpha: .012); p.strokeWidth = 10 + i * 4; c.drawOval(Rect.fromCenter(center: Offset(s.width * .50, s.height * .50), width: rr * 2.0, height: rr * .42), p); } }
+    final vignette = Paint()..shader = RadialGradient(colors: [Colors.transparent, Colors.black.withValues(alpha: .55)]).createShader(Rect.fromLTWH(-m * .2, -m * .2, s.width + m * .4, s.height + m * .4)); c.drawRect(Offset.zero & s, vignette);
   }
-  @override bool shouldRepaint(covariant _DeepSpacePainter old) => old.phase != phase || old.map != map;
+  double _noise(double x) => (math.sin(x * 12.9898) * 43758.5453).abs() % 1.0;
+  @override bool shouldRepaint(covariant _DeepSpacePainter old) => old.phase != phase || old.detail != detail || old.cinematic != cinematic;
+}
+
+class _GalaxyDustPainter extends CustomPainter {
+  final double phase; final bool cinematic;
+  _GalaxyDustPainter(this.phase, this.cinematic);
+  @override void paint(Canvas c, Size s) {
+    final m = math.min(s.width, s.height); final center = Offset(s.width * .52, s.height * .52); final p = Paint(); final count = cinematic ? 150 : 70;
+    for (var i = 0; i < count; i++) { final a = i * .73 + phase * math.pi * 2 * .08; final rr = m * (.20 + (i % 23) * .018); final q = Offset(center.dx + math.cos(a) * rr * 1.7, center.dy + math.sin(a) * rr * .40); p.color = const Color(0xFF7E6B93).withValues(alpha: .012 + (i % 5) * .004); c.drawCircle(q, .8 + i % 3 * .35, p); }
+  }
+  @override bool shouldRepaint(covariant _GalaxyDustPainter old) => old.phase != phase || old.cinematic != cinematic;
 }
 
 class _FloatingVisitPanel extends StatelessWidget {
   final GalaxyWorld world; final bool compact; final double phase, orbit; final int count, index; final VoidCallback onVisit, onClose;
   const _FloatingVisitPanel({required this.world, required this.compact, required this.phase, required this.orbit, required this.count, required this.index, required this.onVisit, required this.onClose});
-  @override Widget build(BuildContext context) => LayoutBuilder(builder: (_, c) {
-    final minSide = math.min(c.maxWidth, c.maxHeight); final angle = index / math.max(1, count) * math.pi * 2 + orbit * .9; final rr = minSide * (compact ? .27 : .30);
-    final x = c.maxWidth * .52 + math.cos(angle) * rr * 1.5; final y = c.maxHeight * .52 + math.sin(angle) * rr * .62; final w = compact ? 190.0 : 230.0; final left = (x + (math.cos(angle) >= 0 ? 34 : -w - 34)).clamp(12.0, c.maxWidth - w - 12.0); final top = (y - 55).clamp(70.0, c.maxHeight - 125.0);
-    return AnimatedPositioned(duration: const Duration(milliseconds: 220), curve: Curves.easeOutCubic, left: left, top: top, width: w, child: Material(color: Colors.transparent, child: Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xEE080812), border: Border.all(color: Colors.white.withValues(alpha: .16)), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 24, spreadRadius: 2)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      Row(children: [Expanded(child: Text(world.title.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 10, letterSpacing: 2))), InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(3), child: Text('×', style: TextStyle(color: Colors.white38, fontSize: 16))))]),
-      const SizedBox(height: 5), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white38, fontSize: 8, height: 1.4)),
-      const SizedBox(height: 12), SizedBox(width: double.infinity, child: ElevatedButton(onPressed: onVisit, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF21172D), foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 11), shape: const RoundedRectangleBorder()), child: const Text('VISIT PLANET  →', style: TextStyle(fontSize: 8, letterSpacing: 1.8)))),
-      const SizedBox(height: 7), const Text('ENTER  •  VISIT        ESC  •  CLOSE', style: TextStyle(color: Colors.white24, fontSize: 6, letterSpacing: 1.1)),
-    ]))));
-  });
+  @override Widget build(BuildContext context) {
+    final w = compact ? 230.0 : 285.0;
+    final a = index / math.max(1, count) * math.pi * 2 + orbit * .9;
+    return LayoutBuilder(builder: (_, c) {
+      final minSide = math.min(c.maxWidth, c.maxHeight); final rr = minSide * (compact ? .255 : .285); final x = c.maxWidth * .52 + math.cos(a) * rr * 1.62; final y = c.maxHeight * .52 + math.sin(a) * rr * .72;
+      final left = (x + 46).clamp(12.0, c.maxWidth - w - 12); final top = (y - 58).clamp(compact ? 150.0 : 110.0, c.maxHeight - 170.0);
+      return AnimatedPositioned(duration: const Duration(milliseconds: 260), curve: Curves.easeOutCubic, left: left, top: top, child: Material(color: Colors.transparent, child: Container(width: w, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xE8080910), border: Border.all(color: Colors.white12), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 30)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [Expanded(child: Text(world.title.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 11, letterSpacing: 2))), InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(3), child: Text('×', style: TextStyle(color: Colors.white38, fontSize: 15))))]),
+        const SizedBox(height: 7), Text(world.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 9, height: 1.35)),
+        const SizedBox(height: 11), Row(children: [Expanded(child: InkWell(onTap: onVisit, child: Container(padding: const EdgeInsets.symmetric(vertical: 9), alignment: Alignment.center, color: Colors.white10, child: const Text('VISIT PLANET  →', style: TextStyle(color: Colors.white, fontSize: 7, letterSpacing: 1.5)))), const SizedBox(width: 7), const Text('ENTER', style: TextStyle(color: Colors.white24, fontSize: 6, letterSpacing: 1.2))]),
+      ])));
+    });
+  }
 }
 
-class _Hint extends StatelessWidget { const _Hint(); @override Widget build(BuildContext context) => const Text('DRAG TO ORBIT  •  SCROLL / PINCH TO ZOOM  •  HOVER / SELECT A WORLD', style: TextStyle(color: Colors.white24, fontSize: 7, letterSpacing: 1.4)); }
+class _Hint extends StatelessWidget {
+  const _Hint();
+  @override Widget build(BuildContext context) => const Text('DRAG  •  ORBIT     PINCH / + −  •  ZOOM     CLICK A WORLD  •  INSPECT', style: TextStyle(color: Colors.white24, fontSize: 7, letterSpacing: 1.5));
+}
+
+Color _tone(GalaxyWorldKind kind) {
+  switch (kind) {
+    case GalaxyWorldKind.vegeta: return const Color(0xFF4C536B);
+    case GalaxyWorldKind.game: return const Color(0xFF425B66);
+    case GalaxyWorldKind.identity: return const Color(0xFF554A66);
+    case GalaxyWorldKind.cinema: return const Color(0xFF614F62);
+    case GalaxyWorldKind.creation: return const Color(0xFF50635F);
+    case GalaxyWorldKind.music: return const Color(0xFF5D4D67);
+    case GalaxyWorldKind.family: return const Color(0xFF5D6254);
+    case GalaxyWorldKind.archive: return const Color(0xFF5B5960);
+    case GalaxyWorldKind.comingSoon: return const Color(0xFF4D5560);
+  }
+}
