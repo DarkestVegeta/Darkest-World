@@ -1,0 +1,79 @@
+name: GO91 Stabilize Galaxy
+
+on:
+  push:
+    branches: [go59-galaxy-systems]
+
+permissions:
+  contents: write
+
+jobs:
+  stabilize:
+    if: ${{ !contains(github.event.head_commit.message, '[GO91-STABILIZED]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: go59-galaxy-systems
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Restore and normalize Galaxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin go59-galaxy-systems
+          git reset --hard origin/go59-galaxy-systems
+
+          # Restore the last coherent Galaxy Home implementation before the malformed wiring pass.
+          git show 1050cd1321ec61f37ef97baaf68bfa5802eabf6b:lib/screens/galaxy_home_page.dart > lib/screens/galaxy_home_page.dart
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def color(m):
+              n = max(0, min(100, int(m.group(1))))
+              a = round(n * 255 / 100)
+              return f'Color(0x{a:02X}FFFFFF)'
+
+          for p in Path('lib').rglob('*.dart'):
+              s = p.read_text(encoding='utf-8')
+              original = s
+              s = re.sub(r'Colors\.white(\d+)', color, s)
+              if 'PointerScrollEvent' in s and "import 'package:flutter/gestures.dart';" not in s:
+                  marker = "import 'package:flutter/material.dart';"
+                  if marker in s:
+                      s = s.replace(marker, marker + "\nimport 'package:flutter/gestures.dart';", 1)
+              if ('KeyDownEvent' in s or 'LogicalKeyboardKey' in s) and "import 'package:flutter/services.dart';" not in s:
+                  marker = "import 'package:flutter/material.dart';"
+                  if marker in s:
+                      s = s.replace(marker, marker + "\nimport 'package:flutter/services.dart';", 1)
+              if s != original:
+                  p.write_text(s, encoding='utf-8')
+
+          # Fix the parser-sensitive collection-for in the legacy home page.
+          p = Path('lib/main.dart')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace(
+              'for (final section in sections) _SectionButton(label: section.name, onTap: () => _openSection(context, section)),',
+              '...sections.map((section) => _SectionButton(label: section.name, onTap: () => _openSection(context, section))),'
+          )
+          p.write_text(s, encoding='utf-8')
+          PY
+
+          dart format lib test
+          flutter pub get
+          flutter analyze --no-fatal-infos
+          flutter test
+
+          git config user.name "DarkestVegeta"
+          git config user.email "Darkest-Family@hotmail.com"
+          git add lib
+          git commit -m "GO91: stabilize Galaxy source [GO91-STABILIZED]"
+          git push origin HEAD:go59-galaxy-systems
