@@ -28,6 +28,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 80));
   }
 
+  Future<void> pauseGalaxy(WidgetTester tester) async {
+    await tester.tap(find.text('PAUSE'));
+    await tester.pump();
+  }
+
   testWidgets('Galaxy renders all world nodes and exposes semantics', (tester) async {
     await pumpGalaxy(tester);
     expect(find.text('DARKESTWORLD'), findsOneWidget);
@@ -39,6 +44,7 @@ void main() {
   testWidgets('Selecting a world opens its command panel and VISIT callback', (tester) async {
     GalaxyWorld? visited;
     await pumpGalaxy(tester, onWorldTap: (world) => visited = world);
+    await pauseGalaxy(tester);
     await tester.tap(worldSemantics('Game World'));
     await tester.pump(const Duration(milliseconds: 120));
     expect(find.text('GAME WORLD'), findsOneWidget);
@@ -79,6 +85,7 @@ void main() {
 
   testWidgets('Previous and next controls cycle through the world chain', (tester) async {
     await pumpGalaxy(tester);
+    await pauseGalaxy(tester);
     await tester.tap(worldSemantics('Game World'));
     await tester.pump(const Duration(milliseconds: 120));
     expect(find.text('CURRENT'), findsOneWidget);
