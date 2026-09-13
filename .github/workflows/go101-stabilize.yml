@@ -1,0 +1,80 @@
+name: GO101 Galaxy Stabilize
+
+on:
+  push:
+    branches: [go59-galaxy-systems]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: go101-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stabilize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: go59-galaxy-systems
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Restore clean Galaxy shell and repair syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show 1050cd1321ec61f37ef97baaf68bfa5802eabf6b:lib/screens/galaxy_home_page.dart > lib/screens/galaxy_home_page.dart
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # Keep official Flutter whiteXX constants; convert only unsupported opacities.
+          valid = {10, 12, 24, 30, 38, 54, 60, 70}
+          for p in Path('lib').rglob('*.dart'):
+              s = p.read_text(encoding='utf-8')
+              def fix(m):
+                  n = int(m.group(1))
+                  if n in valid:
+                      return m.group(0)
+                  a = max(0, min(100, n)) * 255 // 100
+                  return f'Color(0x{a:02X}FFFFFF)'
+              s = re.sub(r'Colors\.white(\d+)', fix, s)
+              p.write_text(s, encoding='utf-8')
+
+          # The compact command-center filter needs one closing parenthesis for Semantics.
+          p = Path('lib/screens/galaxy_command_center_page.dart')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('letterSpacing: 1))));', 'letterSpacing: 1)))));')
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Format
+        run: dart format lib test
+      - name: Dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+      - name: Test
+        run: flutter test
+      - name: Commit stabilized source and retire old repair loops
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "DarkestVegeta"
+          git config user.email "Darkest-Family@hotmail.com"
+          git add lib
+          git add .github/workflows/go101-stabilize.yml
+          for f in .github/workflows/go84-galaxy-session.yml .github/workflows/go86-galaxy-repair.yml .github/workflows/go88-wire-command.yml .github/workflows/go89-flutter-repair.yml .github/workflows/go91-stabilize-galaxy.yml .github/workflows/go92-stabilize.yml .github/workflows/go93-galaxy-rebuild.yml .github/workflows/go94-final-repair.yml .github/workflows/go96-stabilize.yml .github/workflows/go98-galaxy-stabilize.yml .github/workflows/go99-repair.yml .github/workflows/go100-stabilize.yml; do
+            [ -e "$f" ] && git rm -f "$f" || true
+          done
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "GO101: stabilize Galaxy and retire repair loops"
+            git push origin HEAD:go59-galaxy-systems
+          fi
