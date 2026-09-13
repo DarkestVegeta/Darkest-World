@@ -95,6 +95,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
           child: GalaxyCommandCenterPage(
             worlds: worlds, selected: selected, visited: visited,
             onOpen: (world) { setState(() => command = false); openWorld(world); },
+            onClose: () => setState(() => command = false),
           ),
         )),
       ]),
