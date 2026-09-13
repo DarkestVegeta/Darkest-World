@@ -54,5 +54,17 @@ GO43 did not reach deployment because CI found an orphaned V3 import plus parser
 - Expanded the orbital presentation with 13 visible bands, 24 moving markers and a central system core.
 - Kept drag orbit, pinch zoom, labels, System Map, reset and asset-free procedural rendering intact.
 
+## GO 49 — galaxy depth, hover and navigation system
+- Expanded the active renderer from a basic orbital scene into a deeper interactive galaxy composition.
+- Increased the procedural deep-space field to 1,100 deterministic stars and added layered drifting dust arcs behind the system.
+- Expanded orbital architecture to 16 core orbit bands plus a separate 13-band navigation layer and 36 moving system markers.
+- Added a dedicated central system painter with a stronger multi-layer stellar core, radial glow and subtle energy rays.
+- Added true hover targeting for desktop pointer use, including cursor feedback, target-lock telemetry and stronger planet emphasis.
+- Increased each planet's procedural surface structure to 30 terrain micro-regions plus 7 nested ridge arcs and animated cloud circulation.
+- Added separate DETAIL / MINIMAL presentation control so the user can reduce visual information without leaving the Galaxy.
+- Added actual ENTER-to-visit and ESC-to-close keyboard actions through FocusableActionDetector; ENTER is now optional rather than required.
+- Preserved the floating `VISIT PLANET →` panel, drag orbit, pinch zoom, zoom controls, labels, System Map and reset.
+- Kept the entire Galaxy renderer procedural and asset-free; no large image storage was introduced.
+
 ## Stability rule
 No deployment is claimed until the new main commit passes Flutter Analyze, Test and Web Build in GitHub Actions.
