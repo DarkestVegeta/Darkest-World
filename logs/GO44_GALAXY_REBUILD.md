@@ -30,10 +30,20 @@ GO43 did not reach deployment because CI found an orphaned V3 import plus parser
 - Removed reliance on the failed V3 implementation from the active Galaxy path.
 
 ## GO 46 — analyzer gate repair
-- GitHub Actions found exactly one blocking analyzer issue in the active renderer: an unnecessary non-null assertion on the selected world passed into `_WorldPanel`.
-- Removed that assertion without changing the visual system or interaction model.
-- Kept the renderer asset-free and retained all GO44/GO45 procedural systems and navigation behavior.
-- This was intentionally a stabilization round: no new visual layer was stacked on a failing build.
+- CI exposed a parser failure at the selected-world panel nesting.
+- The previous repair had removed one assertion but left the active renderer with malformed widget nesting.
+- No deployment was claimed.
+
+## GO 47 — clean active renderer rebuild
+- Removed the malformed active renderer instead of stacking another fragile patch.
+- Recreated `darkest_world_universe.dart` as a clean, explicit Flutter composition.
+- Restored the full Galaxy interaction surface: drag orbit, pinch zoom, zoom controls, reset, labels, System Map mode, world selection and ENTER navigation.
+- Restored a procedural deep-space field with 900 deterministic stars and animated twinkle.
+- Restored 13 orbital architecture bands and a moving central system layer.
+- Restored nine world nodes with depth-based sizing, atmospheric glow, spherical shading, terrain micro-detail, cloud bands, labels and selected-world emphasis.
+- Restored live telemetry and the selected-world information panel.
+- Kept the renderer asset-free.
+- The rebuild is intentionally explicit and maintainable so CI can validate it before the next large visual GO.
 
 ## Stability rule
 No deployment is claimed until the new main commit passes Flutter Analyze, Test and Web Build in GitHub Actions.
