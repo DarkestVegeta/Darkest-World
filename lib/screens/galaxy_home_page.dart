@@ -264,6 +264,6 @@ class Atlas extends StatelessWidget {
           ));
         },
       )),
-    ]))));
+    ])))));
   }
 }
