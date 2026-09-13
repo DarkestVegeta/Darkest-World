@@ -86,6 +86,32 @@ void main() {
     expect(find.text('CINEMA WORLD'), findsOneWidget);
   });
 
+  testWidgets('Keyboard navigation moves backward and forward through gates', (tester) async {
+    await pumpGalaxy(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump(const Duration(milliseconds: 80));
+    expect(find.text('CINEMA WORLD'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pump(const Duration(milliseconds: 80));
+    expect(find.text('GAME WORLD'), findsOneWidget);
+  });
+
+  testWidgets('Escape clears target lock and Enter visits the selected gate', (tester) async {
+    GalaxyWorld? visited;
+    await pumpGalaxy(tester, onWorldTap: (world) => visited = world);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
+    await tester.pump(const Duration(milliseconds: 80));
+    expect(find.text('TARGET LOCK'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(visited?.kind, GalaxyWorldKind.game);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump(const Duration(milliseconds: 80));
+    expect(find.text('TARGET LOCK'), findsNothing);
+  });
+
   testWidgets('Galaxy controls are present', (tester) async {
     await pumpGalaxy(tester);
     expect(find.text('MAP'), findsOneWidget);
