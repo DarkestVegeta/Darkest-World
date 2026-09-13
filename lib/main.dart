@@ -128,7 +128,7 @@ class _AccessControlledHomeState extends State<_AccessControlledHome> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
                   decoration: BoxDecoration(border: Border.all(color: Colors.white24), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 18)]),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white70, fontSize: 7, letterSpacing: 1.8)), SizedBox(width: 9), Text('⌘', style: TextStyle(color: Colors.white30, fontSize: 10))]),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white70, fontSize: 7, letterSpacing: 1.8)), SizedBox(width: 9), Text('⌘', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 10))]),
                 ),
               ),
             ),
