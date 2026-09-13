@@ -229,12 +229,51 @@ class _DeepSpacePainter extends CustomPainter {
   final double phase; final bool detail, cinematic;
   _DeepSpacePainter(this.phase, this.detail, this.cinematic);
   @override void paint(Canvas c, Size s) {
-    final m = math.min(s.width, s.height); c.drawRect(Offset.zero & s, Paint()..color = const Color(0xFF010107));
-    final haze = Paint()..shader = RadialGradient(colors: [const Color(0xFF3B2458).withValues(alpha: .12), const Color(0xFF111B38).withValues(alpha: .045), Colors.transparent]).createShader(Rect.fromCircle(center: Offset(s.width * .48, s.height * .48), radius: m * .75)); c.drawCircle(Offset(s.width * .48, s.height * .48), m * .75, haze);
-    final stars = cinematic ? 1250 : 720;
-    for (var i = 0; i < stars; i++) { final x = _noise(i * 2.13) * s.width; final y = _noise(i * 4.71 + 3) * s.height; final tw = .55 + .45 * math.sin(phase * math.pi * 2 * (1 + i % 5) + i); final r = .25 + (i % 4) * .16; c.drawCircle(Offset(x, y), r, Paint()..color = Colors.white.withValues(alpha: (.035 + (i % 7) * .009) * tw)); }
-    if (detail) { final p = Paint()..style = PaintingStyle.stroke; for (var i = 0; i < 7; i++) { final rr = m * (.30 + i * .075); p.color = const Color(0xFF6A4B82).withValues(alpha: .012); p.strokeWidth = 10 + i * 4; c.drawOval(Rect.fromCenter(center: Offset(s.width * .50, s.height * .50), width: rr * 2.0, height: rr * .42), p); } }
-    final vignette = Paint()..shader = RadialGradient(colors: [Colors.transparent, Colors.black.withValues(alpha: .55)]).createShader(Rect.fromLTWH(-m * .2, -m * .2, s.width + m * .4, s.height + m * .4)); c.drawRect(Offset.zero & s, vignette);
+    final m = math.min(s.width, s.height);
+    c.drawRect(Offset.zero & s, Paint()..color = const Color(0xFF010107));
+    final base = Paint()..shader = RadialGradient(colors: [const Color(0xFF39224F).withValues(alpha: .22), const Color(0xFF17234A).withValues(alpha: .10), Colors.transparent]).createShader(Rect.fromCircle(center: Offset(s.width * .48, s.height * .48), radius: m * .82));
+    c.drawCircle(Offset(s.width * .48, s.height * .48), m * .82, base);
+
+    final veil = Paint()..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
+    final veilLayers = cinematic ? 9 : 6;
+    for (var i = 0; i < veilLayers; i++) {
+      final path = Path();
+      final y0 = s.height * (.16 + i * .085);
+      path.moveTo(-m * .10, y0);
+      path.cubicTo(s.width * .18, y0 - m * (.15 + i * .012), s.width * .38, y0 + m * (.18 + i * .010), s.width * .62, y0 - m * (.05 + i * .008));
+      path.cubicTo(s.width * .80, y0 - m * (.13 + i * .012), s.width * 1.02, y0 + m * (.11 + i * .010), s.width * 1.12, y0 - m * .02);
+      final alpha = .045 - i * .0025;
+      veil.color = (i.isEven ? const Color(0xFF6A4C86) : const Color(0xFF405F91)).withValues(alpha: alpha);
+      veil.strokeWidth = m * (.085 + (i % 3) * .018);
+      c.drawPath(path, veil);
+    }
+
+    final transparentWindows = Paint()..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 5; i++) {
+      final path = Path();
+      final y0 = s.height * (.24 + i * .14);
+      path.moveTo(-m * .08, y0);
+      path.cubicTo(s.width * .25, y0 + m * .10, s.width * .44, y0 - m * .12, s.width * .72, y0 + m * .04);
+      path.cubicTo(s.width * .88, y0 + m * .11, s.width * 1.02, y0 - m * .08, s.width * 1.10, y0);
+      transparentWindows.color = (i % 2 == 0 ? const Color(0xFF7C5A99) : const Color(0xFF5876A3)).withValues(alpha: .018);
+      transparentWindows.strokeWidth = m * .045;
+      c.drawPath(path, transparentWindows);
+    }
+
+    final stars = cinematic ? 190 : 90;
+    for (var i = 0; i < stars; i++) {
+      final x = _noise(i * 2.13) * s.width; final y = _noise(i * 4.71 + 3) * s.height;
+      final tw = .55 + .45 * math.sin(phase * math.pi * 2 * (1 + i % 3) + i);
+      final r = .22 + (i % 3) * .14;
+      c.drawCircle(Offset(x, y), r, Paint()..color = Colors.white.withValues(alpha: (.022 + (i % 5) * .006) * tw));
+    }
+
+    if (detail) {
+      final p = Paint()..style = PaintingStyle.stroke;
+      for (var i = 0; i < 5; i++) { final rr = m * (.34 + i * .09); p.color = (i.isEven ? const Color(0xFF66467F) : const Color(0xFF3E5D8D)).withValues(alpha: .018); p.strokeWidth = 12 + i * 5; c.drawOval(Rect.fromCenter(center: Offset(s.width * .50, s.height * .50), width: rr * 2.0, height: rr * .40), p); }
+    }
+    final vignette = Paint()..shader = RadialGradient(colors: [Colors.transparent, Colors.black.withValues(alpha: .48)]).createShader(Rect.fromLTWH(-m * .2, -m * .2, s.width + m * .4, s.height + m * .4));
+    c.drawRect(Offset.zero & s, vignette);
   }
   double _noise(double x) => (math.sin(x * 12.9898) * 43758.5453).abs() % 1.0;
   @override bool shouldRepaint(covariant _DeepSpacePainter old) => old.phase != phase || old.detail != detail || old.cinematic != cinematic;
@@ -244,8 +283,14 @@ class _GalaxyDustPainter extends CustomPainter {
   final double phase; final bool cinematic;
   _GalaxyDustPainter(this.phase, this.cinematic);
   @override void paint(Canvas c, Size s) {
-    final m = math.min(s.width, s.height); final center = Offset(s.width * .52, s.height * .52); final p = Paint(); final count = cinematic ? 150 : 70;
-    for (var i = 0; i < count; i++) { final a = i * .73 + phase * math.pi * 2 * .08; final rr = m * (.20 + (i % 23) * .018); final q = Offset(center.dx + math.cos(a) * rr * 1.7, center.dy + math.sin(a) * rr * .40); p.color = const Color(0xFF7E6B93).withValues(alpha: .012 + (i % 5) * .004); c.drawCircle(q, .8 + i % 3 * .35, p); }
+    final m = math.min(s.width, s.height); final center = Offset(s.width * .50, s.height * .50); final p = Paint()..style = PaintingStyle.stroke..strokeCap = StrokeCap.round; final count = cinematic ? 72 : 38;
+    for (var i = 0; i < count; i++) {
+      final a = i * .73 + phase * math.pi * 2 * .045; final rr = m * (.16 + (i % 21) * .021);
+      final q = Offset(center.dx + math.cos(a) * rr * 1.75, center.dy + math.sin(a) * rr * .48);
+      p.color = (i.isEven ? const Color(0xFF74558D) : const Color(0xFF526F9D)).withValues(alpha: .014 + (i % 4) * .004);
+      p.strokeWidth = 2.0 + (i % 3) * 1.2;
+      c.drawLine(q, q + Offset(math.cos(a + 1.2) * m * .035, math.sin(a + 1.2) * m * .010), p);
+    }
   }
   @override bool shouldRepaint(covariant _GalaxyDustPainter old) => old.phase != phase || old.cinematic != cinematic;
 }
@@ -263,7 +308,7 @@ class _FloatingVisitPanel extends StatelessWidget {
         Row(children: [Expanded(child: Text(world.title.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 11, letterSpacing: 2))), InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(3), child: Text('×', style: TextStyle(color: Colors.white38, fontSize: 15))))]),
         const SizedBox(height: 7), Text(world.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 9, height: 1.35)),
         const SizedBox(height: 11), Row(children: [Expanded(child: InkWell(onTap: onVisit, child: Container(padding: const EdgeInsets.symmetric(vertical: 9), alignment: Alignment.center, color: Colors.white10, child: const Text('VISIT PLANET  →', style: TextStyle(color: Colors.white, fontSize: 7, letterSpacing: 1.5)))), const SizedBox(width: 7), const Text('ENTER', style: TextStyle(color: Colors.white24, fontSize: 6, letterSpacing: 1.2))]),
-      ])));
+      ]))));
     });
   }
 }
