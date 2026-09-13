@@ -74,12 +74,12 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
             padding: EdgeInsets.all(compact ? 14 : 30),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('GALAXY COMMAND CENTER', style: TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 4.5)), SizedBox(height: 5), Text('NAVIGATION / DISCOVERY / GATE CONTROL', style: TextStyle(color: Colors.white30, fontSize: 7, letterSpacing: 1.8))])),
-                Text('$mapped / ${widget.worlds.length} MAPPED', style: const TextStyle(color: Colors.white35, fontSize: 7, letterSpacing: 1.2)),
+                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('GALAXY COMMAND CENTER', style: TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 4.5)), SizedBox(height: 5), Text('NAVIGATION / DISCOVERY / GATE CONTROL', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 7, letterSpacing: 1.8))])),
+                Text('$mapped / ${widget.worlds.length} MAPPED', style: const TextStyle(color: Color(0x59FFFFFF), fontSize: 7, letterSpacing: 1.2)),
               ]),
               const SizedBox(height: 18),
               Row(children: [
-                Expanded(child: TextField(controller: _search, onChanged: (_) => setState(_syncCursor), style: const TextStyle(color: Colors.white70, fontSize: 9), decoration: const InputDecoration(hintText: 'SEARCH GATES', hintStyle: TextStyle(color: Colors.white20, fontSize: 7, letterSpacing: 1.4), prefixIcon: Icon(Icons.search, color: Colors.white20, size: 15), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white10)), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white25))))),
+                Expanded(child: TextField(controller: _search, onChanged: (_) => setState(_syncCursor), style: const TextStyle(color: Colors.white70, fontSize: 9), decoration: const InputDecoration(hintText: 'SEARCH GATES', hintStyle: TextStyle(color: Color(0x33FFFFFF), fontSize: 7, letterSpacing: 1.4), prefixIcon: Icon(Icons.search, color: Color(0x33FFFFFF), size: 15), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0x1AFFFFFF))), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0x40FFFFFF))))),
                 const SizedBox(width: 8),
                 _Filter(label: 'ALL', active: _filter == 'ALL', onTap: () => setState(() => _filter = 'ALL')),
                 const SizedBox(width: 5), _Filter(label: 'MAPPED', active: _filter == 'MAPPED', onTap: () => setState(() => _filter = 'MAPPED')),
@@ -87,7 +87,7 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
               ]),
               const SizedBox(height: 14),
               Expanded(child: items.isEmpty
-                  ? const Center(child: Text('NO GATES MATCH', style: TextStyle(color: Colors.white25, fontSize: 8, letterSpacing: 1.5)))
+                  ? const Center(child: Text('NO GATES MATCH', style: TextStyle(color: Color(0x40FFFFFF), fontSize: 8, letterSpacing: 1.5)))
                   : GridView.builder(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: compact ? 1 : 2, crossAxisSpacing: 9, mainAxisSpacing: 9, childAspectRatio: compact ? 2.8 : 2.15),
                       itemCount: items.length,
@@ -100,19 +100,19 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 140),
                             padding: const EdgeInsets.all(15),
-                            decoration: BoxDecoration(color: active ? Colors.white.withOpacity(.07) : Colors.white.withOpacity(.018), border: Border.all(color: active ? Colors.white38 : Colors.white10)),
+                            decoration: BoxDecoration(color: active ? Colors.white.withOpacity(.07) : Colors.white.withOpacity(.018), border: Border.all(color: active ? Color(0x66FFFFFF) : Color(0x1AFFFFFF))),
                             child: Row(children: [
-                              Text('${(widget.worlds.indexOf(world) + 1).toString().padLeft(2, '0')}', style: const TextStyle(color: Colors.white20, fontSize: 7)),
+                              Text('${(widget.worlds.indexOf(world) + 1).toString().padLeft(2, '0')}', style: const TextStyle(color: Color(0x33FFFFFF), fontSize: 7)),
                               const SizedBox(width: 14),
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(world.title, style: TextStyle(color: active ? Colors.white : Colors.white65, fontSize: 10, letterSpacing: 1.4)), const SizedBox(height: 5), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white28, fontSize: 6.2, height: 1.35))])),
-                              Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.center, children: [Text(mappedGate ? 'MAPPED' : 'UNMAPPED', style: const TextStyle(color: Colors.white25, fontSize: 5)), const SizedBox(height: 8), Text(active ? 'ENTER  ↵' : 'OPEN  →', style: const TextStyle(color: Colors.white35, fontSize: 5.5, letterSpacing: .8))]),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(world.title, style: TextStyle(color: active ? Colors.white : Color(0xA6FFFFFF), fontSize: 10, letterSpacing: 1.4)), const SizedBox(height: 5), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x47FFFFFF), fontSize: 6.2, height: 1.35))])),
+                              Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.center, children: [Text(mappedGate ? 'MAPPED' : 'UNMAPPED', style: const TextStyle(color: Color(0x40FFFFFF), fontSize: 5)), const SizedBox(height: 8), Text(active ? 'ENTER  ↵' : 'OPEN  →', style: const TextStyle(color: Color(0x59FFFFFF), fontSize: 5.5, letterSpacing: .8))]),
                             ]),
                           ),
                         ));
                       },
                     )),
               const SizedBox(height: 10),
-              Row(children: [const Text('↑ ↓ / J K  NAVIGATE', style: TextStyle(color: Colors.white18, fontSize: 5.5, letterSpacing: 1.2)), const SizedBox(width: 14), const Text('ENTER  OPEN GATE', style: TextStyle(color: Colors.white18, fontSize: 5.5, letterSpacing: 1.2)), const Spacer(), Text('${items.length} VISIBLE GATES', style: const TextStyle(color: Colors.white18, fontSize: 5.5, letterSpacing: 1.2))]),
+              Row(children: [const Text('↑ ↓ / J K  NAVIGATE', style: TextStyle(color: Color(0x2EFFFFFF), fontSize: 5.5, letterSpacing: 1.2)), const SizedBox(width: 14), const Text('ENTER  OPEN GATE', style: TextStyle(color: Color(0x2EFFFFFF), fontSize: 5.5, letterSpacing: 1.2)), const Spacer(), Text('${items.length} VISIBLE GATES', style: const TextStyle(color: Color(0x2EFFFFFF), fontSize: 5.5, letterSpacing: 1.2))]),
             ]),
           ),
         ),
@@ -127,5 +127,5 @@ class _Filter extends StatelessWidget {
   final VoidCallback onTap;
   const _Filter({required this.label, required this.active, required this.onTap});
   @override
-  Widget build(BuildContext context) => Semantics(button: true, label: 'Filter $label', child: InkWell(onTap: onTap, child: AnimatedContainer(duration: const Duration(milliseconds: 120), padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 11), decoration: BoxDecoration(color: active ? Colors.white.withOpacity(.06) : Colors.transparent, border: Border.all(color: active ? Colors.white24 : Colors.white08)), child: Text(label, style: TextStyle(color: active ? Colors.white60 : Colors.white24, fontSize: 5.5, letterSpacing: 1))));
+  Widget build(BuildContext context) => Semantics(button: true, label: 'Filter $label', child: InkWell(onTap: onTap, child: AnimatedContainer(duration: const Duration(milliseconds: 120), padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 11), decoration: BoxDecoration(color: active ? Colors.white.withOpacity(.06) : Colors.transparent, border: Border.all(color: active ? Color(0x3DFFFFFF) : Color(0x14FFFFFF))), child: Text(label, style: TextStyle(color: active ? Color(0x99FFFFFF) : Color(0x3DFFFFFF), fontSize: 5.5, letterSpacing: 1))));
 }
