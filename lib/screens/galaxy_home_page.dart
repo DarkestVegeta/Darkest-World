@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/world_sections_repository.dart';
 import '../widgets/darkest_world_universe.dart';
 import 'archive_world_page.dart';
@@ -19,8 +20,7 @@ class GalaxyHomePage extends StatefulWidget {
 class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObserver {
   final repository = WorldSectionsRepository();
   late Future<List<WorldSection>> sections = repository.load();
-  bool _appActive = true;
-  bool _atlasOpen = false;
+  bool _appActive = true, _atlasOpen = false;
   String? _lastVisited;
   int _visitCount = 0;
   GalaxyWorldKind? _commandSelection;
@@ -45,27 +45,22 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
     final active = state == AppLifecycleState.resumed;
     if (active != _appActive && mounted) setState(() => _appActive = active);
   }
-  void _reload() { setState(() => sections = repository.load()); }
-  void _clearHistory() { setState(() => _history.clear()); }
-  void _resetSession() {
-    setState(() {
-      _history.clear();
-      _visited.clear();
-      _lastVisited = null;
-      _visitCount = 0;
-      _commandSelection = null;
-    });
-  }
-  void _openNextUnmapped(List<GalaxyWorld> worlds) {
-    for (final world in worlds) {
-      if (!_visited.contains(world.kind)) { _openWorld(world); return; }
-    }
-  }
+  void _reload() => setState(() => sections = repository.load());
+  void _clearHistory() => setState(() => _history.clear());
+  void _resetSession() => setState(() { _history.clear(); _visited.clear(); _lastVisited = null; _visitCount = 0; _commandSelection = null; });
+  void _openNextUnmapped(List<GalaxyWorld> worlds) { for (final w in worlds) { if (!_visited.contains(w.kind)) { _openWorld(w); return; } } }
   void _openAtlas() => setState(() => _atlasOpen = true);
   void _closeAtlas() => setState(() => _atlasOpen = false);
 
+  KeyEventResult _key(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.keyA) { _atlasOpen ? _closeAtlas() : _openAtlas(); return KeyEventResult.handled; }
+    if (event.logicalKey == LogicalKeyboardKey.escape && _atlasOpen) { _closeAtlas(); return KeyEventResult.handled; }
+    return KeyEventResult.ignored;
+  }
+
   @override Widget build(BuildContext context) {
-    return FutureBuilder<List<WorldSection>>(
+    return Focus(autofocus: true, onKeyEvent: _key, child: FutureBuilder<List<WorldSection>>(
       future: sections,
       builder: (context, snapshot) {
         final worlds = _mapWorlds(snapshot.data ?? const []);
@@ -74,27 +69,26 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
         GalaxyWorld? selected;
         for (final world in worlds) { if (world.kind == _commandSelection) { selected = world; break; } }
         final recent = <GalaxyWorld>[];
-        for (final kind in _history.reversed) {
-          for (final world in worlds) { if (world.kind == kind) { recent.add(world); break; } }
-        }
+        for (final kind in _history.reversed) { for (final world in worlds) { if (world.kind == kind) { recent.add(world); break; } } }
         final explored = _visited.length;
         final exploration = worlds.isEmpty ? 0.0 : explored / worlds.length;
-        final discoveryComplete = worlds.isNotEmpty && explored >= worlds.length;
-        final remaining = worlds.where((world) => !_visited.contains(world.kind)).toList();
+        final complete = worlds.isNotEmpty && explored >= worlds.length;
+        final remaining = worlds.where((w) => !_visited.contains(w.kind)).toList();
         return Stack(fit: StackFit.expand, children: [
           TickerMode(enabled: _appActive, child: DarkestWorldUniverse(worlds: worlds, onWorldTap: _openWorld)),
           Positioned(left: compact ? 12 : 30, bottom: compact ? 12 : 28, child: _GalaxyStatus(synced: synced, loading: snapshot.connectionState == ConnectionState.waiting, error: snapshot.hasError, count: worlds.length, onReload: _reload)),
           Positioned(right: compact ? 12 : 26, bottom: compact ? 12 : 28, child: _GalaxyIndex(worlds: worlds, selected: _commandSelection, visited: _visited, loading: snapshot.connectionState == ConnectionState.waiting, compact: compact, onSelect: _openWorld)),
+          if (compact) Positioned(right: 12, top: 12, child: _AtlasButton(onTap: _openAtlas)),
           if (selected != null && !compact) Positioned(left: 30, bottom: 86, child: _GalaxyCommandTarget(world: selected, onOpen: () => _openWorld(selected!))),
           if (selected != null && !compact) Positioned(left: 340, bottom: 30, child: _GalaxyRouteDeck(worlds: worlds, current: selected!, onOpen: _openWorld)),
-          if (!compact) Positioned(top: 28, left: 0, right: 0, child: Center(child: _GalaxyModeStrip(worldCount: worlds.length, synced: synced, discoveryComplete: discoveryComplete, onAtlas: _openAtlas))),
-          if (!compact) Positioned(left: 30, top: 72, child: _GalaxyDiscovery(worlds: worlds, remaining: remaining, complete: discoveryComplete, onNext: () => _openNextUnmapped(worlds), onOpen: _openWorld)),
+          if (!compact) Positioned(top: 28, left: 0, right: 0, child: Center(child: _GalaxyModeStrip(worldCount: worlds.length, synced: synced, complete: complete, onAtlas: _openAtlas))),
+          if (!compact) Positioned(left: 30, top: 72, child: _GalaxyDiscovery(worlds: worlds, remaining: remaining, complete: complete, onNext: () => _openNextUnmapped(worlds), onOpen: _openWorld)),
           if (!compact && recent.isNotEmpty) Positioned(right: 26, top: 118, child: _GalaxyRecent(recent: recent.take(4).toList(), onOpen: _openWorld, onClear: _clearHistory)),
-          if (!compact) Positioned(right: 26, top: recent.isEmpty ? 118 : 252, child: _GalaxyTelemetry(synced: synced, loading: snapshot.connectionState == ConnectionState.waiting, worldCount: worlds.length, exploredCount: explored, lastVisited: _lastVisited, visitCount: _visitCount, exploration: exploration, discoveryComplete: discoveryComplete, onReset: _resetSession)),
-          if (_atlasOpen) _GalaxyAtlas(worlds: worlds, selected: _commandSelection, visited: _visited, onClose: _closeAtlas, onOpen: (world) { _closeAtlas(); _openWorld(world); }),
+          if (!compact) Positioned(right: 26, top: recent.isEmpty ? 118 : 252, child: _GalaxyTelemetry(synced: synced, loading: snapshot.connectionState == ConnectionState.waiting, worldCount: worlds.length, exploredCount: explored, lastVisited: _lastVisited, visitCount: _visitCount, exploration: exploration, complete: complete, onReset: _resetSession)),
+          if (_atlasOpen) _GalaxyAtlas(worlds: worlds, selected: _commandSelection, visited: _visited, onClose: _closeAtlas, onOpen: (w) { _closeAtlas(); _openWorld(w); }),
         ]);
       },
-    );
+    ));
   }
 
   List<GalaxyWorld> _mapWorlds(List<WorldSection> source) => _fallback.map((fallback) {
@@ -119,15 +113,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
   }
 
   void _openWorld(GalaxyWorld world) {
-    setState(() {
-      _commandSelection = world.kind;
-      _lastVisited = world.title;
-      _visitCount++;
-      _visited.add(world.kind);
-      _history.remove(world.kind);
-      _history.add(world.kind);
-      while (_history.length > 8) { _history.removeAt(0); }
-    });
+    setState(() { _commandSelection = world.kind; _lastVisited = world.title; _visitCount++; _visited.add(world.kind); _history.remove(world.kind); _history.add(world.kind); while (_history.length > 8) { _history.removeAt(0); } });
     switch (world.kind) {
       case GalaxyWorldKind.game: _push(const GameWorldPlanetPage()); return;
       case GalaxyWorldKind.music: _push(MusicWorldPage(title: 'MUSIC-WORLD', description: world.description)); return;
@@ -141,203 +127,80 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
     }
   }
 
-  void _push(Widget page) {
-    Navigator.of(context).push(PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 360),
-      reverseTransitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (_, animation, __) => page,
-      transitionsBuilder: (_, animation, __, child) => FadeTransition(
-        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-        child: ScaleTransition(scale: Tween<double>(begin: .985, end: 1).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)), child: child),
-      ),
-    ));
-  }
+  void _push(Widget page) => Navigator.of(context).push(PageRouteBuilder(
+    transitionDuration: const Duration(milliseconds: 360), reverseTransitionDuration: const Duration(milliseconds: 260), pageBuilder: (_, a, __) => page,
+    transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: CurvedAnimation(parent: a, curve: Curves.easeOutCubic), child: ScaleTransition(scale: Tween<double>(begin: .985, end: 1).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)), child: child)),
+  ));
+}
+
+class _AtlasButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AtlasButton({required this.onTap});
+  @override Widget build(BuildContext context) => Semantics(button: true, label: 'Open galaxy atlas', child: Material(color: const Color(0xD905060D), child: InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(border: Border.all(color: Colors.white18)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('ATLAS', style: TextStyle(color: Colors.white65, fontSize: 7, letterSpacing: 1.6)), SizedBox(width: 7), Text('A', style: TextStyle(color: Colors.white25, fontSize: 6))])))));
 }
 
 class _GalaxyStatus extends StatelessWidget {
   final bool synced, loading, error; final int count; final VoidCallback onReload;
   const _GalaxyStatus({required this.synced, required this.loading, required this.error, required this.count, required this.onReload});
-  @override Widget build(BuildContext context) {
-    final status = error ? 'SYNC / FALLBACK' : loading ? 'SYNC / LOADING' : synced ? 'SYNC / CONNECTED' : 'SYNC / FALLBACK';
-    return Semantics(label: 'Galaxy synchronization status', button: false, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(color: Colors.black.withOpacity(.62), border: Border.all(color: Colors.white12)), child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 5, height: 5, decoration: BoxDecoration(shape: BoxShape.circle, color: error ? Colors.redAccent : Colors.white54)), const SizedBox(width: 8),
-      Text('$status  •  $count WORLDS', style: const TextStyle(color: Colors.white54, fontSize: 7, letterSpacing: 1.4)), const SizedBox(width: 8),
-      Semantics(label: 'Reload galaxy worlds', button: true, child: InkWell(onTap: onReload, child: const Padding(padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2), child: Text('↻', style: TextStyle(color: Colors.white38, fontSize: 13)))),
-    ])));
-  }
+  @override Widget build(BuildContext context) { final status = error ? 'SYNC / FALLBACK' : loading ? 'SYNC / LOADING' : synced ? 'SYNC / CONNECTED' : 'SYNC / FALLBACK'; return Semantics(label: 'Galaxy synchronization status', child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(color: Colors.black.withOpacity(.62), border: Border.all(color: Colors.white12)), child: Row(mainAxisSize: MainAxisSize.min, children: [Container(width: 5, height: 5, decoration: BoxDecoration(shape: BoxShape.circle, color: error ? Colors.redAccent : Colors.white54)), const SizedBox(width: 8), Text('$status  •  $count WORLDS', style: const TextStyle(color: Colors.white54, fontSize: 7, letterSpacing: 1.4)), const SizedBox(width: 8), Semantics(button: true, label: 'Reload galaxy worlds', child: InkWell(onTap: onReload, child: const Padding(padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2), child: Text('↻', style: TextStyle(color: Colors.white38, fontSize: 13))))) ]))); }
 }
 
 class _GalaxyModeStrip extends StatelessWidget {
-  final int worldCount; final bool synced, discoveryComplete; final VoidCallback onAtlas;
-  const _GalaxyModeStrip({required this.worldCount, required this.synced, required this.discoveryComplete, required this.onAtlas});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7), decoration: BoxDecoration(color: const Color(0x9905060C), border: Border.all(color: discoveryComplete ? Colors.white24 : Colors.white10)), child: Row(mainAxisSize: MainAxisSize.min, children: [
-    const Text('GALAXY', style: TextStyle(color: Colors.white60, fontSize: 6.5, letterSpacing: 2.2)), const SizedBox(width: 12), const Text('DEEP ORBIT', style: TextStyle(color: Colors.white24, fontSize: 5.5, letterSpacing: 1.4)), const SizedBox(width: 10), Container(width: 3, height: 3, decoration: BoxDecoration(shape: BoxShape.circle, color: synced ? Colors.white54 : Colors.white20)), const SizedBox(width: 7), Text('$worldCount GATES', style: const TextStyle(color: Colors.white24, fontSize: 5.5, letterSpacing: 1.2)), const SizedBox(width: 10), Semantics(button: true, label: 'Open galaxy atlas', child: InkWell(onTap: onAtlas, child: const Padding(padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2), child: Text('ATLAS', style: TextStyle(color: Colors.white60, fontSize: 5.5, letterSpacing: 1.2)))), if (discoveryComplete) ...[const SizedBox(width: 10), const Text('ALL MAPPED', style: TextStyle(color: Colors.white54, fontSize: 5.2, letterSpacing: 1.2))],
-  ]));
+  final int worldCount; final bool synced, complete; final VoidCallback onAtlas;
+  const _GalaxyModeStrip({required this.worldCount, required this.synced, required this.complete, required this.onAtlas});
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7), decoration: BoxDecoration(color: const Color(0x9905060C), border: Border.all(color: complete ? Colors.white24 : Colors.white10)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Text('GALAXY', style: TextStyle(color: Colors.white60, fontSize: 6.5, letterSpacing: 2.2)), const SizedBox(width: 12), const Text('DEEP ORBIT', style: TextStyle(color: Colors.white24, fontSize: 5.5, letterSpacing: 1.4)), const SizedBox(width: 10), Container(width: 3, height: 3, decoration: BoxDecoration(shape: BoxShape.circle, color: synced ? Colors.white54 : Colors.white20)), const SizedBox(width: 7), Text('$worldCount GATES', style: const TextStyle(color: Colors.white24, fontSize: 5.5, letterSpacing: 1.2)), const SizedBox(width: 10), Semantics(button: true, label: 'Open galaxy atlas', child: InkWell(onTap: onAtlas, child: const Padding(padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2), child: Text('ATLAS', style: TextStyle(color: Colors.white60, fontSize: 5.5, letterSpacing: 1.2)))), if (complete) ...[const SizedBox(width: 10), const Text('ALL MAPPED', style: TextStyle(color: Colors.white54, fontSize: 5.2, letterSpacing: 1.2))]]));
 }
 
 class _GalaxyDiscovery extends StatelessWidget {
   final List<GalaxyWorld> worlds, remaining; final bool complete; final VoidCallback onNext; final ValueChanged<GalaxyWorld> onOpen;
   const _GalaxyDiscovery({required this.worlds, required this.remaining, required this.complete, required this.onNext, required this.onOpen});
-  @override Widget build(BuildContext context) => Semantics(label: 'Galaxy discovery command center', child: Container(width: 230, padding: const EdgeInsets.fromLTRB(11, 9, 11, 10), decoration: BoxDecoration(color: const Color(0xC805060D), border: Border.all(color: complete ? Colors.white24 : Colors.white10), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Row(children: [const Text('DISCOVERY COMMAND', style: TextStyle(color: Colors.white42, fontSize: 5.5, letterSpacing: 1.5)), const Spacer(), Text('${worlds.length - remaining.length}/${worlds.length}', style: const TextStyle(color: Colors.white30, fontSize: 5.5, letterSpacing: 1.0))]), const SizedBox(height: 6),
-    Text(complete ? 'ALL GATES MAPPED' : '${remaining.length} UNMAPPED GATE${remaining.length == 1 ? '' : 'S'}', style: TextStyle(color: complete ? Colors.white70 : Colors.white54, fontSize: 7, letterSpacing: 1.0)), const SizedBox(height: 7),
-    if (!complete) ...[
-      Semantics(button: true, label: 'Open next unmapped galaxy gate', child: InkWell(onTap: onNext, child: Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), decoration: BoxDecoration(color: Colors.white.withOpacity(.045), border: Border.all(color: Colors.white12)), child: Row(children: [const Text('NEXT UNMAPPED', style: TextStyle(color: Colors.white54, fontSize: 5.5, letterSpacing: 1.1)), const Spacer(), const Text('→', style: TextStyle(color: Colors.white38, fontSize: 10))]))), const SizedBox(height: 5),
-      for (final world in remaining.take(3)) Semantics(button: true, label: 'Open unmapped ${world.title}', child: InkWell(onTap: () => onOpen(world), child: Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: Row(children: [const Text('○', style: TextStyle(color: Colors.white20, fontSize: 7)), const SizedBox(width: 7), Expanded(child: Text(world.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white38, fontSize: 5.8, letterSpacing: .9))), const Text('MAP', style: TextStyle(color: Colors.white16, fontSize: 4.5, letterSpacing: .8))])))),
-      if (remaining.length > 3) Padding(padding: const EdgeInsets.only(top: 2), child: Text('+ ${remaining.length - 3} MORE UNMAPPED', style: const TextStyle(color: Colors.white14, fontSize: 4.5, letterSpacing: .8))),
-    ] else const Text('Discovery session complete. Every gate has been entered at least once.', style: TextStyle(color: Colors.white24, fontSize: 5.2, height: 1.4)),
-  ]));
+  @override Widget build(BuildContext context) => Semantics(label: 'Galaxy discovery command center', child: Container(width: 230, padding: const EdgeInsets.fromLTRB(11, 9, 11, 10), decoration: BoxDecoration(color: const Color(0xC805060D), border: Border.all(color: complete ? Colors.white24 : Colors.white10), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('DISCOVERY COMMAND', style: TextStyle(color: Colors.white42, fontSize: 5.5, letterSpacing: 1.5)), const Spacer(), Text('${worlds.length - remaining.length}/${worlds.length}', style: const TextStyle(color: Colors.white30, fontSize: 5.5))]), const SizedBox(height: 6), Text(complete ? 'ALL GATES MAPPED' : '${remaining.length} UNMAPPED GATES', style: TextStyle(color: complete ? Colors.white70 : Colors.white54, fontSize: 7, letterSpacing: 1)), const SizedBox(height: 7), if (!complete) ...[Semantics(button: true, label: 'Open next unmapped galaxy gate', child: InkWell(onTap: onNext, child: Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), decoration: BoxDecoration(color: Colors.white.withOpacity(.045), border: Border.all(color: Colors.white12)), child: Row(children: [const Text('NEXT UNMAPPED', style: TextStyle(color: Colors.white54, fontSize: 5.5, letterSpacing: 1.1)), const Spacer(), const Text('→', style: TextStyle(color: Colors.white38, fontSize: 10))]))), const SizedBox(height: 5), for (final w in remaining.take(3)) Semantics(button: true, label: 'Open unmapped ${w.title}', child: InkWell(onTap: () => onOpen(w), child: Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: Row(children: [const Text('○', style: TextStyle(color: Colors.white20, fontSize: 7)), const SizedBox(width: 7), Expanded(child: Text(w.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white38, fontSize: 5.8))), const Text('MAP', style: TextStyle(color: Colors.white16, fontSize: 4.5))]))))] else const Text('Discovery session complete. Every gate has been entered at least once.', style: TextStyle(color: Colors.white24, fontSize: 5.2, height: 1.4))]));
 }
 
 class _GalaxyRecent extends StatelessWidget {
   final List<GalaxyWorld> recent; final ValueChanged<GalaxyWorld> onOpen; final VoidCallback onClear;
   const _GalaxyRecent({required this.recent, required this.onOpen, required this.onClear});
-  @override Widget build(BuildContext context) => Semantics(label: 'Recently visited galaxy gates', child: Container(width: 190, padding: const EdgeInsets.fromLTRB(11, 9, 11, 10), decoration: BoxDecoration(color: const Color(0xA805060C), border: Border.all(color: Colors.white10)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Row(children: [const Text('RECENT GATES', style: TextStyle(color: Colors.white28, fontSize: 5.5, letterSpacing: 1.6)), const Spacer(), Semantics(button: true, label: 'Clear recent galaxy gates', child: InkWell(onTap: onClear, child: const Padding(padding: EdgeInsets.symmetric(horizontal: 3, vertical: 2), child: Text('CLEAR', style: TextStyle(color: Colors.white24, fontSize: 4.8, letterSpacing: .9))))]), const SizedBox(height: 6),
-    for (var i = 0; i < recent.length; i++) Semantics(button: true, label: 'Open ${recent[i].title}', child: InkWell(onTap: () => onOpen(recent[i]), child: Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: Row(children: [Text('${i + 1}'.padLeft(2, '0'), style: const TextStyle(color: Colors.white14, fontSize: 5)), const SizedBox(width: 8), Expanded(child: Text(recent[i].title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white48, fontSize: 6.2, letterSpacing: 1.0))), const Text('OPEN', style: TextStyle(color: Colors.white20, fontSize: 4.8, letterSpacing: .8))])))),
-  ]));
+  @override Widget build(BuildContext context) => Semantics(label: 'Recently visited galaxy gates', child: Container(width: 190, padding: const EdgeInsets.fromLTRB(11, 9, 11, 10), decoration: BoxDecoration(color: const Color(0xA805060C), border: Border.all(color: Colors.white10)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('RECENT GATES', style: TextStyle(color: Colors.white28, fontSize: 5.5, letterSpacing: 1.6)), const Spacer(), Semantics(button: true, label: 'Clear recent galaxy gates', child: InkWell(onTap: onClear, child: const Padding(padding: EdgeInsets.all(2), child: Text('CLEAR', style: TextStyle(color: Colors.white24, fontSize: 4.8)))))]), const SizedBox(height: 6), for (var i = 0; i < recent.length; i++) Semantics(button: true, label: 'Open ${recent[i].title}', child: InkWell(onTap: () => onOpen(recent[i]), child: Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: Row(children: [Text('${i + 1}'.padLeft(2, '0'), style: const TextStyle(color: Colors.white14, fontSize: 5)), const SizedBox(width: 8), Expanded(child: Text(recent[i].title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white48, fontSize: 6.2))), const Text('OPEN', style: TextStyle(color: Colors.white20, fontSize: 4.8))]))))])));
 }
 
 class _GalaxyTelemetry extends StatelessWidget {
-  final bool synced, loading, discoveryComplete; final int worldCount, exploredCount, visitCount; final String? lastVisited; final double exploration; final VoidCallback onReset;
-  const _GalaxyTelemetry({required this.synced, required this.loading, required this.worldCount, required this.exploredCount, required this.lastVisited, required this.visitCount, required this.exploration, required this.discoveryComplete, required this.onReset});
-  @override Widget build(BuildContext context) {
-    final state = loading ? 'SYNCING' : synced ? 'ONLINE' : 'FALLBACK';
-    return Container(width: 190, padding: const EdgeInsets.fromLTRB(11, 10, 11, 11), decoration: BoxDecoration(color: const Color(0xB805060C), border: Border.all(color: discoveryComplete ? Colors.white24 : Colors.white10), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [const Text('GALAXY TELEMETRY', style: TextStyle(color: Colors.white54, fontSize: 6.5, letterSpacing: 1.7)), const Spacer(), Text(state, style: const TextStyle(color: Colors.white30, fontSize: 5.5, letterSpacing: 1.1))]), const SizedBox(height: 8),
-      Row(children: [Expanded(child: _Metric(label: discoveryComplete ? 'DISCOVERY' : 'EXPLORED', value: discoveryComplete ? 'COMPLETE' : '$exploredCount / $worldCount')), Expanded(child: _Metric(label: 'VISITS', value: '$visitCount'))]), const SizedBox(height: 7),
-      ClipRRect(borderRadius: BorderRadius.circular(2), child: LinearProgressIndicator(value: exploration.clamp(0.0, 1.0), minHeight: 2, backgroundColor: Colors.white10, valueColor: const AlwaysStoppedAnimation<Color>(Colors.white54))), const SizedBox(height: 8),
-      const Text('LAST GATE', style: TextStyle(color: Colors.white20, fontSize: 5.5, letterSpacing: 1.2)), const SizedBox(height: 3), Text(lastVisited?.toUpperCase() ?? 'NO GATE VISITED', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 7, letterSpacing: 1.1)), const SizedBox(height: 8),
-      Row(children: [const Spacer(), Semantics(button: true, label: 'Reset galaxy exploration session', child: InkWell(onTap: onReset, child: const Padding(padding: EdgeInsets.symmetric(horizontal: 3, vertical: 2), child: Text('RESET SESSION', style: TextStyle(color: Colors.white24, fontSize: 4.8, letterSpacing: .9))))]),
-    ]));
-  }
+  final bool synced, loading, complete; final int worldCount, exploredCount, visitCount; final String? lastVisited; final double exploration; final VoidCallback onReset;
+  const _GalaxyTelemetry({required this.synced, required this.loading, required this.worldCount, required this.exploredCount, required this.lastVisited, required this.visitCount, required this.exploration, required this.complete, required this.onReset});
+  @override Widget build(BuildContext context) { final state = loading ? 'SYNCING' : synced ? 'ONLINE' : 'FALLBACK'; return Container(width: 190, padding: const EdgeInsets.fromLTRB(11, 10, 11, 11), decoration: BoxDecoration(color: const Color(0xB805060C), border: Border.all(color: complete ? Colors.white24 : Colors.white10), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('GALAXY TELEMETRY', style: TextStyle(color: Colors.white54, fontSize: 6.5, letterSpacing: 1.7)), const Spacer(), Text(state, style: const TextStyle(color: Colors.white30, fontSize: 5.5))]), const SizedBox(height: 8), Row(children: [Expanded(child: _Metric(label: complete ? 'DISCOVERY' : 'EXPLORED', value: complete ? 'COMPLETE' : '$exploredCount / $worldCount')), Expanded(child: _Metric(label: 'VISITS', value: '$visitCount'))]), const SizedBox(height: 7), ClipRRect(borderRadius: BorderRadius.circular(2), child: LinearProgressIndicator(value: exploration.clamp(0.0, 1.0), minHeight: 2, backgroundColor: Colors.white10, valueColor: const AlwaysStoppedAnimation<Color>(Colors.white54))), const SizedBox(height: 8), const Text('LAST GATE', style: TextStyle(color: Colors.white20, fontSize: 5.5)), const SizedBox(height: 3), Text(lastVisited?.toUpperCase() ?? 'NO GATE VISITED', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 7)), const SizedBox(height: 8), Row(children: [const Spacer(), Semantics(button: true, label: 'Reset galaxy exploration session', child: InkWell(onTap: onReset, child: const Padding(padding: EdgeInsets.all(2), child: Text('RESET SESSION', style: TextStyle(color: Colors.white24, fontSize: 4.8)))))]), ])); }
 }
-
-class _Metric extends StatelessWidget {
-  final String label, value;
-  const _Metric({required this.label, required this.value});
-  @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Colors.white20, fontSize: 5.5, letterSpacing: 1.1)), const SizedBox(height: 2), Text(value, style: const TextStyle(color: Colors.white70, fontSize: 10, letterSpacing: 1.2))]);
-}
+class _Metric extends StatelessWidget { final String label, value; const _Metric({required this.label, required this.value}); @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Colors.white20, fontSize: 5.5)), const SizedBox(height: 2), Text(value, style: const TextStyle(color: Colors.white70, fontSize: 10))]); }
 
 class _GalaxyIndex extends StatelessWidget {
   final List<GalaxyWorld> worlds; final GalaxyWorldKind? selected; final Set<GalaxyWorldKind> visited; final bool loading, compact; final ValueChanged<GalaxyWorld> onSelect;
   const _GalaxyIndex({required this.worlds, required this.selected, required this.visited, required this.loading, required this.compact, required this.onSelect});
-  @override Widget build(BuildContext context) => Semantics(label: 'Galaxy index', child: Container(width: compact ? 184 : 220, constraints: BoxConstraints(maxHeight: compact ? 190 : 320), padding: const EdgeInsets.fromLTRB(12, 10, 12, 11), decoration: BoxDecoration(color: const Color(0xCC05060D), border: Border.all(color: selected != null ? Colors.white24 : Colors.white10), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 24)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Row(children: [const Text('GALAXY INDEX', style: TextStyle(color: Colors.white70, fontSize: 7, letterSpacing: 2.1)), const Spacer(), Text(loading ? 'SYNC' : '${visited.length}/${worlds.length} MAPPED', style: const TextStyle(color: Colors.white24, fontSize: 5.5, letterSpacing: 1.1))]), const SizedBox(height: 7),
-    for (var i = 0; i < worlds.length; i++) Semantics(button: true, label: 'Open ${worlds[i].title}', child: InkWell(onTap: () => onSelect(worlds[i]), child: AnimatedContainer(duration: const Duration(milliseconds: 160), padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), margin: const EdgeInsets.only(bottom: 1), decoration: BoxDecoration(color: selected == worlds[i].kind ? Colors.white.withOpacity(.07) : Colors.transparent, border: Border(left: BorderSide(color: selected == worlds[i].kind ? Colors.white38 : Colors.transparent, width: 1))), child: Row(children: [
-      SizedBox(width: 20, child: Text('${(i + 1).toString().padLeft(2, '0')}', style: TextStyle(color: selected == worlds[i].kind ? Colors.white54 : Colors.white18, fontSize: 5.5))), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(worlds[i].title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: selected == worlds[i].kind ? Colors.white70 : Colors.white45, fontSize: 6.5, letterSpacing: 1.0)), if (!compact) Text(worlds[i].description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white16, fontSize: 5))])), const SizedBox(width: 4), Text(visited.contains(worlds[i].kind) ? '✓' : '·', style: TextStyle(color: visited.contains(worlds[i].kind) ? Colors.white54 : Colors.white12, fontSize: 8)), const Icon(Icons.chevron_right, size: 10, color: Colors.white12),
-    ]))),
-  ])));
+  @override Widget build(BuildContext context) => Semantics(label: 'Galaxy index', child: Container(width: compact ? 184 : 220, constraints: BoxConstraints(maxHeight: compact ? 190 : 320), padding: const EdgeInsets.fromLTRB(12, 10, 12, 11), decoration: BoxDecoration(color: const Color(0xCC05060D), border: Border.all(color: selected != null ? Colors.white24 : Colors.white10), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 24)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('GALAXY INDEX', style: TextStyle(color: Colors.white70, fontSize: 7, letterSpacing: 2.1)), const Spacer(), Text(loading ? 'SYNC' : '${visited.length}/${worlds.length} MAPPED', style: const TextStyle(color: Colors.white24, fontSize: 5.5))]), const SizedBox(height: 7), for (var i = 0; i < worlds.length; i++) Semantics(button: true, label: 'Open ${worlds[i].title}', child: InkWell(onTap: () => onSelect(worlds[i]), child: AnimatedContainer(duration: const Duration(milliseconds: 160), padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), margin: const EdgeInsets.only(bottom: 1), decoration: BoxDecoration(color: selected == worlds[i].kind ? Colors.white.withOpacity(.07) : Colors.transparent, border: Border(left: BorderSide(color: selected == worlds[i].kind ? Colors.white38 : Colors.transparent))), child: Row(children: [SizedBox(width: 20, child: Text('${i + 1}'.padLeft(2, '0'), style: const TextStyle(color: Colors.white24, fontSize: 5.5))), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(worlds[i].title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white55, fontSize: 6.5)), if (!compact) Text(worlds[i].description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white16, fontSize: 5))])), Text(visited.contains(worlds[i].kind) ? '✓' : '·', style: const TextStyle(color: Colors.white35, fontSize: 8)), const Icon(Icons.chevron_right, size: 10, color: Colors.white12)]))))]));
 }
 
-class _GalaxyCommandTarget extends StatelessWidget {
-  final GalaxyWorld world; final VoidCallback onOpen;
-  const _GalaxyCommandTarget({required this.world, required this.onOpen});
-  @override Widget build(BuildContext context) => Semantics(label: 'Selected target world ${world.title}', child: Container(width: 290, padding: const EdgeInsets.fromLTRB(13, 10, 10, 10), decoration: BoxDecoration(color: const Color(0xD905060D), border: Border.all(color: Colors.white12), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20)]), child: Row(children: [
-    Container(width: 3, height: 34, color: Colors.white38), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('TARGET WORLD', style: TextStyle(color: Colors.white24, fontSize: 5, letterSpacing: 1.6)), const SizedBox(height: 3), Text(world.title, style: const TextStyle(color: Colors.white70, fontSize: 9, letterSpacing: 1.5)), const SizedBox(height: 2), Text(world.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white30, fontSize: 5.5))])), Semantics(button: true, label: 'Open ${world.title}', child: InkWell(onTap: onOpen, child: const Padding(padding: EdgeInsets.all(7), child: Text('OPEN', style: TextStyle(color: Colors.white54, fontSize: 6, letterSpacing: 1.2))))),
-  ]));
-}
+class _GalaxyCommandTarget extends StatelessWidget { final GalaxyWorld world; final VoidCallback onOpen; const _GalaxyCommandTarget({required this.world, required this.onOpen}); @override Widget build(BuildContext context) => Container(width: 290, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xD905060D), border: Border.all(color: Colors.white12), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20)]), child: Row(children: [Container(width: 3, height: 34, color: Colors.white38), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('TARGET WORLD', style: TextStyle(color: Colors.white24, fontSize: 5)), const SizedBox(height: 3), Text(world.title, style: const TextStyle(color: Colors.white70, fontSize: 9)), Text(world.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white30, fontSize: 5.5))])), InkWell(onTap: onOpen, child: const Padding(padding: EdgeInsets.all(7), child: Text('OPEN', style: TextStyle(color: Colors.white54, fontSize: 6))))])); }
 
-class _GalaxyRouteDeck extends StatelessWidget {
-  final List<GalaxyWorld> worlds; final GalaxyWorld current; final ValueChanged<GalaxyWorld> onOpen;
-  const _GalaxyRouteDeck({required this.worlds, required this.current, required this.onOpen});
-  @override Widget build(BuildContext context) {
-    final index = worlds.indexWhere((world) => world.kind == current.kind);
-    if (index < 0) return const SizedBox.shrink();
-    final previous = worlds[(index - 1 + worlds.length) % worlds.length];
-    final next = worlds[(index + 1) % worlds.length];
-    return Semantics(label: 'Galaxy route navigation', child: Container(width: 350, padding: const EdgeInsets.fromLTRB(11, 9, 11, 9), decoration: BoxDecoration(color: const Color(0xC905060D), border: Border.all(color: Colors.white10), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 22)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [const Text('ROUTE / GATE CHAIN', style: TextStyle(color: Colors.white28, fontSize: 5.5, letterSpacing: 1.7)), const Spacer(), Text('${index + 1} / ${worlds.length}', style: const TextStyle(color: Colors.white18, fontSize: 5.2, letterSpacing: 1.0))]), const SizedBox(height: 7),
-      Row(children: [Expanded(child: _RouteGate(label: 'PREVIOUS', world: previous, icon: '‹', onTap: () => onOpen(previous))), const SizedBox(width: 5), Expanded(child: _RouteGate(label: 'CURRENT', world: current, icon: '●', active: true, onTap: () {})), const SizedBox(width: 5), Expanded(child: _RouteGate(label: 'NEXT', world: next, icon: '›', onTap: () => onOpen(next)))]),
-    ]));
-  }
-}
+class _GalaxyRouteDeck extends StatelessWidget { final List<GalaxyWorld> worlds; final GalaxyWorld current; final ValueChanged<GalaxyWorld> onOpen; const _GalaxyRouteDeck({required this.worlds, required this.current, required this.onOpen}); @override Widget build(BuildContext context) { final i = worlds.indexWhere((w) => w.kind == current.kind); if (i < 0) return const SizedBox.shrink(); final p = worlds[(i - 1 + worlds.length) % worlds.length], n = worlds[(i + 1) % worlds.length]; return Container(width: 350, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xC905060D), border: Border.all(color: Colors.white10)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('ROUTE / GATE CHAIN', style: TextStyle(color: Colors.white28, fontSize: 5.5, letterSpacing: 1.7)), const SizedBox(height: 7), Row(children: [Expanded(child: _RouteGate(label: 'PREVIOUS', world: p, icon: '‹', onTap: () => onOpen(p))), const SizedBox(width: 5), Expanded(child: _RouteGate(label: 'CURRENT', world: current, icon: '●', active: true, onTap: () {})), const SizedBox(width: 5), Expanded(child: _RouteGate(label: 'NEXT', world: n, icon: '›', onTap: () => onOpen(n)))]), ])); } }
+class _RouteGate extends StatelessWidget { final String label, icon; final GalaxyWorld world; final bool active; final VoidCallback onTap; const _RouteGate({required this.label, required this.world, required this.icon, required this.onTap, this.active = false}); @override Widget build(BuildContext context) => InkWell(onTap: active ? null : onTap, child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: active ? Colors.white.withOpacity(.06) : Colors.transparent, border: Border.all(color: active ? Colors.white24 : Colors.white08)), child: Row(children: [Text(icon, style: const TextStyle(color: Colors.white40, fontSize: 10)), const SizedBox(width: 5), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Colors.white20, fontSize: 4.6)), Text(world.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 5.7))]))]))); }
 
-class _RouteGate extends StatelessWidget {
-  final String label, icon; final GalaxyWorld world; final bool active; final VoidCallback onTap;
-  const _RouteGate({required this.label, required this.world, required this.icon, required this.onTap, this.active = false});
-  @override Widget build(BuildContext context) => Semantics(button: !active, label: active ? 'Current ${world.title}' : 'Open ${world.title}', child: InkWell(onTap: active ? null : onTap, child: AnimatedContainer(duration: const Duration(milliseconds: 150), padding: const EdgeInsets.fromLTRB(7, 6, 6, 6), decoration: BoxDecoration(color: active ? Colors.white.withOpacity(.06) : Colors.transparent, border: Border.all(color: active ? Colors.white24 : Colors.white08)), child: Row(children: [Text(icon, style: TextStyle(color: active ? Colors.white60 : Colors.white24, fontSize: 10)), const SizedBox(width: 6), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: TextStyle(color: active ? Colors.white38 : Colors.white18, fontSize: 4.6, letterSpacing: 1.0)), const SizedBox(height: 2), Text(world.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: active ? Colors.white70 : Colors.white40, fontSize: 5.7, letterSpacing: .8))]))])));
-}
-
-class _GalaxyAtlas extends StatelessWidget {
-  final List<GalaxyWorld> worlds;
-  final GalaxyWorldKind? selected;
-  final Set<GalaxyWorldKind> visited;
-  final VoidCallback onClose;
-  final ValueChanged<GalaxyWorld> onOpen;
+class _GalaxyAtlas extends StatefulWidget {
+  final List<GalaxyWorld> worlds; final GalaxyWorldKind? selected; final Set<GalaxyWorldKind> visited; final VoidCallback onClose; final ValueChanged<GalaxyWorld> onOpen;
   const _GalaxyAtlas({required this.worlds, required this.selected, required this.visited, required this.onClose, required this.onOpen});
-
+  @override State<_GalaxyAtlas> createState() => _GalaxyAtlasState();
+}
+class _GalaxyAtlasState extends State<_GalaxyAtlas> {
+  final _search = TextEditingController();
+  String _query = '';
+  @override void dispose() { _search.dispose(); super.dispose(); }
   @override Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final mapped = visited.length;
-    return Positioned.fill(
-      child: Material(
-        color: const Color(0xE8010208),
-        child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 980, maxHeight: 760),
-              child: Padding(
-                padding: EdgeInsets.all(size.width < 700 ? 14 : 34),
-                child: Column(children: [
-                  Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('GALAXY ATLAS', style: TextStyle(color: Colors.white, fontSize: 19, letterSpacing: 5.5)),
-                      const SizedBox(height: 5),
-                      Text('$mapped / ${worlds.length} GATES MAPPED  •  ${worlds.length - mapped} UNMAPPED', style: const TextStyle(color: Colors.white38, fontSize: 7, letterSpacing: 1.8)),
-                    ])),
-                    Semantics(button: true, label: 'Close galaxy atlas', child: InkWell(onTap: onClose, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(border: Border.all(color: Colors.white18)), child: const Text('CLOSE  ×', style: TextStyle(color: Colors.white54, fontSize: 6.5, letterSpacing: 1.4)))))
-                  ]),
-                  const SizedBox(height: 18),
-                  Expanded(child: LayoutBuilder(builder: (context, constraints) {
-                    final columns = constraints.maxWidth < 620 ? 2 : 3;
-                    return GridView.builder(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: columns == 2 ? 1.55 : 1.9),
-                      itemCount: worlds.length,
-                      itemBuilder: (context, index) {
-                        final world = worlds[index];
-                        final active = selected == world.kind;
-                        final mappedGate = visited.contains(world.kind);
-                        return Semantics(button: true, label: 'Atlas gate ${world.title}', child: InkWell(
-                          onTap: () => onOpen(world),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            padding: const EdgeInsets.fromLTRB(13, 12, 12, 11),
-                            decoration: BoxDecoration(
-                              color: active ? Colors.white.withOpacity(.095) : Colors.white.withOpacity(.025),
-                              border: Border.all(color: active ? Colors.white38 : mappedGate ? Colors.white18 : Colors.white08),
-                              boxShadow: active ? const [BoxShadow(color: Colors.black54, blurRadius: 24)] : null,
-                            ),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Row(children: [
-                                Text('${(index + 1).toString().padLeft(2, '0')}', style: TextStyle(color: active ? Colors.white70 : Colors.white20, fontSize: 7, letterSpacing: 1.2)),
-                                const Spacer(),
-                                Text(mappedGate ? 'MAPPED' : 'UNMAPPED', style: TextStyle(color: mappedGate ? Colors.white48 : Colors.white18, fontSize: 5, letterSpacing: 1.1)),
-                              ]),
-                              const Spacer(),
-                              Text(world.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: active ? Colors.white : Colors.white65, fontSize: 9, letterSpacing: 1.4)),
-                              const SizedBox(height: 4),
-                              Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white28, fontSize: 5.8, height: 1.35)),
-                              const SizedBox(height: 7),
-                              Row(children: [Container(width: 28, height: 1, color: mappedGate ? Colors.white38 : Colors.white12), const SizedBox(width: 7), Text(active ? 'TARGET' : 'OPEN GATE', style: TextStyle(color: active ? Colors.white54 : Colors.white20, fontSize: 4.8, letterSpacing: 1.0))]),
-                            ]),
-                          ),
-                        ));
-                      },
-                    );
-                  })),
-                  Row(children: [
-                    const Text('ATLAS / ALL WORLDS', style: TextStyle(color: Colors.white18, fontSize: 5.5, letterSpacing: 1.5)),
-                    const Spacer(),
-                    Text('CLICK A GATE TO ENTER', style: const TextStyle(color: Colors.white20, fontSize: 5.5, letterSpacing: 1.2)),
-                  ]),
-                ]),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    final size = MediaQuery.sizeOf(context); final q = _query.trim().toLowerCase();
+    final filtered = widget.worlds.where((w) => q.isEmpty || '${w.title} ${w.description}'.toLowerCase().contains(q)).toList();
+    final mapped = widget.visited.length;
+    return Positioned.fill(child: Material(color: const Color(0xE8010208), child: SafeArea(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 980, maxHeight: 760), child: Padding(padding: EdgeInsets.all(size.width < 700 ? 14 : 34), child: Column(children: [
+      Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('GALAXY ATLAS', style: TextStyle(color: Colors.white, fontSize: 19, letterSpacing: 5.5)), const SizedBox(height: 5), Text('$mapped / ${widget.worlds.length} GATES MAPPED  •  ${widget.worlds.length - mapped} UNMAPPED', style: const TextStyle(color: Colors.white38, fontSize: 7, letterSpacing: 1.8))])), Semantics(button: true, label: 'Close galaxy atlas', child: InkWell(onTap: widget.onClose, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(border: Border.all(color: Colors.white18)), child: const Text('CLOSE  ×', style: TextStyle(color: Colors.white54, fontSize: 6.5, letterSpacing: 1.4)))))]),
+      const SizedBox(height: 12),
+      Container(height: 34, decoration: BoxDecoration(color: Colors.white.withOpacity(.025), border: Border.all(color: Colors.white10)), child: TextField(controller: _search, onChanged: (v) => setState(() => _query = v), style: const TextStyle(color: Colors.white70, fontSize: 8, letterSpacing: 1), cursorColor: Colors.white54, decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 11, vertical: 9), hintText: 'SEARCH GALAXY GATES', hintStyle: TextStyle(color: Colors.white20, fontSize: 7, letterSpacing: 1.3), prefixIcon: Icon(Icons.search, color: Colors.white20, size: 14))),
+      const SizedBox(height: 12),
+      Expanded(child: filtered.isEmpty ? const Center(child: Text('NO GATES MATCH', style: TextStyle(color: Colors.white30, fontSize: 7, letterSpacing: 1.5))) : LayoutBuilder(builder: (context, constraints) { final columns = constraints.maxWidth < 620 ? 2 : 3; return GridView.builder(padding: const EdgeInsets.only(bottom: 12), gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: columns == 2 ? 1.55 : 1.9), itemCount: filtered.length, itemBuilder: (context, i) { final world = filtered[i]; final active = widget.selected == world.kind, mappedGate = widget.visited.contains(world.kind), original = widget.worlds.indexOf(world) + 1; return Semantics(button: true, label: 'Atlas gate ${world.title}', child: InkWell(onTap: () => widget.onOpen(world), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.fromLTRB(13, 12, 12, 11), decoration: BoxDecoration(color: active ? Colors.white.withOpacity(.095) : Colors.white.withOpacity(.025), border: Border.all(color: active ? Colors.white38 : mappedGate ? Colors.white18 : Colors.white08), boxShadow: active ? const [BoxShadow(color: Colors.black54, blurRadius: 24)] : null), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Text(original.toString().padLeft(2, '0'), style: const TextStyle(color: Colors.white25, fontSize: 7)), const Spacer(), Text(mappedGate ? 'MAPPED' : 'UNMAPPED', style: const TextStyle(color: Colors.white25, fontSize: 5))]), const Spacer(), Text(world.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: active ? Colors.white : Colors.white65, fontSize: 9, letterSpacing: 1.4)), const SizedBox(height: 4), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white28, fontSize: 5.8, height: 1.35)), const SizedBox(height: 7), Text(active ? 'TARGET' : 'OPEN GATE', style: TextStyle(color: active ? Colors.white54 : Colors.white20, fontSize: 4.8, letterSpacing: 1))]))); }; })),
+      Row(children: [Text(q.isEmpty ? 'ATLAS / ALL WORLDS' : '${filtered.length} MATCHES', style: const TextStyle(color: Colors.white18, fontSize: 5.5, letterSpacing: 1.5)), const Spacer(), const Text('A TO CLOSE  •  ESC TO CLOSE', style: TextStyle(color: Colors.white20, fontSize: 5.5, letterSpacing: 1.1))]),
+    ])))))));
   }
 }
