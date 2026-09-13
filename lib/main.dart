@@ -101,10 +101,25 @@ class _AccessControlledHomeState extends State<_AccessControlledHome> {
     if (!DarkestWorldAccessPolicy.canEnterGalaxy(signedIn: _signedIn)) return const GuestModePage();
     return Stack(fit: StackFit.expand, children: [
       const GalaxyHomePage(),
-      Positioned(right: 18, bottom: 18, child: Semantics(button: true, label: 'Open Galaxy Command Center', child: Material(color: const Color(0xE0060710), child: InkWell(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GalaxyCommandCenterPage(worlds: _worlds, selected: null, visited: const <GalaxyWorldKind>{}, onOpen: (world) => _openCommandWorld(context, world)))),
-        child: Container(padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10), decoration: BoxDecoration(border: Border.all(color: Colors.white24), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 18)]), child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white70, fontSize: 7, letterSpacing: 1.8)), SizedBox(width: 9), Text('⌘', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 10))])),
-      ))),
+      Positioned(
+        right: 18,
+        bottom: 18,
+        child: Semantics(
+          button: true,
+          label: 'Open Galaxy Command Center',
+          child: Material(
+            color: const Color(0xE0060710),
+            child: InkWell(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GalaxyCommandCenterPage(worlds: _worlds, selected: null, visited: const <GalaxyWorldKind>{}, onOpen: (world) => _openCommandWorld(context, world)))),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+                decoration: BoxDecoration(border: Border.all(color: Colors.white24), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 18)]),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white70, fontSize: 7, letterSpacing: 1.8)), SizedBox(width: 9), Text('⌘', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 10))]),
+              ),
+            ),
+          ),
+        ),
+      ),
     ]);
   }
 
@@ -144,7 +159,7 @@ class _HomePageState extends State<_HomePage> {
       final sections = snapshot.data ?? const <WorldSection>[];
       if (sections.isEmpty) return const Center(child: Text('Geen worlds beschikbaar.'));
       return ListView(padding: const EdgeInsets.all(24), children: [
-        Card(color: Colors.black.withValues(alpha: 0.48), child: const Padding(padding: EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Darkest-World', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)), SizedBox(height: 8), Text('Een levende wereld. De werelden en content groeien mee met het systeem.')])),
+        Card(color: Colors.black.withValues(alpha: 0.48), child: const Padding(padding: EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Darkest-World', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)), SizedBox(height: 8), Text('Een levende wereld. De werelden en content groeien mee met het systeem.')]))),
         const SizedBox(height: 18), Card(color: Colors.black.withValues(alpha: 0.42), child: Padding(padding: const EdgeInsets.all(18), child: Text('${sections.length} worlds geladen uit Supabase.'))),
         const SizedBox(height: 24), const Text('Worlds', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)), const SizedBox(height: 12),
         ...sections.map((section) => _SectionButton(label: section.name, onTap: () => _openSection(context, section))),
