@@ -1,0 +1,101 @@
+name: GO96 Galaxy Stabilize
+
+on:
+  push:
+    branches: [go59-galaxy-systems]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: go96-galaxy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stabilize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Repair generated source damage
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          files = [
+              Path('lib/main.dart'),
+              Path('lib/screens/galaxy_home_page.dart'),
+              Path('lib/screens/galaxy_command_center_page.dart'),
+              Path('lib/widgets/darkest_world_universe.dart'),
+          ]
+
+          for p in files:
+              s = p.read_text(encoding='utf-8')
+
+              # Flutter does not expose Colors.white10/20/30/... constants.
+              def white(m):
+                  n = max(0, min(100, int(m.group(1))))
+                  alpha = round(255 * n / 100)
+                  return f'Color(0x{alpha:02X}FFFFFF)'
+              s = re.sub(r'Colors\\.white(\\d+)', white, s)
+
+              # Remove accidental repeated method declarations introduced by prior repair rounds.
+              if p.name == 'galaxy_home_page.dart':
+                  pattern = re.compile(r'  void _openCommand\(\) => setState\(\(\) => _commandOpen = true\);\n  void _closeCommand\(\) => setState\(\(\) => _commandOpen = false\);\n')
+                  block = '  void _openCommand() => setState(() => _commandOpen = true);\n  void _closeCommand() => setState(() => _commandOpen = false);\n'
+                  s = pattern.sub(block, s)
+                  # Keep only the first identical G-key handler branch.
+                  branch = "    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }\n"
+                  first = s.find(branch)
+                  if first >= 0:
+                      before, after = s[:first], s[first+len(branch):]
+                      after = after.replace(branch, '')
+                      s = before + branch + after
+
+              p.write_text(s, encoding='utf-8')
+
+          # Fix the known malformed legacy collection-for if it is still present.
+          p = Path('lib/main.dart')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('for (final section in sections) _SectionButton(', '...sections.map((section) => _SectionButton(')
+          s = re.sub(r'\)\s*\),\s*\n\s*\);', ')),\n        );', s) if False else s
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Format
+        run: dart format lib test
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Commit stabilized source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib test
+          if git diff --cached --quiet; then
+            echo "No source changes needed."
+          else
+            git commit -m "GO96: stabilized Galaxy source"
+            git push
+          fi
