@@ -1,0 +1,66 @@
+name: GO89 Flutter Repair
+
+on:
+  push:
+    branches: [go59-galaxy-systems]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, '[GO89-REPAIRED]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Repair source compatibility
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          for path in Path('lib').rglob('*.dart'):
+              text = path.read_text(encoding='utf-8')
+              original = text
+              if 'PointerScrollEvent' in text and "import 'package:flutter/gestures.dart';" not in text:
+                  marker = "import 'package:flutter/material.dart';"
+                  text = text.replace(marker, marker + "\nimport 'package:flutter/gestures.dart';", 1)
+              if ('KeyDownEvent' in text or 'LogicalKeyboardKey' in text) and "import 'package:flutter/services.dart';" not in text:
+                  marker = "import 'package:flutter/material.dart';"
+                  text = text.replace(marker, marker + "\nimport 'package:flutter/services.dart';", 1)
+              def white(m):
+                  n = max(0, min(100, int(m.group(1))))
+                  alpha = round(n * 255 / 100)
+                  return f"const Color(0x{alpha:02X}FFFFFF)"
+              text = re.sub(r'Colors\\.white(\\d+)', white, text)
+              if text != original:
+                  path.write_text(text, encoding='utf-8')
+          PY
+          dart format lib test || true
+
+      - name: Show remaining analyzer errors
+        run: |
+          flutter pub get
+          flutter analyze --no-fatal-infos || true
+
+      - name: Commit repairs
+        shell: bash
+        run: |
+          git config user.name "DarkestVegeta"
+          git config user.email "Darkest-Family@hotmail.com"
+          if git diff --quiet; then
+            echo "No compatibility repairs were needed."
+          else
+            git add lib .github/workflows/go89-flutter-repair.yml
+            git commit -m "GO89: repair Galaxy Flutter compatibility [GO89-REPAIRED]"
+            git push
+          fi
