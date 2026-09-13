@@ -54,6 +54,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
 
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.keyA) {
       setState(() => atlas = !atlas);
       return KeyEventResult.handled;
@@ -152,3 +153,5 @@ class Atlas extends StatelessWidget {
     ]))));
   }
 }
+
+class _CommandButton extends StatelessWidget { final VoidCallback onTap; const _CommandButton({required this.onTap}); @override Widget build(BuildContext context) => Semantics(button: true, label: 'Open galaxy command center', child: Material(color: const Color(0xD905060D), child: InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(border: Border.all(color: Colors.white18)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white65, fontSize: 7, letterSpacing: 1.6)), SizedBox(width: 7), Text('G', style: TextStyle(color: Colors.white25, fontSize: 6))]))))); }
