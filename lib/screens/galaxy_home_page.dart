@@ -21,9 +21,7 @@ class GalaxyHomePage extends StatefulWidget {
 class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObserver {
   final _repository = WorldSectionsRepository();
   late Future<List<WorldSection>> _sections;
-  bool _active = true;
-  bool _atlas = false;
-  bool _command = false;
+  bool _active = true, _atlas = false, _command = false;
   int _visits = 0;
   GalaxyWorldKind? _selected;
   final Set<GalaxyWorldKind> _visited = {};
@@ -73,10 +71,6 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
   KeyEventResult _key(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.keyG) { setState(() => _command = !_command); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.keyA) { setState(() => _atlas = !_atlas); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.escape && (_atlas || _command)) { setState(() { _atlas = false; _command = false; }); return KeyEventResult.handled; }
     return KeyEventResult.ignored;
@@ -134,7 +128,7 @@ class _Discovery extends StatelessWidget {
 class _Target extends StatelessWidget {
   final GalaxyWorld world; final int visits;
   const _Target({required this.world, required this.visits});
-  @override Widget build(BuildContext context) => Container(width: 300, padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: const Color(0xD905060D), border: Border.all(color: const Color(0x2EFFFFFF))), child: Row(children: [Container(width: 3, height: 38, color: const Color(0x996B627F)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('TARGET WORLD', style: TextStyle(color: Color(0x3DFFFFFF), fontSize: 5, letterSpacing: 1.2)), const SizedBox(height: 3), Text(world.title, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 9, letterSpacing: 1.1)), Text(world.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 5.5))])), Text('$visits', style: const TextStyle(color: Color(0x617FFFFFF), fontSize: 7))]));
+  @override Widget build(BuildContext context) => Container(width: 300, padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: const Color(0xD905060D), border: Border.all(color: const Color(0x2EFFFFFF))), child: Row(children: [Container(width: 3, height: 38, color: const Color(0x996B627F)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('TARGET WORLD', style: TextStyle(color: Color(0x3DFFFFFF), fontSize: 5, letterSpacing: 1.2)), const SizedBox(height: 3), Text(world.title, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 9, letterSpacing: 1.1)), Text(world.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 5.5))])), Text('$visits', style: const TextStyle(color: Color(0x617FFFFF), fontSize: 7))]));
 }
 
 class _Atlas extends StatelessWidget {
@@ -148,5 +142,3 @@ class _Atlas extends StatelessWidget {
     })),
   ]))));
 }
-
-class _CommandButton extends StatelessWidget { final VoidCallback onTap; const _CommandButton({required this.onTap}); @override Widget build(BuildContext context) => Semantics(button: true, label: 'Open galaxy command center', child: Material(color: const Color(0xD905060D), child: InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(border: Border.all(color: Colors.white18)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white65, fontSize: 7, letterSpacing: 1.6)), SizedBox(width: 7), Text('G', style: TextStyle(color: Colors.white25, fontSize: 6))]))))); }
