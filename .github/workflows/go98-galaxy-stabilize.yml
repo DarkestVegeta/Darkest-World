@@ -1,0 +1,71 @@
+name: GO98 Galaxy Stabilize
+
+on:
+  push:
+    branches: [go59-galaxy-systems]
+  workflow_dispatch:
+
+jobs:
+  stabilize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Repair Galaxy sources
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          files = [
+              Path('lib/main.dart'),
+              Path('lib/screens/galaxy_home_page.dart'),
+              Path('lib/screens/galaxy_command_center_page.dart'),
+              Path('lib/widgets/darkest_world_universe.dart'),
+          ]
+
+          def fix_colors(text):
+              def repl(m):
+                  pct = int(m.group(1))
+                  alpha = round(255 * pct / 100)
+                  return f'Color(0x{alpha:02X}FFFFFF)'
+              return re.sub(r'Colors\\.white(\\d+)', repl, text)
+
+          for path in files:
+              text = path.read_text()
+              text = fix_colors(text)
+              path.write_text(text)
+
+          p = Path('lib/screens/galaxy_home_page.dart')
+          text = p.read_text()
+          open_cmd = '  void _openCommand() => setState(() => _commandOpen = true);'
+          close_cmd = '  void _closeCommand() => setState(() => _commandOpen = false);'
+          text = re.sub(r'(?:^' + re.escape(open_cmd) + r'\\n?)+', open_cmd + '\\n', text, flags=re.M)
+          text = re.sub(r'(?:^' + re.escape(close_cmd) + r'\\n?)+', close_cmd + '\\n', text, flags=re.M)
+          key_line = "    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }"
+          text = re.sub(r'(?:^' + re.escape(key_line) + r'\\n?)+', key_line + '\\n', text, flags=re.M)
+          p.write_text(text)
+      - name: Format
+        run: dart format lib test
+      - name: Dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test
+      - name: Commit repaired source
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No source changes required"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib test
+          git commit -m "GO98: stabilized Galaxy source"
+          git push
