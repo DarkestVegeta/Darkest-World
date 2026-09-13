@@ -58,6 +58,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
       setState(() => command = !command);
       return KeyEventResult.handled;
     }
+    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.keyA) {
       setState(() => atlas = !atlas);
       return KeyEventResult.handled;
