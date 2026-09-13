@@ -16,6 +16,9 @@ void main() {
     GalaxyWorld(kind: GalaxyWorldKind.comingSoon, title: 'Coming Soon', description: 'Future systems.'),
   ];
 
+  SemanticsFinder worldSemantics(String title) =>
+      find.bySemanticsLabel(RegExp('^${RegExp.escape(title)}'));
+
   Future<void> pumpGalaxy(WidgetTester tester, {ValueChanged<GalaxyWorld>? onWorldTap}) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
@@ -29,14 +32,14 @@ void main() {
     await pumpGalaxy(tester);
     expect(find.text('DARKESTWORLD'), findsOneWidget);
     for (final world in worlds) {
-      expect(find.bySemanticsLabel(world.title), findsOneWidget);
+      expect(worldSemantics(world.title), findsOneWidget);
     }
   });
 
   testWidgets('Selecting a world opens its command panel and VISIT callback', (tester) async {
     GalaxyWorld? visited;
     await pumpGalaxy(tester, onWorldTap: (world) => visited = world);
-    await tester.tap(find.bySemanticsLabel('Game World'));
+    await tester.tap(worldSemantics('Game World'));
     await tester.pump(const Duration(milliseconds: 120));
     expect(find.text('GAME WORLD'), findsOneWidget);
     expect(find.textContaining('VISIT'), findsOneWidget);
@@ -76,7 +79,7 @@ void main() {
 
   testWidgets('Previous and next controls cycle through the world chain', (tester) async {
     await pumpGalaxy(tester);
-    await tester.tap(find.bySemanticsLabel('Game World'));
+    await tester.tap(worldSemantics('Game World'));
     await tester.pump(const Duration(milliseconds: 120));
     expect(find.text('CURRENT'), findsOneWidget);
     expect(find.text('PREVIOUS'), findsOneWidget);
