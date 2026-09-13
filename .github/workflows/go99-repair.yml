@@ -1,0 +1,86 @@
+name: GO99 Galaxy Repair
+on:
+  push:
+    branches: [go59-galaxy-systems]
+  workflow_dispatch:
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: go59-galaxy-systems
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Restore stable Galaxy home
+        run: git show 1050cd1321ec61f37ef97baaf68bfa5802eabf6b:lib/screens/galaxy_home_page.dart > lib/screens/galaxy_home_page.dart
+      - name: Replace command center with stable implementation
+        run: |
+          cat > lib/screens/galaxy_command_center_page.dart <<'DART'
+          import 'package:flutter/material.dart';
+          import '../widgets/darkest_world_universe.dart';
+
+          class GalaxyCommandCenterPage extends StatefulWidget {
+            final List<GalaxyWorld> worlds;
+            final GalaxyWorldKind? selected;
+            final Set<GalaxyWorldKind> visited;
+            final ValueChanged<GalaxyWorld> onOpen;
+            const GalaxyCommandCenterPage({super.key, required this.worlds, required this.selected, required this.visited, required this.onOpen});
+            @override State<GalaxyCommandCenterPage> createState() => _GalaxyCommandCenterPageState();
+          }
+
+          class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
+            final _search = TextEditingController();
+            String _filter = 'ALL';
+            int _cursor = 0;
+            @override void dispose() { _search.dispose(); super.dispose(); }
+            List<GalaxyWorld> get _filtered {
+              final q = _search.text.trim().toLowerCase();
+              return widget.worlds.where((w) {
+                final filterOk = _filter == 'ALL' || (_filter == 'MAPPED' ? widget.visited.contains(w.kind) : !widget.visited.contains(w.kind));
+                return filterOk && (q.isEmpty || w.title.toLowerCase().contains(q) || w.description.toLowerCase().contains(q));
+              }).toList();
+            }
+            void _openAt(int index) { final list = _filtered; if (list.isEmpty) return; final safe = index.clamp(0, list.length - 1); setState(() => _cursor = safe); widget.onOpen(list[safe]); }
+            @override Widget build(BuildContext context) {
+              final list = _filtered;
+              if (_cursor >= list.length && list.isNotEmpty) _cursor = list.length - 1;
+              return Scaffold(
+                backgroundColor: const Color(0xF905060D),
+                body: SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('GALAXY COMMAND CENTER', style: TextStyle(color: Colors.white, fontSize: 20, letterSpacing: 4.2)), const SizedBox(height: 5), Text('${widget.visited.length} / ${widget.worlds.length} MAPPED  •  ${widget.worlds.length - widget.visited.length} UNMAPPED', style: const TextStyle(color: Colors.white38, fontSize: 7, letterSpacing: 1.5))])),
+                    IconButton(tooltip: 'Close command center', onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close, color: Colors.white54)),
+                  ]),
+                  const SizedBox(height: 18),
+                  Row(children: [Expanded(child: TextField(controller: _search, onChanged: (_) => setState(() => _cursor = 0), style: const TextStyle(color: Colors.white70), decoration: InputDecoration(hintText: 'SEARCH GATES', hintStyle: const TextStyle(color: Colors.white24, fontSize: 8), prefixIcon: const Icon(Icons.search, color: Colors.white30, size: 17), filled: true, fillColor: const Color(0x66090A12), border: OutlineInputBorder(borderSide: BorderSide(color: Colors.white12)), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white12)), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white30)))), const SizedBox(width: 10), ...['ALL', 'MAPPED', 'UNMAPPED'].map((filter) => Padding(padding: const EdgeInsets.only(left: 5), child: ChoiceChip(label: Text(filter, style: const TextStyle(fontSize: 8)), selected: _filter == filter, onSelected: (_) => setState(() { _filter = filter; _cursor = 0; }))))]),
+                  const SizedBox(height: 14),
+                  Expanded(child: list.isEmpty ? const Center(child: Text('NO GATES MATCH', style: TextStyle(color: Colors.white30, letterSpacing: 2))) : GridView.builder(gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: MediaQuery.sizeOf(context).width < 760 ? 2 : 3, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.7), itemCount: list.length, itemBuilder: (context, index) { final world = list[index]; final active = index == _cursor || world.kind == widget.selected; final mapped = widget.visited.contains(world.kind); return InkWell(onTap: () => _openAt(index), child: AnimatedContainer(duration: const Duration(milliseconds: 140), padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: active ? Colors.white.withOpacity(.075) : Colors.white.withOpacity(.02), border: Border.all(color: active ? Colors.white38 : Colors.white12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Text('${(widget.worlds.indexOf(world) + 1).toString().padLeft(2, '0')}', style: const TextStyle(color: Colors.white24, fontSize: 7)), const Spacer(), Text(mapped ? 'MAPPED' : 'UNMAPPED', style: const TextStyle(color: Colors.white25, fontSize: 5))]), const Spacer(), Text(world.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: active ? Colors.white : Colors.white60, fontSize: 9, letterSpacing: 1.3)), const SizedBox(height: 4), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white28, fontSize: 5.8)), const SizedBox(height: 8), Text(active ? 'TARGET / ENTER' : 'OPEN GATE', style: const TextStyle(color: Colors.white25, fontSize: 5, letterSpacing: 1))]))); })),
+                  const SizedBox(height: 10),
+                  const Text('COMMAND  •  SEARCH  •  FILTER  •  SELECT A GATE TO ENTER', style: TextStyle(color: Colors.white18, fontSize: 5.5, letterSpacing: 1.1)),
+                ]))),
+              );
+            }
+          }
+          DART
+      - name: Format
+        run: dart format lib test
+      - name: Dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test
+      - name: Commit repaired source
+        run: |
+          git config user.name "DarkestVegeta"
+          git config user.email "Darkest-Family@hotmail.com"
+          git add lib/main.dart lib/screens/galaxy_home_page.dart lib/screens/galaxy_command_center_page.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "GO99: restore stable Galaxy navigation"
+          git push origin HEAD:go59-galaxy-systems
