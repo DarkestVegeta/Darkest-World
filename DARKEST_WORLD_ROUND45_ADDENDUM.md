@@ -36,3 +36,12 @@
 - Preserved animated motion, world selection and existing navigation.
 - Main visual change committed in `b20f0f7aa08991fd3d13d85c7a97abae48a1f25b`.
 - This is an iterative visual foundation; future GO rounds can deepen terrain realism further without replacing the procedural architecture.
+
+## GO 37 — Major procedural planet and galaxy rebuild
+- Rebuilt the planet surface renderer rather than making a cosmetic color or animation change.
+- Added layered spherical base, ocean/depth layer, latitude structure, 13 irregular fictional continental regions, curved coast-like outlines and six levels of procedural relief per landmass.
+- Added internal ridge systems, polar/high-latitude surface layers, 170 micro-surface features and crater-like detail for physical texture.
+- Added moving cloud/debris bands and a stronger multi-stage lighting/terminator system so the planets read as three-dimensional spheres from space.
+- Added a larger star field, animated star variation, expanded orbital-depth lines, nebula haze and distant orbital points to deepen the overall Galaxy presentation.
+- Preserved planet selection, ENTER navigation, responsive sizing and procedural runtime generation; no planet image assets were introduced.
+- This is the new baseline: future GO rounds must remain large visual/functional builds rather than isolated cosmetic tweaks.
