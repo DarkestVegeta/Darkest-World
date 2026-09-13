@@ -17,9 +17,10 @@ class GalaxyHomePage extends StatefulWidget {
   State<GalaxyHomePage> createState() => _GalaxyHomePageState();
 }
 
-class _GalaxyHomePageState extends State<GalaxyHomePage> {
+class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObserver {
   final repository = WorldSectionsRepository();
   late Future<List<WorldSection>> sections = repository.load();
+  bool _appActive = true;
 
   static const _fallback = <GalaxyWorld>[
     GalaxyWorld(kind: GalaxyWorldKind.vegeta, title: 'VEGETA', description: 'The darker heart of DarkestWorld.'),
@@ -34,13 +35,56 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final active = state == AppLifecycleState.resumed;
+    if (active != _appActive && mounted) setState(() => _appActive = active);
+  }
+
+  void _reload() {
+    setState(() => sections = repository.load());
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<WorldSection>>(
       future: sections,
       builder: (context, snapshot) {
-        return DarkestWorldUniverse(
-          worlds: _mapWorlds(snapshot.data ?? const []),
-          onWorldTap: _openWorld,
+        final worlds = _mapWorlds(snapshot.data ?? const []);
+        final synced = snapshot.connectionState == ConnectionState.done && !snapshot.hasError;
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            TickerMode(
+              enabled: _appActive,
+              child: DarkestWorldUniverse(
+                worlds: worlds,
+                onWorldTap: _openWorld,
+              ),
+            ),
+            Positioned(
+              left: 30,
+              bottom: 28,
+              child: _GalaxyStatus(
+                synced: synced,
+                loading: snapshot.connectionState == ConnectionState.waiting,
+                error: snapshot.hasError,
+                count: worlds.length,
+                onReload: _reload,
+              ),
+            ),
+          ],
         );
       },
     );
@@ -117,5 +161,56 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
 
   void _push(Widget page) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  }
+}
+
+class _GalaxyStatus extends StatelessWidget {
+  final bool synced;
+  final bool loading;
+  final bool error;
+  final int count;
+  final VoidCallback onReload;
+
+  const _GalaxyStatus({
+    required this.synced,
+    required this.loading,
+    required this.error,
+    required this.count,
+    required this.onReload,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final status = error
+        ? 'SYNC / FALLBACK'
+        : loading
+            ? 'SYNC / LOADING'
+            : synced
+                ? 'SYNC / CONNECTED'
+                : 'SYNC / FALLBACK';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(.62),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 5, height: 5, decoration: BoxDecoration(shape: BoxShape.circle, color: error ? Colors.redAccent : Colors.white54)),
+          const SizedBox(width: 8),
+          Text('$status  •  $count WORLDS', style: const TextStyle(color: Colors.white54, fontSize: 7, letterSpacing: 1.4)),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: onReload,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              child: Text('↻', style: TextStyle(color: Colors.white38, fontSize: 13)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
