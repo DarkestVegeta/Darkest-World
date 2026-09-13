@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/world_sections_repository.dart';
+import '../widgets/darkest_galaxy_v3.dart';
 import '../widgets/darkest_world_universe.dart';
-import '../widgets/darkest_world_universe_v2.dart';
 import 'archive_world_page.dart';
 import 'cinema_world_page.dart';
 import 'coming_soon_world_page.dart';
@@ -14,9 +14,7 @@ import 'music_world_page.dart';
 
 class GalaxyHomePage extends StatefulWidget {
   const GalaxyHomePage({super.key});
-
-  @override
-  State<GalaxyHomePage> createState() => _GalaxyHomePageState();
+  @override State<GalaxyHomePage> createState() => _GalaxyHomePageState();
 }
 
 class _GalaxyHomePageState extends State<GalaxyHomePage> {
@@ -36,26 +34,19 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF010105),
-      body: FutureBuilder<List<WorldSection>>(
-        future: sections,
-        builder: (context, snapshot) => DarkestWorldUniverseV2(
-          worlds: _mapWorlds(snapshot.data ?? const []),
-          onWorldTap: _openWorld,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => FutureBuilder<List<WorldSection>>(
+    future: sections,
+    builder: (context, snapshot) => DarkestGalaxyV3(
+      worlds: _mapWorlds(snapshot.data ?? const []),
+      onWorldTap: _openWorld,
+    ),
+  );
 
   List<GalaxyWorld> _mapWorlds(List<WorldSection> source) => _fallback.map((fallback) {
-        final matches = source.where((s) => _matches(s, fallback));
-        final section = matches.isEmpty ? null : matches.first;
-        return section == null
-            ? fallback
-            : GalaxyWorld(kind: fallback.kind, title: fallback.title, description: section.description);
-      }).toList();
+    final matches = source.where((s) => _matches(s, fallback));
+    final section = matches.isEmpty ? null : matches.first;
+    return section == null ? fallback : GalaxyWorld(kind: fallback.kind, title: fallback.title, description: section.description);
+  }).toList();
 
   bool _matches(WorldSection section, GalaxyWorld world) {
     final text = '${section.name} ${section.slug}'.toLowerCase();
@@ -74,37 +65,17 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
 
   void _openWorld(GalaxyWorld world) {
     switch (world.kind) {
-      case GalaxyWorldKind.game:
-        _push(const GameWorldPlanetPage());
-        return;
-      case GalaxyWorldKind.music:
-        _push(MusicWorldPage(title: 'MUSIC-WORLD', description: world.description));
-        return;
-      case GalaxyWorldKind.identity:
-        _push(IdentityWorldPage(title: 'DARKEST-IDENTITY', description: world.description));
-        return;
-      case GalaxyWorldKind.family:
-        _push(FamilyWorldPage(title: 'DARKESTFAMILY', description: world.description));
-        return;
-      case GalaxyWorldKind.cinema:
-        _push(CinemaWorldPage(title: 'CINEMA-WORLD', description: world.description));
-        return;
-      case GalaxyWorldKind.creation:
-        _push(const CreationWorldPage());
-        return;
-      case GalaxyWorldKind.archive:
-        _push(const ArchiveWorldPage());
-        return;
-      case GalaxyWorldKind.comingSoon:
-        _push(const ComingSoonWorldPage());
-        return;
-      case GalaxyWorldKind.vegeta:
-        _push(DarkCorePage(title: 'VEGETA WORLD', description: world.description));
-        return;
+      case GalaxyWorldKind.game: _push(const GameWorldPlanetPage()); return;
+      case GalaxyWorldKind.music: _push(MusicWorldPage(title: 'MUSIC-WORLD', description: world.description)); return;
+      case GalaxyWorldKind.identity: _push(IdentityWorldPage(title: 'DARKEST-IDENTITY', description: world.description)); return;
+      case GalaxyWorldKind.family: _push(FamilyWorldPage(title: 'DARKESTFAMILY', description: world.description)); return;
+      case GalaxyWorldKind.cinema: _push(CinemaWorldPage(title: 'CINEMA-WORLD', description: world.description)); return;
+      case GalaxyWorldKind.creation: _push(const CreationWorldPage()); return;
+      case GalaxyWorldKind.archive: _push(const ArchiveWorldPage()); return;
+      case GalaxyWorldKind.comingSoon: _push(const ComingSoonWorldPage()); return;
+      case GalaxyWorldKind.vegeta: _push(DarkCorePage(title: 'VEGETA WORLD', description: world.description)); return;
     }
   }
 
-  void _push(Widget page) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
-  }
+  void _push(Widget page) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 }
