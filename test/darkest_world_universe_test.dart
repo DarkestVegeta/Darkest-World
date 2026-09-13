@@ -16,7 +16,7 @@ void main() {
     GalaxyWorld(kind: GalaxyWorldKind.comingSoon, title: 'Coming Soon', description: 'Future systems.'),
   ];
 
-  SemanticsFinder worldSemantics(String title) =>
+  Finder worldSemantics(String title) =>
       find.bySemanticsLabel(RegExp('^${RegExp.escape(title)}'));
 
   Future<void> pumpGalaxy(WidgetTester tester, {ValueChanged<GalaxyWorld>? onWorldTap}) async {
