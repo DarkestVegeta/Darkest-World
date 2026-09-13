@@ -1,0 +1,134 @@
+name: GO94 Galaxy Stabilize
+on:
+  push:
+    branches: [go59-galaxy-systems]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  stabilize:
+    if: ${{ !contains(github.event.head_commit.message, '[GO94-STABILIZED]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: go59-galaxy-systems
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Restore clean Galaxy baseline
+        shell: bash
+        run: |
+          git show 1050cd1321ec61f37ef97baaf68bfa5802eabf6b:lib/screens/galaxy_home_page.dart > lib/screens/galaxy_home_page.dart
+      - name: Repair Flutter source
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          root = Path('.')
+          def repair_colors(text):
+              def repl(m):
+                  a = round(int(m.group(1)) * 255 / 100)
+                  return f'Color(0x{a:02X}FFFFFF)'
+              return re.sub(r'Colors\\.white(\\d+)', repl, text)
+          for p in root.glob('lib/**/*.dart'):
+              s = p.read_text(encoding='utf-8')
+              s = repair_colors(s)
+              if 'PointerScrollEvent' in s and "package:flutter/gestures.dart" not in s:
+                  s = "import 'package:flutter/gestures.dart';\\n" + s
+              p.write_text(s, encoding='utf-8')
+          main = Path('lib/main.dart')
+          s = main.read_text(encoding='utf-8')
+          s = s.replace("Text('⌘', style: TextStyle(color: Color(0x1FFFFFFF), fontSize: 10))", "Text('⌘', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 10))")
+          main.write_text(s, encoding='utf-8')
+      - name: Add Command Center bridge to Galaxy
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('lib/screens/galaxy_home_page.dart')
+          s = p.read_text(encoding='utf-8')
+          if "galaxy_command_center_page.dart" not in s:
+              s = s.replace("import 'music_world_page.dart';", "import 'music_world_page.dart';\\nimport 'galaxy_command_center_page.dart';")
+          marker = "  void _closeAtlas() => setState(() => _atlasOpen = false);"
+          if '_commandOpen' not in s:
+              s = s.replace(marker, marker + "\\n  bool _commandOpen = false;\\n  void _openCommand() => setState(() => _commandOpen = true);\\n  void _closeCommand() => setState(() => _commandOpen = false);")
+          s = s.replace("if (_atlasOpen) _GalaxyAtlas", "if (_commandOpen) Positioned.fill(child: Material(color: Color(0xE8010207), child: GalaxyCommandCenterPage(worlds: worlds, selected: _commandSelection, visited: _visited, onOpen: (world) { _closeCommand(); _openWorld(world); }))),\\n          if (_atlasOpen) _GalaxyAtlas")
+          p.write_text(s, encoding='utf-8')
+      - name: Write stable Command Center
+        shell: bash
+        run: |
+          cat > lib/screens/galaxy_command_center_page.dart <<'DART'
+          import 'package:flutter/material.dart';
+          import 'package:flutter/services.dart';
+          import '../widgets/darkest_world_universe.dart';
+          
+          class GalaxyCommandCenterPage extends StatefulWidget {
+            final List<GalaxyWorld> worlds;
+            final GalaxyWorldKind? selected;
+            final Set<GalaxyWorldKind> visited;
+            final ValueChanged<GalaxyWorld> onOpen;
+            const GalaxyCommandCenterPage({super.key, required this.worlds, required this.selected, required this.visited, required this.onOpen});
+            @override State<GalaxyCommandCenterPage> createState() => _GalaxyCommandCenterPageState();
+          }
+          
+          class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
+            final TextEditingController _search = TextEditingController();
+            int _cursor = 0;
+            String _filter = 'ALL';
+            List<GalaxyWorld> get _items {
+              final q = _search.text.trim().toLowerCase();
+              return widget.worlds.where((w) {
+                final text = '${w.title} ${w.description}'.toLowerCase();
+                final mapped = widget.visited.contains(w.kind);
+                return (q.isEmpty || text.contains(q)) && (_filter == 'ALL' || (_filter == 'MAPPED' && mapped) || (_filter == 'UNMAPPED' && !mapped));
+              }).toList();
+            }
+            @override void initState() { super.initState(); _syncCursor(); }
+            @override void dispose() { _search.dispose(); super.dispose(); }
+            void _syncCursor() { final items = _items; if (items.isEmpty) { _cursor = 0; return; } final selected = items.indexWhere((w) => w.kind == widget.selected); if (selected >= 0) _cursor = selected; else _cursor = _cursor.clamp(0, items.length - 1); }
+            void _move(int delta) { final items = _items; if (items.isEmpty) return; setState(() => _cursor = (_cursor + delta + items.length) % items.length); }
+            void _open() { final items = _items; if (items.isNotEmpty) widget.onOpen(items[_cursor.clamp(0, items.length - 1)]); }
+            @override Widget build(BuildContext context) {
+              final items = _items;
+              final compact = MediaQuery.sizeOf(context).width < 760;
+              return Material(color: Color(0xFF020308), child: SafeArea(child: Focus(autofocus: true, onKeyEvent: (_, event) {
+                if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                if (event.logicalKey == LogicalKeyboardKey.escape) { widget.onOpen; return KeyEventResult.ignored; }
+                if (event.logicalKey == LogicalKeyboardKey.arrowDown || event.logicalKey == LogicalKeyboardKey.keyJ) { _move(1); return KeyEventResult.handled; }
+                if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.keyK) { _move(-1); return KeyEventResult.handled; }
+                if (event.logicalKey == LogicalKeyboardKey.enter) { _open(); return KeyEventResult.handled; }
+                return KeyEventResult.ignored;
+              }, child: Padding(padding: EdgeInsets.all(compact ? 14 : 30), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('GALAXY COMMAND CENTER', style: TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 4.5)), const SizedBox(height: 5), const Text('NAVIGATION / DISCOVERY / GATE CONTROL', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 7, letterSpacing: 1.8))])), Text('${widget.visited.length} / ${widget.worlds.length} MAPPED', style: const TextStyle(color: Color(0x59FFFFFF), fontSize: 7, letterSpacing: 1.2))]),
+                const SizedBox(height: 18),
+                Row(children: [Expanded(child: TextField(controller: _search, onChanged: (_) => setState(_syncCursor), style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 9), decoration: const InputDecoration(hintText: 'SEARCH GATES', hintStyle: TextStyle(color: Color(0x33FFFFFF), fontSize: 7, letterSpacing: 1.4), prefixIcon: Icon(Icons.search, color: Color(0x33FFFFFF), size: 15), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0x1AFFFFFF))), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0x40FFFFFF))))), const SizedBox(width: 8), for (final f in const ['ALL','MAPPED','UNMAPPED']) Padding(padding: const EdgeInsets.only(left: 5), child: _Filter(label: f, active: _filter == f, onTap: () => setState(() { _filter = f; _syncCursor(); })))]),
+                const SizedBox(height: 14),
+                Expanded(child: items.isEmpty ? const Center(child: Text('NO GATES MATCH', style: TextStyle(color: Color(0x40FFFFFF), fontSize: 8, letterSpacing: 1.5))) : GridView.builder(gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: compact ? 1 : 2, crossAxisSpacing: 9, mainAxisSpacing: 9, childAspectRatio: compact ? 2.8 : 2.15), itemCount: items.length, itemBuilder: (_, index) { final w = items[index]; final active = index == _cursor; final mapped = widget.visited.contains(w.kind); return InkWell(onTap: () { setState(() => _cursor = index); widget.onOpen(w); }, child: AnimatedContainer(duration: const Duration(milliseconds: 140), padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: active ? Color(0x12FFFFFF) : Color(0x05FFFFFF), border: Border.all(color: active ? Color(0x61FFFFFF) : Color(0x1AFFFFFF))), child: Row(children: [Text('${(widget.worlds.indexOf(w) + 1).toString().padLeft(2,'0')}', style: const TextStyle(color: Color(0x33FFFFFF), fontSize: 7)), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(w.title, style: TextStyle(color: active ? Colors.white : Color(0xA6FFFFFF), fontSize: 10, letterSpacing: 1.4)), const SizedBox(height: 5), Text(w.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x47FFFFFF), fontSize: 6.2, height: 1.35))])), Text(mapped ? 'MAPPED' : 'UNMAPPED', style: const TextStyle(color: Color(0x40FFFFFF), fontSize: 5)), const SizedBox(width: 10), Text(active ? 'ENTER ↵' : 'OPEN →', style: const TextStyle(color: Color(0x59FFFFFF), fontSize: 5.5))]))); }),),
+                const SizedBox(height: 10), const Row(children: [Text('↑ ↓ / J K  NAVIGATE', style: TextStyle(color: Color(0x2EFFFFFF), fontSize: 5.5, letterSpacing: 1.2)), SizedBox(width: 14), Text('ENTER  OPEN GATE', style: TextStyle(color: Color(0x2EFFFFFF), fontSize: 5.5, letterSpacing: 1.2)), Spacer(), Text('COMMAND / GATE CONTROL', style: TextStyle(color: Color(0x2EFFFFFF), fontSize: 5.5, letterSpacing: 1.2))]),
+              ])))));
+            }
+          }
+          class _Filter extends StatelessWidget {
+            final String label; final bool active; final VoidCallback onTap;
+            const _Filter({required this.label, required this.active, required this.onTap});
+            @override Widget build(BuildContext context) => InkWell(onTap: onTap, child: AnimatedContainer(duration: const Duration(milliseconds: 120), padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 11), decoration: BoxDecoration(color: active ? Color(0x0FFFFFFF) : Colors.transparent, border: Border.all(color: active ? Color(0x3DFFFFFF) : Color(0x14FFFFFF))), child: Text(label, style: TextStyle(color: active ? Color(0x99FFFFFF) : Color(0x3DFFFFFF), fontSize: 5.5, letterSpacing: 1)));
+          }
+          DART
+      - name: Format analyze and test
+        run: |
+          dart format lib test
+          flutter pub get
+          flutter analyze
+          flutter test
+      - name: Commit stabilized source
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib
+          git diff --cached --quiet && exit 0
+          git commit -m 'GO94: stabilized Galaxy source [GO94-STABILIZED]'
+          git push origin go59-galaxy-systems
