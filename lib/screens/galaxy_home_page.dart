@@ -18,18 +18,18 @@ class GalaxyHomePage extends StatefulWidget {
   @override State<GalaxyHomePage> createState() => _GalaxyHomePageState();
 }
 
-class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObserver {
-  final _repository = WorldSectionsRepository();
-  late Future<List<WorldSection>> _sections;
-  bool _active = true, _atlas = false, _command = false;
-  int _visits = 0;
-  GalaxyWorldKind? _selected;
-  final Set<GalaxyWorldKind> _visited = {};
+class _GalaxyHomePageState extends State<GalaxyHomePage> {
+  final repo = WorldSectionsRepository();
+  late Future<List<WorldSection>> sections;
+  bool atlas = false, command = false;
+  int visits = 0;
+  GalaxyWorldKind? selected;
+  final visited = <GalaxyWorldKind>{};
 
   static const worlds = <GalaxyWorld>[
     GalaxyWorld(kind: GalaxyWorldKind.vegeta, title: 'VEGETA', description: 'The darker heart of DarkestWorld.'),
-    GalaxyWorld(kind: GalaxyWorldKind.game, title: 'GAME-WORLD', description: 'Games you have played and what comes next.'),
-    GalaxyWorld(kind: GalaxyWorldKind.music, title: 'MUSIC-WORLD', description: 'Music, sound and the worlds they create.'),
+    GalaxyWorld(kind: GalaxyWorldKind.game, title: 'GAME-WORLD', description: 'Games, platforms and marathons.'),
+    GalaxyWorld(kind: GalaxyWorldKind.music, title: 'MUSIC-WORLD', description: 'Music, sound and atmosphere.'),
     GalaxyWorld(kind: GalaxyWorldKind.identity, title: 'DARKEST-IDENTITY', description: 'The identity behind DarkestWorld.'),
     GalaxyWorld(kind: GalaxyWorldKind.family, title: 'DARKESTFAMILY', description: 'Personas, people and stories.'),
     GalaxyWorld(kind: GalaxyWorldKind.cinema, title: 'CINEMA-WORLD', description: 'Films and series.'),
@@ -38,21 +38,9 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
     GalaxyWorld(kind: GalaxyWorldKind.comingSoon, title: 'COMING SOON', description: 'What DarkestWorld can become.'),
   ];
 
-  @override void initState() { super.initState(); _sections = _repository.load(); WidgetsBinding.instance.addObserver(this); }
-  @override void dispose() { WidgetsBinding.instance.removeObserver(this); super.dispose(); }
-  @override void didChangeAppLifecycleState(AppLifecycleState state) { final active = state == AppLifecycleState.resumed; if (mounted && active != _active) setState(() => _active = active); }
-
-  List<GalaxyWorld> _mappedWorlds(List<WorldSection> source) => worlds.map((base) {
-    for (final section in source) {
-      final text = '${section.name} ${section.slug}'.toLowerCase();
-      final key = base.title.toLowerCase().replaceAll('-', ' ').split(' ').first;
-      if (text.contains(key)) return GalaxyWorld(kind: base.kind, title: base.title, description: section.description);
-    }
-    return base;
-  }).toList();
-
-  void _openWorld(GalaxyWorld world) {
-    setState(() { _selected = world.kind; _visits++; _visited.add(world.kind); });
+  @override void initState() { super.initState(); sections = repo.load(); }
+  void openWorld(GalaxyWorld world) {
+    setState(() { selected = world.kind; visits++; visited.add(world.kind); });
     late Widget page;
     switch (world.kind) {
       case GalaxyWorldKind.vegeta: page = DarkCorePage(title: 'VEGETA WORLD', description: world.description); break;
@@ -65,83 +53,58 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
       case GalaxyWorldKind.archive: page = const ArchiveWorldPage(); break;
       case GalaxyWorldKind.comingSoon: page = const ComingSoonWorldPage(); break;
     }
-    Navigator.of(context).push(PageRouteBuilder(pageBuilder: (_, animation, __) => FadeTransition(opacity: animation, child: page), transitionDuration: const Duration(milliseconds: 300)));
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
-
-  KeyEventResult _key(FocusNode node, KeyEvent event) {
+  KeyEventResult key(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.keyG) { setState(() => _command = !_command); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.keyA) { setState(() => _atlas = !_atlas); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.escape && (_atlas || _command)) { setState(() { _atlas = false; _command = false; }); return KeyEventResult.handled; }
+    if (event.logicalKey == LogicalKeyboardKey.keyA) { setState(() => atlas = !atlas); return KeyEventResult.handled; }
+    if (event.logicalKey == LogicalKeyboardKey.keyG) { setState(() => command = !command); return KeyEventResult.handled; }
+    if (event.logicalKey == LogicalKeyboardKey.escape && (atlas || command)) { setState(() { atlas = false; command = false; }); return KeyEventResult.handled; }
     return KeyEventResult.ignored;
   }
-
   @override Widget build(BuildContext context) => FutureBuilder<List<WorldSection>>(
-    future: _sections,
-    builder: (context, snapshot) {
-      final list = _mappedWorlds(snapshot.data ?? const []);
-      final compact = MediaQuery.sizeOf(context).width < 900;
-      return Focus(autofocus: true, onKeyEvent: _key, child: Stack(fit: StackFit.expand, children: [
-        TickerMode(enabled: _active, child: DarkestWorldUniverse(worlds: list, onWorldTap: _openWorld)),
-        Positioned(top: compact ? 12 : 24, left: 12, right: 12, child: Row(children: [
-          _Hud(label: 'GALAXY', value: snapshot.hasError ? 'FALLBACK' : 'ONLINE'), const Spacer(),
-          _Hud(label: 'GATES', value: '${list.length}'), const SizedBox(width: 6),
-          _Hud(label: 'MAPPED', value: '${_visited.length}/${list.length}'), const SizedBox(width: 6),
-          _Action(label: 'ATLAS', onTap: () => setState(() => _atlas = true)), const SizedBox(width: 6),
-          _Action(label: 'COMMAND', onTap: () => setState(() => _command = true)),
+    future: sections,
+    builder: (context, snapshot) => Scaffold(
+      backgroundColor: const Color(0xFF010207),
+      body: Focus(autofocus: true, onKeyEvent: key, child: Stack(fit: StackFit.expand, children: [
+        DarkestWorldUniverse(worlds: worlds, onWorldTap: openWorld),
+        Positioned(top: 18, left: 18, right: 18, child: Row(children: [
+          const Text('GALAXY', style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 8, letterSpacing: 2.2)),
+          const SizedBox(width: 10),
+          Text(snapshot.hasError ? 'FALLBACK' : 'ONLINE', style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 6)),
+          const Spacer(),
+          HudButton(label: 'GATES ${worlds.length}', onTap: () {}), const SizedBox(width: 6),
+          HudButton(label: 'ATLAS', onTap: () => setState(() => atlas = true)), const SizedBox(width: 6),
+          HudButton(label: 'COMMAND', onTap: () => setState(() => command = true)),
         ])),
-        if (!compact && _selected != null) Positioned(left: 24, bottom: 24, child: _Target(world: list.firstWhere((w) => w.kind == _selected), visits: _visits)),
-        if (!compact) Positioned(left: 24, top: 80, child: _Discovery(list: list, visited: _visited, onOpen: _openWorld)),
-        Positioned(right: 12, bottom: 12, child: _Hud(label: 'VISITS', value: '$_visits')),
-        if (_atlas) _Atlas(worlds: list, visited: _visited, selected: _selected, onClose: () => setState(() => _atlas = false), onOpen: _openWorld),
-        if (_command) Positioned.fill(child: Material(color: const Color(0xEE020308), child: GalaxyCommandCenterPage(worlds: list, selected: _selected, visited: _visited, onOpen: (world) { setState(() => _command = false); _openWorld(world); }))),
-      ]));
-    },
+        Positioned(left: 18, bottom: 18, child: Info(text: selected == null ? 'SCANNING / SELECT A WORLD' : 'TARGET ${selected.toString().split('.').last.toUpperCase()}')),
+        Positioned(right: 18, bottom: 18, child: Info(text: 'VISITS $visits / MAPPED ${visited.length}/${worlds.length}')),
+        if (atlas) Atlas(worlds: worlds, visited: visited, selected: selected, close: () => setState(() => atlas = false), open: openWorld),
+        if (command) Positioned.fill(child: Material(color: const Color(0xF0020308), child: GalaxyCommandCenterPage(worlds: worlds, selected: selected, visited: visited, onOpen: (w) { setState(() => command = false); openWorld(w); }))),
+      ]),
+    ),
   );
 }
 
-class _Hud extends StatelessWidget {
-  final String label, value;
-  const _Hud({required this.label, required this.value});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: const Color(0xB805060D), border: Border.all(color: const Color(0x1AFFFFFF))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 5, letterSpacing: 1.4)), const SizedBox(height: 2), Text(value, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 7, letterSpacing: 1.1))]));
-}
-
-class _Action extends StatelessWidget {
+class HudButton extends StatelessWidget {
   final String label; final VoidCallback onTap;
-  const _Action({required this.label, required this.onTap});
-  @override Widget build(BuildContext context) => InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9), decoration: BoxDecoration(color: const Color(0xB805060D), border: Border.all(color: const Color(0x2EFFFFFF))), child: Text(label, style: const TextStyle(color: Color(0x99FFFFFF), fontSize: 6, letterSpacing: 1.2))));
+  const HudButton({super.key, required this.label, required this.onTap});
+  @override Widget build(BuildContext context) => InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7), decoration: BoxDecoration(color: const Color(0xB805060D), border: Border.all(color: const Color(0x2EFFFFFF))), child: Text(label, style: const TextStyle(color: Color(0x8AFFFFFF), fontSize: 5.5, letterSpacing: 1))));
 }
-
-class _Discovery extends StatelessWidget {
-  final List<GalaxyWorld> list; final Set<GalaxyWorldKind> visited; final ValueChanged<GalaxyWorld> onOpen;
-  const _Discovery({required this.list, required this.visited, required this.onOpen});
-  @override Widget build(BuildContext context) {
-    final next = list.where((w) => !visited.contains(w.kind)).take(4).toList();
-    return Container(width: 245, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xCC05060D), border: Border.all(color: const Color(0x1AFFFFFF))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('DISCOVERY', style: TextStyle(color: Color(0x66FFFFFF), fontSize: 6, letterSpacing: 1.8)), const SizedBox(height: 6),
-      Text('${visited.length}/${list.length} GATES MAPPED', style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 8)), const SizedBox(height: 7),
-      for (final world in next) InkWell(onTap: () => onOpen(world), child: Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: Row(children: [const Text('○', style: TextStyle(color: Color(0x3DFFFFFF))), const SizedBox(width: 7), Expanded(child: Text(world.title, style: const TextStyle(color: Color(0x73FFFFFF), fontSize: 6))), const Text('OPEN', style: TextStyle(color: Color(0x33FFFFFF), fontSize: 5))])))
-    ]));
-  }
+class Info extends StatelessWidget {
+  final String text;
+  const Info({super.key, required this.text});
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: const Color(0xB805060D), border: Border.all(color: const Color(0x1AFFFFFF))), child: Text(text, style: const TextStyle(color: Color(0x59FFFFFF), fontSize: 5.5, letterSpacing: 1)));
 }
-
-class _Target extends StatelessWidget {
-  final GalaxyWorld world; final int visits;
-  const _Target({required this.world, required this.visits});
-  @override Widget build(BuildContext context) => Container(width: 300, padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: const Color(0xD905060D), border: Border.all(color: const Color(0x2EFFFFFF))), child: Row(children: [Container(width: 3, height: 38, color: const Color(0x996B627F)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('TARGET WORLD', style: TextStyle(color: Color(0x3DFFFFFF), fontSize: 5, letterSpacing: 1.2)), const SizedBox(height: 3), Text(world.title, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 9, letterSpacing: 1.1)), Text(world.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 5.5))])), Text('$visits', style: const TextStyle(color: Color(0x617FFFFF), fontSize: 7))]));
-}
-
-class _Atlas extends StatelessWidget {
-  final List<GalaxyWorld> worlds; final Set<GalaxyWorldKind> visited; final GalaxyWorldKind? selected; final VoidCallback onClose; final ValueChanged<GalaxyWorld> onOpen;
-  const _Atlas({required this.worlds, required this.visited, required this.selected, required this.onClose, required this.onOpen});
+class Atlas extends StatelessWidget {
+  final List<GalaxyWorld> worlds; final Set<GalaxyWorldKind> visited; final GalaxyWorldKind? selected; final VoidCallback close; final ValueChanged<GalaxyWorld> open;
+  const Atlas({super.key, required this.worlds, required this.visited, required this.selected, required this.close, required this.open});
   @override Widget build(BuildContext context) => Positioned.fill(child: Material(color: const Color(0xF0020308), child: SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: Column(children: [
-    Row(children: [const Expanded(child: Text('GALAXY ATLAS', style: TextStyle(color: Colors.white, fontSize: 19, letterSpacing: 5))), _Action(label: 'CLOSE ×', onTap: onClose)]), const SizedBox(height: 14),
+    Row(children: [const Expanded(child: Text('GALAXY ATLAS', style: TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 4))), HudButton(label: 'CLOSE', onTap: close)]),
+    const SizedBox(height: 14),
     Expanded(child: GridView.builder(gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: MediaQuery.sizeOf(context).width < 760 ? 2 : 3, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 2.2), itemCount: worlds.length, itemBuilder: (_, i) {
-      final w = worlds[i]; final active = w.kind == selected;
-      return InkWell(onTap: () => onOpen(w), child: Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: active ? const Color(0x12FFFFFF) : const Color(0x05FFFFFF), border: Border.all(color: active ? const Color(0x66FFFFFF) : const Color(0x1AFFFFFF))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(w.title, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 9, letterSpacing: 1.2)), const SizedBox(height: 5), Text(visited.contains(w.kind) ? 'MAPPED' : 'UNMAPPED', style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 5)), const SizedBox(height: 5), Text(w.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 6))]));
+      final w = worlds[i]; final active = selected == w.kind;
+      return InkWell(onTap: () => open(w), child: Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: active ? const Color(0x12FFFFFF) : const Color(0x05FFFFFF), border: Border.all(color: active ? const Color(0x66FFFFFF) : const Color(0x1AFFFFFF))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(w.title, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 9, letterSpacing: 1.2)), const SizedBox(height: 5), Text(visited.contains(w.kind) ? 'MAPPED' : 'UNMAPPED', style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 5)), const SizedBox(height: 5), Text(w.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 6))]));
     })),
   ]))));
 }
-
-class _CommandButton extends StatelessWidget { final VoidCallback onTap; const _CommandButton({required this.onTap}); @override Widget build(BuildContext context) => Semantics(button: true, label: 'Open galaxy command center', child: Material(color: const Color(0xD905060D), child: InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(border: Border.all(color: Colors.white18)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white65, fontSize: 7, letterSpacing: 1.6)), SizedBox(width: 7), Text('G', style: TextStyle(color: Colors.white25, fontSize: 6))]))))); }
