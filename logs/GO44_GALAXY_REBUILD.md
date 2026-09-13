@@ -45,5 +45,14 @@ GO43 did not reach deployment because CI found an orphaned V3 import plus parser
 - Kept the renderer asset-free.
 - The rebuild is intentionally explicit and maintainable so CI can validate it before the next large visual GO.
 
+## GO 48 — floating planet visit interaction + analyzer repair
+- Fixed the blocking `_OrbitalPainter` analyzer error by replacing the missing painter with an explicit `_OrbitPainter` implementation.
+- Reworked selected-world navigation so a selected planet now gets a floating contextual panel beside the planet instead of a full-width bottom panel.
+- Added a clear `VISIT PLANET →` action directly in that panel.
+- Kept `ENTER • VISIT` and `ESC • CLOSE` as secondary keyboard guidance; visiting no longer depends on ENTER.
+- The floating panel follows the selected planet's orbital position and animates into place.
+- Expanded the orbital presentation with 13 visible bands, 24 moving markers and a central system core.
+- Kept drag orbit, pinch zoom, labels, System Map, reset and asset-free procedural rendering intact.
+
 ## Stability rule
 No deployment is claimed until the new main commit passes Flutter Analyze, Test and Web Build in GitHub Actions.
