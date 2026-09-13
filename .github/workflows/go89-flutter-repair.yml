@@ -1,4 +1,4 @@
-name: GO89 Flutter Repair
+name: GO90 Comprehensive Galaxy Repair
 
 on:
   push:
@@ -9,58 +9,287 @@ permissions:
 
 jobs:
   repair:
-    if: ${{ !contains(github.event.head_commit.message, '[GO89-REPAIRED]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[GO90-REPAIRED]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: go59-galaxy-systems
+          fetch-depth: 0
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      - name: Repair source compatibility
+      - name: Restore stable Galaxy page and repair source
         shell: bash
         run: |
+          set -e
+          git fetch origin go59-galaxy-systems
+          git reset --hard origin/go59-galaxy-systems
+
+          # GO78 is the last known-good complete Galaxy Home implementation before
+          # the malformed command-center wiring pass. Restore it, then normalize
+          # Flutter color syntax across the Galaxy sources.
+          git show 1050cd1321ec61f37ef97baaf68bfa5802eabf6b:lib/screens/galaxy_home_page.dart > lib/screens/galaxy_home_page.dart
+
           python3 - <<'PY'
           from pathlib import Path
           import re
+
+          def alpha_color(match):
+              n = max(0, min(100, int(match.group(1))))
+              alpha = round(n * 255 / 100)
+              return f"const Color(0x{alpha:02X}FFFFFF)"
+
           for path in Path('lib').rglob('*.dart'):
               text = path.read_text(encoding='utf-8')
               original = text
+              text = re.sub(r'Colors\\.white(\\d+)', alpha_color, text)
               if 'PointerScrollEvent' in text and "import 'package:flutter/gestures.dart';" not in text:
                   marker = "import 'package:flutter/material.dart';"
                   text = text.replace(marker, marker + "\nimport 'package:flutter/gestures.dart';", 1)
               if ('KeyDownEvent' in text or 'LogicalKeyboardKey' in text) and "import 'package:flutter/services.dart';" not in text:
                   marker = "import 'package:flutter/material.dart';"
                   text = text.replace(marker, marker + "\nimport 'package:flutter/services.dart';", 1)
-              def white(m):
-                  n = max(0, min(100, int(m.group(1))))
-                  alpha = round(n * 255 / 100)
-                  return f"const Color(0x{alpha:02X}FFFFFF)"
-              text = re.sub(r'Colors\\.white(\\d+)', white, text)
               if text != original:
                   path.write_text(text, encoding='utf-8')
-          PY
-          dart format lib test || true
 
-      - name: Show remaining analyzer errors
-        run: |
+          # Remove the parser-sensitive collection-for from main.dart.
+          main = Path('lib/main.dart')
+          text = main.read_text(encoding='utf-8')
+          old = "for (final section in sections) _SectionButton(label: section.name, onTap: () => _openSection(context, section)),"
+          new = "...sections.map((section) => _SectionButton(label: section.name, onTap: () => _openSection(context, section))),"
+          text = text.replace(old, new)
+          main.write_text(text, encoding='utf-8')
+          PY
+
+          cat > lib/screens/galaxy_command_center_page.dart <<'DART'
+          import 'package:flutter/material.dart';
+          import 'package:flutter/services.dart';
+          import '../widgets/darkest_world_universe.dart';
+
+          class GalaxyCommandCenterPage extends StatefulWidget {
+            final List<GalaxyWorld> worlds;
+            final GalaxyWorldKind? selected;
+            final Set<GalaxyWorldKind> visited;
+            final ValueChanged<GalaxyWorld> onOpen;
+
+            const GalaxyCommandCenterPage({
+              super.key,
+              required this.worlds,
+              required this.selected,
+              required this.visited,
+              required this.onOpen,
+            });
+
+            @override
+            State<GalaxyCommandCenterPage> createState() => _GalaxyCommandCenterPageState();
+          }
+
+          class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
+            final TextEditingController _search = TextEditingController();
+            GalaxyWorldKind? _target;
+            _CommandFilter _filter = _CommandFilter.all;
+            int _cursor = 0;
+
+            List<GalaxyWorld> get _filtered {
+              final query = _search.text.trim().toLowerCase();
+              return widget.worlds.where((world) {
+                final matchesText = query.isEmpty || world.title.toLowerCase().contains(query) || world.description.toLowerCase().contains(query);
+                final matchesFilter = switch (_filter) {
+                  _CommandFilter.all => true,
+                  _CommandFilter.mapped => widget.visited.contains(world.kind),
+                  _CommandFilter.unmapped => !widget.visited.contains(world.kind),
+                };
+                return matchesText && matchesFilter;
+              }).toList();
+            }
+
+            @override
+            void initState() {
+              super.initState();
+              _target = widget.selected;
+              _search.addListener(_changed);
+            }
+
+            @override
+            void dispose() {
+              _search.removeListener(_changed);
+              _search.dispose();
+              super.dispose();
+            }
+
+            void _changed() => setState(() => _cursor = 0);
+
+            void _open(GalaxyWorld world) {
+              setState(() => _target = world.kind);
+              widget.onOpen(world);
+            }
+
+            void _move(int delta) {
+              final items = _filtered;
+              if (items.isEmpty) return;
+              setState(() => _cursor = (_cursor + delta).clamp(0, items.length - 1));
+            }
+
+            void _activate() {
+              final items = _filtered;
+              if (items.isNotEmpty) _open(items[_cursor.clamp(0, items.length - 1)]);
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              final items = _filtered;
+              final mapped = widget.visited.length;
+              return Scaffold(
+                backgroundColor: const Color(0xFF03040A),
+                body: Focus(
+                  autofocus: true,
+                  onKeyEvent: (_, event) {
+                    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                    if (event.logicalKey == LogicalKeyboardKey.arrowDown || event.logicalKey == LogicalKeyboardKey.keyJ) {
+                      _move(1);
+                      return KeyEventResult.handled;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.keyK) {
+                      _move(-1);
+                      return KeyEventResult.handled;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.enter) {
+                      _activate();
+                      return KeyEventResult.handled;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.escape) {
+                      Navigator.of(context).maybePop();
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(22, 20, 22, 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  const Text('GALAXY COMMAND CENTER', style: TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 4.2)),
+                                  const SizedBox(height: 5),
+                                  Text('$mapped / ${widget.worlds.length} MAPPED  •  ${widget.worlds.length - mapped} UNMAPPED  •  ${items.length} SHOWN', style: const TextStyle(color: Colors.white38, fontSize: 6.5, letterSpacing: 1.4)),
+                                ]),
+                              ),
+                              IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close, color: Colors.white54)),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 22),
+                          child: Row(children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _search,
+                                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                decoration: InputDecoration(
+                                  hintText: 'SEARCH GATES',
+                                  hintStyle: const TextStyle(color: Colors.white24, fontSize: 8, letterSpacing: 1.5),
+                                  prefixIcon: const Icon(Icons.search, size: 16, color: Colors.white30),
+                                  filled: true,
+                                  fillColor: const Color(0x9910121A),
+                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white10)),
+                                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _FilterButton(label: 'ALL', active: _filter == _CommandFilter.all, onTap: () => setState(() => _filter = _CommandFilter.all)),
+                            _FilterButton(label: 'MAPPED', active: _filter == _CommandFilter.mapped, onTap: () => setState(() => _filter = _CommandFilter.mapped)),
+                            _FilterButton(label: 'UNMAPPED', active: _filter == _CommandFilter.unmapped, onTap: () => setState(() => _filter = _CommandFilter.unmapped)),
+                          ]),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: items.isEmpty
+                              ? const Center(child: Text('NO GATES MATCH', style: TextStyle(color: Colors.white30, fontSize: 9, letterSpacing: 2)))
+                              : GridView.builder(
+                                  padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
+                                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 360, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.7),
+                                  itemCount: items.length,
+                                  itemBuilder: (context, index) {
+                                    final world = items[index];
+                                    final mappedGate = widget.visited.contains(world.kind);
+                                    final active = _target == world.kind;
+                                    final cursor = index == _cursor;
+                                    return Semantics(
+                                      button: true,
+                                      label: 'Open ${world.title}',
+                                      child: InkWell(
+                                        onTap: () => _open(world),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 150),
+                                          padding: const EdgeInsets.all(14),
+                                          decoration: BoxDecoration(
+                                            color: active ? Colors.white.withValues(alpha: .08) : Colors.white.withValues(alpha: .025),
+                                            border: Border.all(color: cursor ? Colors.white38 : active ? Colors.white24 : Colors.white10),
+                                          ),
+                                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                            Row(children: [
+                                              Text('${(widget.worlds.indexOf(world) + 1).toString().padLeft(2, '0')}', style: const TextStyle(color: Colors.white25, fontSize: 7)),
+                                              const Spacer(),
+                                              Text(mappedGate ? 'MAPPED' : 'UNMAPPED', style: TextStyle(color: mappedGate ? Colors.white45 : Colors.white20, fontSize: 5, letterSpacing: 1.1)),
+                                            ]),
+                                            const Spacer(),
+                                            Text(world.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: active ? Colors.white : Colors.white65, fontSize: 10, letterSpacing: 1.5)),
+                                            const SizedBox(height: 5),
+                                            Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white28, fontSize: 7, height: 1.35)),
+                                            const SizedBox(height: 8),
+                                            Text(cursor ? 'TARGET / ENTER TO OPEN' : 'CLICK TO OPEN', style: TextStyle(color: cursor ? Colors.white50 : Colors.white18, fontSize: 5, letterSpacing: 1)),
+                                          ]),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                        ),
+                        const Padding(padding: EdgeInsets.only(bottom: 10), child: Text('J / K OR ↑ / ↓ NAVIGATE  •  ENTER OPEN  •  ESC CLOSE', style: TextStyle(color: Colors.white18, fontSize: 5.5, letterSpacing: 1.2))),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+
+          enum _CommandFilter { all, mapped, unmapped }
+
+          class _FilterButton extends StatelessWidget {
+            final String label;
+            final bool active;
+            final VoidCallback onTap;
+            const _FilterButton({required this.label, required this.active, required this.onTap});
+
+            @override
+            Widget build(BuildContext context) => InkWell(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                decoration: BoxDecoration(color: active ? Colors.white.withValues(alpha: .07) : Colors.transparent, border: Border.all(color: active ? Colors.white24 : Colors.white08)),
+                child: Text(label, style: TextStyle(color: active ? Colors.white60 : Colors.white25, fontSize: 5.5, letterSpacing: 1)),
+              ),
+            );
+          }
+          DART
+
+          dart format lib/screens/galaxy_home_page.dart lib/screens/galaxy_command_center_page.dart lib/main.dart
           flutter pub get
           flutter analyze --no-fatal-infos || true
 
-      - name: Commit repairs
-        shell: bash
-        run: |
           git config user.name "DarkestVegeta"
           git config user.email "Darkest-Family@hotmail.com"
-          if git diff --quiet; then
-            echo "No compatibility repairs were needed."
-          else
-            git add lib .github/workflows/go89-flutter-repair.yml
-            git commit -m "GO89: repair Galaxy Flutter compatibility [GO89-REPAIRED]"
-            git push
-          fi
+          git add lib .github/workflows/go89-flutter-repair.yml
+          git commit -m "GO90: comprehensive Galaxy source repair [GO90-REPAIRED]" || true
+          git fetch origin go59-galaxy-systems
+          git push --force-with-lease origin HEAD:go59-galaxy-systems
