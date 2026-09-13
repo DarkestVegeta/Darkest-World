@@ -10,6 +10,7 @@ class GalaxyNavigationSession {
   final discoveryOrder = <GalaxyWorldKind>[];
   final routeHistory = <GalaxyWorldKind>[];
   final gateHistory = <GalaxyWorldKind>[];
+  int historyCursor = -1;
 
   void select(GalaxyWorldKind kind) {
     selected = kind;
@@ -19,6 +20,7 @@ class GalaxyNavigationSession {
       routeHistory.add(kind);
       if (routeHistory.length > 32) routeHistory.removeAt(0);
     }
+    historyCursor = routeHistory.isEmpty ? -1 : routeHistory.lastIndexOf(kind);
   }
 
   void visit(GalaxyWorldKind kind) {
@@ -32,15 +34,20 @@ class GalaxyNavigationSession {
 
   GalaxyWorldKind? historyAt(int index) => index < 0 || index >= routeHistory.length ? null : routeHistory[index];
 
-  GalaxyWorldKind? previousHistory() {
-    if (routeHistory.length < 2 || selected == null) return null;
-    return historyAt(routeHistory.lastIndexOf(selected!) - 1);
+  GalaxyWorldKind? moveHistory(int delta) {
+    if (routeHistory.isEmpty) return null;
+    if (historyCursor < 0 || historyCursor >= routeHistory.length) historyCursor = routeHistory.length - 1;
+    final target = historyCursor + delta;
+    if (target < 0 || target >= routeHistory.length) return null;
+    historyCursor = target;
+    selected = routeHistory[historyCursor];
+    mapped.add(selected!);
+    if (!discoveryOrder.contains(selected!)) discoveryOrder.add(selected!);
+    return selected;
   }
 
-  GalaxyWorldKind? nextHistory() {
-    if (routeHistory.length < 2 || selected == null) return null;
-    return historyAt(routeHistory.lastIndexOf(selected!) + 1);
-  }
+  GalaxyWorldKind? previousHistory() => moveHistory(-1);
+  GalaxyWorldKind? nextHistory() => moveHistory(1);
 
   GalaxyWorldKind? lastGate() => gateHistory.isEmpty ? null : gateHistory.last;
 }
