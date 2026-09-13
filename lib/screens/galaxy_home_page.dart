@@ -54,13 +54,12 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
 
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.keyA) {
-      setState(() => atlas = !atlas);
-      return KeyEventResult.handled;
-    }
     if (event.logicalKey == LogicalKeyboardKey.keyG) {
       setState(() => command = !command);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.keyA) {
+      setState(() => atlas = !atlas);
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape && (atlas || command)) {
@@ -82,7 +81,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
           const SizedBox(width: 10),
           const Text('ONLINE', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 6)),
           const Spacer(),
-          HudButton(label: 'GATES ${worlds.length}', onTap: () {}),
+          HudButton(label: 'GATES ${worlds.length}', onTap: () => setState(() => atlas = true)),
           const SizedBox(width: 6),
           HudButton(label: 'ATLAS', onTap: () => setState(() => atlas = true)),
           const SizedBox(width: 6),
