@@ -35,6 +35,7 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
     if (event.logicalKey == LogicalKeyboardKey.escape) { widget.onClose(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown || event.logicalKey == LogicalKeyboardKey.keyJ) { move(1); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.keyK) { move(-1); return KeyEventResult.handled; }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) { widget.onClose(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.enter) { openSelected(); return KeyEventResult.handled; }
     return KeyEventResult.ignored;
   }
@@ -83,7 +84,7 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
             },
           )),
           const SizedBox(height: 8),
-          const Text('↑ ↓ / J K  NAVIGATE    ENTER  OPEN    ESC  CLOSE', style: TextStyle(color: Color(0x2EFFFFFF), fontSize: 5.5, letterSpacing: 1.1)),
+          const Text('↑ ↓ / J K  NAVIGATE    ENTER  OPEN    ←  RETURN    ESC  CLOSE', style: TextStyle(color: Color(0x2EFFFFFF), fontSize: 5.5, letterSpacing: 1.1)),
         ]),
       ))),
     );
