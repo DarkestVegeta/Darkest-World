@@ -18,59 +18,38 @@ class DarkestWorldUniverse extends StatefulWidget {
 
 class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with SingleTickerProviderStateMixin {
   GalaxyWorldKind? selected;
-  double orbitOffset = 0;
-  double zoom = 1;
+  double orbitOffset = 0, zoom = 1;
   Offset? dragStart;
-  late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 54))..repeat();
+  bool mapMode = false, labels = true;
+  late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 58))..repeat();
   @override void dispose() { clock.dispose(); super.dispose(); }
-  void _select(GalaxyWorld world) => setState(() => selected = selected == world.kind ? null : world.kind);
-  void _resetView() => setState(() { orbitOffset = 0; zoom = 1; selected = null; });
+  void _select(GalaxyWorld w) => setState(() => selected = selected == w.kind ? null : w.kind);
+  void _reset() => setState(() { orbitOffset = 0; zoom = 1; selected = null; });
 
   @override Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final compact = size.width < 760;
+    final size = MediaQuery.sizeOf(context), compact = size.width < 760;
     GalaxyWorld? current;
-    for (final world in widget.worlds) { if (world.kind == selected) { current = world; break; } }
+    for (final w in widget.worlds) { if (w.kind == selected) { current = w; break; } }
     return Scaffold(
       backgroundColor: const Color(0xFF010106),
       body: GestureDetector(
-        onScaleStart: (details) => dragStart = details.focalPoint,
-        onScaleUpdate: (details) {
-          if (details.pointerCount > 1) {
-            setState(() => zoom = (zoom * details.scale).clamp(.68, 1.48));
-          } else if (dragStart != null) {
-            final dx = details.focalPoint.dx - dragStart!.dx;
-            setState(() => orbitOffset += dx / math.max(180, size.width));
-            dragStart = details.focalPoint;
-          }
+        onScaleStart: (d) => dragStart = d.focalPoint,
+        onScaleUpdate: (d) {
+          if (d.pointerCount > 1) setState(() => zoom = (zoom * d.scale).clamp(.62, 1.58));
+          else if (dragStart != null) { final dx = d.focalPoint.dx - dragStart!.dx; setState(() => orbitOffset += dx / math.max(180, size.width)); dragStart = d.focalPoint; }
         },
         onScaleEnd: (_) => dragStart = null,
         child: AnimatedBuilder(
           animation: clock,
-          builder: (_, __) => Stack(children: [
-            Positioned.fill(child: CustomPaint(painter: _UniversePainter(clock.value, orbitOffset, selected != null))),
-            Positioned(left: compact ? 18 : 34, top: compact ? 18 : 28, child: const _UniverseHeader()),
-            Center(child: Transform.scale(
-              scale: zoom,
-              child: SizedBox(width: compact ? 360 : 900, height: compact ? 520 : 700,
-                child: Stack(children: [
-                  for (var i = 0; i < widget.worlds.length; i++)
-                    _Planet(
-                      world: widget.worlds[i], index: i, total: widget.worlds.length,
-                      t: clock.value, orbitOffset: orbitOffset,
-                      selected: selected == widget.worlds[i].kind, compact: compact,
-                      onTap: () => _select(widget.worlds[i]),
-                    ),
-                ]),
-              ),
-            )),
-            Positioned(right: compact ? 16 : 34, top: compact ? 18 : 28,
-              child: _ViewControls(zoom: zoom, onZoomIn: () => setState(() => zoom = (zoom + .1).clamp(.68, 1.48)), onZoomOut: () => setState(() => zoom = (zoom - .1).clamp(.68, 1.48)), onReset: _resetView)),
-            if (current != null)
-              Positioned(left: compact ? 12 : 34, right: compact ? 12 : 34, bottom: compact ? 12 : 28,
-                child: _WorldPanel(world: current!, compact: compact, t: clock.value, onClose: () => setState(() => selected = null), onEnter: () => widget.onWorldTap?.call(current!))),
-            if (current == null)
-              Positioned(left: 0, right: 0, bottom: compact ? 16 : 30, child: const Center(child: _InteractionHint())),
+          builder: (_, __) => Stack(fit: StackFit.expand, children: [
+            CustomPaint(painter: _GalaxyField(clock.value, orbitOffset, selected != null, mapMode)),
+            Transform.scale(scale: zoom, child: CustomPaint(painter: _SystemArchitecture(clock.value, orbitOffset, mapMode))),
+            _PlanetRing(worlds: widget.worlds, phase: clock.value, orbit: orbitOffset, selected: selected, labels: labels, compact: compact, onTap: _select),
+            Positioned(left: compact ? 16 : 34, top: compact ? 16 : 28, child: _Header(mapMode: mapMode, compact: compact)),
+            Positioned(right: compact ? 12 : 30, top: compact ? 16 : 28, child: _Controls(zoom: zoom, mapMode: mapMode, labels: labels, onIn: () => setState(() => zoom = (zoom + .1).clamp(.62, 1.58)), onOut: () => setState(() => zoom = (zoom - .1).clamp(.62, 1.58)), onMode: () => setState(() => mapMode = !mapMode), onLabels: () => setState(() => labels = !labels), onReset: _reset)),
+            Positioned(left: compact ? 12 : 30, top: compact ? 82 : 92, child: _SystemReadout(phase: clock.value, mapMode: mapMode, selected: current, compact: compact)),
+            if (current != null) Positioned(left: compact ? 12 : 30, right: compact ? 12 : 30, bottom: compact ? 12 : 28, child: _WorldPanel(world: current!, compact: compact, phase: clock.value, onClose: () => setState(() => selected = null), onEnter: () => widget.onWorldTap?.call(current!)))
+            else Positioned(left: 0, right: 0, bottom: compact ? 16 : 28, child: const Center(child: _Hint())),
           ]),
         ),
       ),
@@ -78,223 +57,121 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
   }
 }
 
-class _UniverseHeader extends StatelessWidget {
-  const _UniverseHeader();
+class _Header extends StatelessWidget {
+  final bool mapMode, compact;
+  const _Header({required this.mapMode, required this.compact});
   @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Text('DARKESTWORLD', style: TextStyle(fontSize: 14, letterSpacing: 5, fontWeight: FontWeight.w300)),
-    const SizedBox(height: 7),
-    Text('GALAXY / WORLDS', style: TextStyle(fontSize: 7, letterSpacing: 2.8, color: Colors.white.withValues(alpha: .35))),
+    const Text('DARKESTWORLD', style: TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 5, fontWeight: FontWeight.w300)),
+    const SizedBox(height: 7), Text(mapMode ? 'GALAXY / SYSTEM MAP' : 'GALAXY / DEEP ORBIT', style: const TextStyle(color: Colors.white38, fontSize: 7, letterSpacing: 2.6)),
+    const SizedBox(height: 5), Text(compact ? '09 WORLD NODES' : '09 WORLD NODES  •  PROCEDURAL STAR SYSTEM', style: const TextStyle(color: Colors.white24, fontSize: 6, letterSpacing: 1.6)),
   ]);
 }
 
-class _InteractionHint extends StatelessWidget {
-  const _InteractionHint();
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-    decoration: BoxDecoration(color: const Color(0x66070710), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0x223F3A55))),
-    child: Text('DRAG TO ORBIT  •  PINCH TO ZOOM  •  SELECT A WORLD', style: TextStyle(fontSize: 7, letterSpacing: 1.7, color: Colors.white.withValues(alpha: .38))));
+class _Controls extends StatelessWidget {
+  final double zoom; final bool mapMode, labels;
+  final VoidCallback onIn, onOut, onMode, onLabels, onReset;
+  const _Controls({required this.zoom, required this.mapMode, required this.labels, required this.onIn, required this.onOut, required this.onMode, required this.onLabels, required this.onReset});
+  Widget b(IconData icon, VoidCallback f, {bool active = false}) => InkWell(onTap: f, borderRadius: BorderRadius.circular(8), child: Container(padding: const EdgeInsets.all(7), decoration: BoxDecoration(color: active ? const Color(0x22100D1C) : Colors.transparent, borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 12, color: active ? Colors.white70 : Colors.white38)));
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: const Color(0xD9090911), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0x223F3A55))), child: Row(mainAxisSize: MainAxisSize.min, children: [b(Icons.remove, onOut), Padding(padding: const EdgeInsets.symmetric(horizontal: 5), child: Text('${(zoom * 100).round()}%', style: const TextStyle(color: Colors.white54, fontSize: 7))), b(Icons.add, onIn), const SizedBox(width: 3), b(Icons.grid_view_rounded, onMode, active: mapMode), b(labels ? Icons.title : Icons.title_outlined, onLabels, active: labels), b(Icons.refresh, onReset)]));
 }
 
-class _ViewControls extends StatelessWidget {
-  final double zoom; final VoidCallback onZoomIn, onZoomOut, onReset;
-  const _ViewControls({required this.zoom, required this.onZoomIn, required this.onZoomOut, required this.onReset});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(5),
-    decoration: BoxDecoration(color: const Color(0x99101019), borderRadius: BorderRadius.circular(13), border: Border.all(color: const Color(0x223F3A55))),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      _Control(icon: Icons.remove, onTap: onZoomOut),
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 7), child: Text('${(zoom * 100).round()}%', style: const TextStyle(fontSize: 7, letterSpacing: 1))),
-      _Control(icon: Icons.add, onTap: onZoomIn),
-      const SizedBox(width: 4), _Control(icon: Icons.refresh, onTap: onReset),
-    ]));
-}
-class _Control extends StatelessWidget { final IconData icon; final VoidCallback onTap; const _Control({required this.icon,required this.onTap}); @override Widget build(BuildContext context)=>InkWell(onTap:onTap,borderRadius:BorderRadius.circular(8),child:Padding(padding:const EdgeInsets.all(6),child:Icon(icon,size:12,color:Colors.white54))); }
-
-class _Planet extends StatelessWidget {
-  final GalaxyWorld world; final int index, total; final double t, orbitOffset; final bool selected, compact; final VoidCallback onTap;
-  const _Planet({required this.world, required this.index, required this.total, required this.t, required this.orbitOffset, required this.selected, required this.compact, required this.onTap});
+class _PlanetRing extends StatelessWidget {
+  final List<GalaxyWorld> worlds; final double phase, orbit; final GalaxyWorldKind? selected; final bool labels, compact; final ValueChanged<GalaxyWorld> onTap;
+  const _PlanetRing({required this.worlds, required this.phase, required this.orbit, required this.selected, required this.labels, required this.compact, required this.onTap});
   @override Widget build(BuildContext context) {
-    final angle = -math.pi / 2 + index * math.pi * 2 / math.max(1, total) + t * .16 + orbitOffset;
-    final orbit = compact ? 145.0 : 270.0;
-    final center = Offset(compact ? 180 : 450, compact ? 260 : 350);
-    final depth = (.55 + .45 * ((math.sin(angle) + 1) / 2));
-    final position = Offset(center.dx + math.cos(angle) * orbit * .72, center.dy + math.sin(angle) * orbit * .55);
-    final base = compact ? 80.0 : 112.0;
-    final size = selected ? base * 1.52 : base * (.68 + depth * .34);
-    final opacity = selected ? 1.0 : (.28 + depth * .72);
-    return Positioned(left: position.dx - size / 2, top: position.dy - size / 2, width: size, height: size + 30,
-      child: Opacity(opacity: opacity, child: GestureDetector(onTap: onTap, child: Column(children: [
-        SizedBox(width: size, height: size, child: CustomPaint(painter: _PlanetPainter(index, selected, t, depth))),
-        const SizedBox(height: 7),
-        Text(world.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: selected ? 10 : 7, letterSpacing: 2.2, color: Colors.white.withValues(alpha: selected ? .92 : .45))),
-      ]))));
+    final s = MediaQuery.sizeOf(context), center = Offset(s.width * .5, s.height * .52), rx = math.min(s.width, s.height) * (compact ? .34 : .39), ry = math.min(s.width, s.height) * (compact ? .25 : .30);
+    final children = <Widget>[];
+    for (var i = 0; i < worlds.length; i++) {
+      final w = worlds[i], a = -math.pi / 2 + i * math.pi * 2 / math.max(1, worlds.length) + phase * .13 + orbit;
+      final depth = .48 + .52 * ((math.sin(a) + 1) / 2), p = Offset(center.dx + math.cos(a) * rx, center.dy + math.sin(a) * ry);
+      final base = compact ? 72.0 : 104.0, size = selected == w.kind ? base * 1.52 : base * (.70 + depth * .38), opacity = selected == null || selected == w.kind ? 1 : .13;
+      children.add(Positioned(left: p.dx - size / 2, top: p.dy - size / 2, width: size, child: Opacity(opacity: opacity, child: GestureDetector(onTap: () => onTap(w), child: Column(children: [CustomPaint(size: Size.square(size), painter: _PlanetPainter(seed: i * 31 + 17, phase: phase, active: selected == w.kind, depth: depth, kind: w.kind)), if (labels) Padding(padding: const EdgeInsets.only(top: 5), child: Text(w.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withValues(alpha: selected == w.kind ? .9 : .42), fontSize: selected == w.kind ? 9 : 6.5, letterSpacing: 1.7)))]))));
+    }
+    return Stack(fit: StackFit.expand, children: children);
   }
-}
-
-class _WorldPanel extends StatelessWidget {
-  final GalaxyWorld world; final bool compact; final double t; final VoidCallback onClose, onEnter;
-  const _WorldPanel({required this.world, required this.compact, required this.t, required this.onClose, required this.onEnter});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(color: const Color(0xF20A0913), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0x557F70B0)), boxShadow: const [BoxShadow(color: Color(0x44000000), blurRadius: 24)]),
-    child: Row(children: [
-      Container(width: 5, height: 48, decoration: BoxDecoration(color: const Color(0x667F70B0), borderRadius: BorderRadius.circular(4))),
-      const SizedBox(width: 12),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [Text(world.title.toUpperCase(), style: const TextStyle(fontSize: 14, letterSpacing: 3)), const SizedBox(width: 10), Text('WORLD NODE', style: TextStyle(fontSize: 6, letterSpacing: 1.8, color: Colors.white.withValues(alpha: .26)))]),
-        const SizedBox(height: 5), Text(world.description, style: const TextStyle(fontSize: 8, color: Colors.white38)),
-        const SizedBox(height: 8), Text('ORBITAL POSITION  •  ${(t * 360).round() % 360}°', style: TextStyle(fontSize: 6, letterSpacing: 1.6, color: Colors.white.withValues(alpha: .25))),
-      ])),
-      if (!compact) TextButton(onPressed: onClose, child: const Text('CLOSE')),
-      FilledButton(onPressed: onEnter, child: const Text('ENTER')),
-    ]));
-}
-
-class _UniversePainter extends CustomPainter {
-  final double t, orbitOffset; final bool focused;
-  const _UniversePainter(this.t, this.orbitOffset, this.focused);
-  @override void paint(Canvas c, Size s) {
-    final rect = Offset.zero & s;
-    c.drawRect(rect, Paint()..shader = const RadialGradient(center: Alignment(0, -.10), radius: 1.22, colors: [Color(0xFF30254A), Color(0xFF0A0914), Color(0xFF010105)]).createShader(rect));
-    final stars = math.Random(417);
-    for (var i = 0; i < 780; i++) {
-      final layer = i % 4;
-      final speed = [.002, .005, .010, .020][layer];
-      final x = (stars.nextDouble() * s.width + t * s.width * speed + orbitOffset * s.width * (.10 + layer * .08)) % s.width;
-      final y = stars.nextDouble() * s.height;
-      final twinkle = .010 + .045 * (.5 + .5 * math.sin(t * math.pi * 2 + i * 1.71));
-      c.drawCircle(Offset(x, y), .08 + stars.nextDouble() * (layer == 3 ? 1.05 : .68), Paint()..color = Colors.white.withValues(alpha: twinkle));
-    }
-    final center = Offset(s.width * .5, s.height * .49);
-    for (var k = 0; k < 14; k++) {
-      final wobble = math.sin(t * math.pi * 2 + k) * .005;
-      c.drawOval(Rect.fromCenter(center: center, width: s.width * (.43 + k * .076 + wobble), height: s.height * (.50 + k * .079)), Paint()..style = PaintingStyle.stroke..strokeWidth = k == 0 ? 1.25 : .32..color = const Color(0x169A8CC0));
-    }
-    final nebula = Paint()..shader = RadialGradient(colors: [Color.fromRGBO(127,112,176, focused ? .20 : .15), const Color(0x087F70B0), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: s.shortestSide * .55));
-    c.drawCircle(center, s.shortestSide * .55, nebula);
-    for (var i = 0; i < 12; i++) {
-      final a = t * math.pi * 2 * (i.isEven ? .016 : -.011) + i * .71 + orbitOffset * .4;
-      final p = Offset(center.dx + math.cos(a) * s.width * (.24 + i * .027), center.dy + math.sin(a) * s.height * (.18 + i * .018));
-      c.drawCircle(p, 1.0 + i * .42, Paint()..color = const Color(0x3DACA5C5));
-    }
-    final dust = Paint()..shader = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Colors.transparent, const Color(0x0AFFFFFF), Colors.transparent]).createShader(rect);
-    c.drawRect(rect, dust);
-    final vignette = Paint()..shader = const RadialGradient(colors: [Colors.transparent, Color(0x5A000000)]).createShader(Rect.fromCenter(center: center, width: s.width * 1.1, height: s.height * 1.1));
-    c.drawRect(rect, vignette);
-  }
-  @override bool shouldRepaint(covariant _UniversePainter old) => old.t != t || old.orbitOffset != orbitOffset || old.focused != focused;
 }
 
 class _PlanetPainter extends CustomPainter {
-  final int seed; final bool active; final double t, depth;
-  const _PlanetPainter(this.seed, this.active, this.t, this.depth);
-  double _noise(math.Random r) => r.nextDouble() * 2 - 1;
-  Path _landmass(math.Random r, Offset center, double radius, double sx, double sy, double rotation) {
-    final path = Path(); const points = 54;
-    for (var i = 0; i < points; i++) {
-      final a = rotation + i * math.pi * 2 / points;
-      final wave = math.sin(i * 1.37 + seed) * .12 + math.sin(i * .43 + seed * .7) * .10 + math.sin(i * .19 + seed * 1.9) * .06;
-      final rr = radius * (.66 + wave + _noise(r) * .16);
-      final p = Offset(center.dx + math.cos(a) * rr * sx, center.dy + math.sin(a) * rr * sy);
-      if (i == 0) path.moveTo(p.dx, p.dy); else path.lineTo(p.dx, p.dy);
-    }
-    path.close(); return path;
-  }
-  void _drawMoon(covariant Canvas c, Offset center, double radius, double phase, double orbit, int index) {
-    final a = phase + index * 2.4;
-    final p = Offset(center.dx + math.cos(a) * orbit, center.dy + math.sin(a) * orbit * .42);
-    c.drawCircle(p, radius, Paint()..color = Colors.white.withValues(alpha: .16));
-    c.drawCircle(p, radius * .55, Paint()..color = const Color(0x22000000));
-  }
+  final int seed; final double phase, depth; final bool active; final GalaxyWorldKind kind;
+  const _PlanetPainter({required this.seed, required this.phase, required this.active, required this.depth, required this.kind});
   @override void paint(Canvas c, Size s) {
-    final rnd = math.Random(seed * 731 + 19);
-    final center = Offset(s.width * .47, s.height * .45);
-    final rad = s.shortestSide * .475;
-    final outer = rad + (active ? 5 : 3);
-    // Far planetary halo.
-    c.drawCircle(center, outer + 7, Paint()..shader = RadialGradient(colors: [const Color(0x187F70B0), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: outer + 7)));
-    // Sparse moons make worlds read as systems, not flat icons.
-    if (seed % 3 != 1) { _drawMoon(c, center, rad * .035, t * math.pi * 2 + seed, rad * 1.72, 0); }
-    if (seed % 5 == 0) { _drawMoon(c, center, rad * .022, -t * math.pi * 2 + seed, rad * 1.42, 1); }
-
-    final globe = Paint()..shader = const RadialGradient(center: Alignment(-.38, -.42), radius: 1.04,
-      colors: [Color(0xFF9A95AA), Color(0xFF615B70), Color(0xFF2B2936), Color(0xFF05060A)]).createShader(Offset.zero & s);
-    c.drawCircle(center, rad, globe);
-    c.save();
-    c.clipPath(Path()..addOval(Rect.fromCircle(center: center, radius: rad * .985)));
-    c.drawCircle(center, rad * .98, Paint()..color = const Color(0x283E3A50));
-
-    // Global latitude/circulation structure.
-    for (var band = 0; band < 12; band++) {
-      final y = center.dy - rad * .84 + band * rad * .152;
-      final warp = math.sin(t * math.pi * 2 + band) * rad * .009;
-      c.drawOval(Rect.fromCenter(center: Offset(center.dx + warp, y), width: rad * (1.02 + band * .10), height: rad * .095), Paint()..style = PaintingStyle.stroke..strokeWidth = .30..color = Colors.white.withValues(alpha: .014));
-    }
-
-    // Continents + basins + elevation contours.
-    for (var n = 0; n < 16; n++) {
-      final angle = rnd.nextDouble() * math.pi * 2;
-      final anchor = Offset(center.dx + math.cos(angle) * rad * (.08 + rnd.nextDouble() * .46), center.dy + math.sin(angle) * rad * (.07 + rnd.nextDouble() * .40));
-      final rr = rad * (.095 + rnd.nextDouble() * .22);
-      final path = _landmass(rnd, anchor, rr, .66 + rnd.nextDouble() * .76, .44 + rnd.nextDouble() * .76, rnd.nextDouble() * math.pi);
-      c.drawPath(path, Paint()..color = Color.fromRGBO(66 + n % 6 * 7, 63 + n % 5 * 7, 76 + n % 6 * 7, .14 + n % 4 * .025));
-      c.drawPath(path, Paint()..style = PaintingStyle.stroke..strokeWidth = active ? 1.12 : .48..color = Colors.white.withValues(alpha: active ? .13 : .038));
-      for (var layer = 1; layer <= 8; layer++) {
-        final shift = Offset(-rad * .006 * layer, -rad * .0035 * layer);
-        c.drawPath(path.shift(shift), Paint()..style = PaintingStyle.stroke..strokeWidth = .26 + layer * .05..color = Colors.white.withValues(alpha: active ? .043 : .016));
-      }
-      for (var ridge = 0; ridge < 10; ridge++) {
-        final p = Offset(anchor.dx + _noise(rnd) * rr * .56, anchor.dy + _noise(rnd) * rr * .38);
-        final rect = Rect.fromCenter(center: p, width: rr * (.24 + rnd.nextDouble() * .82), height: rr * (.07 + rnd.nextDouble() * .23));
-        c.drawArc(rect, rnd.nextDouble() * math.pi, .30 + rnd.nextDouble() * .95, false, Paint()..style = PaintingStyle.stroke..strokeWidth = .30..color = Colors.white.withValues(alpha: active ? .060 : .022));
-      }
-      // Dark basin edge below the relief.
-      c.drawPath(path.shift(Offset(rad * .006, rad * .008)), Paint()..style = PaintingStyle.stroke..strokeWidth = .55..color = Colors.black.withValues(alpha: .06));
-    }
-
-    // Polar structures.
-    final cap = Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
-      colors: [Colors.white.withValues(alpha: .12), Colors.white.withValues(alpha: .025), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: rad));
-    c.drawOval(Rect.fromCenter(center: Offset(center.dx, center.dy - rad * .84), width: rad * 1.16, height: rad * .32), cap);
-    c.drawOval(Rect.fromCenter(center: Offset(center.dx, center.dy + rad * .84), width: rad * .98, height: rad * .27), cap);
-
-    // High-frequency terrain / impact detail.
-    for (var i = 0; i < 260; i++) {
-      final x = center.dx + _noise(rnd) * rad * .92;
-      final y = center.dy + _noise(rnd) * rad * .92;
-      final rr = .13 + rnd.nextDouble() * 1.22;
-      c.drawCircle(Offset(x, y), rr, Paint()..color = Colors.white.withValues(alpha: .009 + rnd.nextDouble() * .034));
-      if (i % 17 == 0) {
-        c.drawCircle(Offset(x, y), rr * 2.3, Paint()..style = PaintingStyle.stroke..strokeWidth = .22..color = Colors.black.withValues(alpha: .04));
-        c.drawCircle(Offset(x - rr * .7, y - rr * .45), rr * .42, Paint()..color = Colors.white.withValues(alpha: .025));
-      }
-    }
-
-    // Cloud deck: separate, brighter and slightly offset from terrain.
-    for (var cloud = 0; cloud < 18; cloud++) {
-      final y = center.dy + (cloud - 9) * rad * .094 + math.sin(t * math.pi * 2 + cloud * .73 + seed) * rad * .010;
-      final start = math.pi * (.04 + rnd.nextDouble() * .44) + t * (.035 + seed * .001);
-      c.drawArc(Rect.fromCenter(center: Offset(center.dx, y), width: rad * (1.18 + rnd.nextDouble() * .52), height: rad * (.075 + rnd.nextDouble() * .13)), start, math.pi * (.22 + rnd.nextDouble() * .42), false,
-        Paint()..style = PaintingStyle.stroke..strokeWidth = .42 + rnd.nextDouble() * .72..color = Colors.white.withValues(alpha: .014 + rnd.nextDouble() * .034));
-    }
+    final r = math.Random(seed * 773), center = Offset(s.width * .47, s.height * .45), rad = s.shortestSide * .44;
+    final accent = kind == GalaxyWorldKind.game ? const Color(0xFF78849A) : kind == GalaxyWorldKind.vegeta ? const Color(0xFF8E6FAA) : const Color(0xFF6D777B);
+    final sphere = Rect.fromCircle(center: center, radius: rad);
+    c.drawCircle(center, rad * 1.25, Paint()..shader = RadialGradient(colors: [accent.withValues(alpha: active ? .22 : .10), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: rad * 1.28)));
+    c.drawCircle(center + Offset(rad * .035, rad * .04), rad * 1.015, Paint()..shader = RadialGradient(center: const Alignment(-.55, -.58), radius: 1.12, colors: [const Color(0xFFE3DED2), const Color(0xFF9C9D98), const Color(0xFF555A59), const Color(0xFF171A20), const Color(0xFF020308)], stops: const [.0, .16, .39, .72, 1]).createShader(sphere));
+    c.save(); c.clipPath(Path()..addOval(sphere));
+    _terrain(c, center, rad, r, accent);
+    _surface(c, center, rad, r);
+    _clouds(c, center, rad, phase);
     c.restore();
-
-    // Sphere lighting, terminator and reflected night-side fill.
-    c.drawCircle(center, rad, Paint()..shader = const RadialGradient(center: Alignment(-.46, -.48), radius: .75,
-      colors: [Colors.transparent, Color(0x10000000), Color(0x60000000), Color(0xE4000000)]).createShader(Offset.zero & s));
-    c.drawCircle(center, rad, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
-      colors: [Colors.transparent, Color(0x08000000), Color(0x5B000000)]).createShader(Offset.zero & s));
-    final rim = Paint()..shader = RadialGradient(center: Alignment(-.48, -.50), radius: .76,
-      colors: [const Color(0x248F87A5), const Color(0x088F87A5), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: rad));
-    c.drawCircle(center, rad, rim);
-
-    // Atmospheric shell, limb glow and thin high-altitude sweep.
-    c.drawCircle(center, rad + 1.4, Paint()..style = PaintingStyle.stroke..strokeWidth = active ? 3.2 : 1.25..color = Colors.white.withValues(alpha: active ? .22 : .06));
-    c.drawCircle(center, rad + 4.5, Paint()..style = PaintingStyle.stroke..strokeWidth = active ? 1.0 : .45..color = const Color(0x207F70B0));
-    c.drawArc(Rect.fromCircle(center: center, radius: rad + 3.0), math.pi * 1.01, math.pi * .64, false, Paint()..style = PaintingStyle.stroke..strokeWidth = active ? 2.3 : 1.0..color = const Color(0x527F70B0));
-    c.drawArc(Rect.fromCircle(center: center, radius: rad + 2.0), t * math.pi * 2 + seed, math.pi * .16, false, Paint()..style = PaintingStyle.stroke..strokeWidth = active ? 1.8 : .65..color = Colors.white.withValues(alpha: active ? .12 : .028));
-    c.drawCircle(Offset(center.dx - rad * .34, center.dy - rad * .35), rad * .74, Paint()..shader = RadialGradient(colors: [const Color(0x208F87A8), Colors.transparent]).createShader(Rect.fromCircle(center: Offset(center.dx - rad * .34, center.dy - rad * .35), radius: rad * .74)));
-
-    // Tiny night-side reflected light makes the silhouette readable without flattening it.
-    final reflected = Paint()..shader = RadialGradient(center: Alignment(.72, .62), radius: .70, colors: [const Color(0x101B1730), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: rad));
-    c.drawCircle(center, rad, reflected);
+    final terminator = center + Offset(rad * .46, rad * .08);
+    c.drawCircle(terminator, rad * .96, Paint()..shader = RadialGradient(colors: [Colors.transparent, Colors.black.withValues(alpha: .78)]).createShader(Rect.fromCircle(center: terminator, radius: rad * .96)));
+    c.drawArc(Rect.fromCircle(center: center, radius: rad * 1.015), math.pi * .61, math.pi * .82, false, Paint()..style = PaintingStyle.stroke..strokeWidth = rad * .018..color = Colors.white.withValues(alpha: active ? .34 : .18));
+    if (seed % 3 != 1) _moon(c, center, rad, phase, seed);
+    if (active) c.drawCircle(center, rad * 1.13, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = Colors.white.withValues(alpha: .24 + depth * .12));
   }
-  @override bool shouldRepaint(covariant _PlanetPainter old) => old.seed != seed || old.active != active || old.t != t || old.depth != depth;
+  void _terrain(Canvas c, Offset center, double rad, math.Random r, Color accent) {
+    final fills = [accent.withValues(alpha: .30), const Color(0xFF9C886D).withValues(alpha: .22), const Color(0xFF53675E).withValues(alpha: .19), const Color(0xFFB2A487).withValues(alpha: .13)];
+    for (var k = 0; k < 9; k++) {
+      final a = k * 2.13 + seed * .13, cc = center + Offset(math.cos(a) * rad * (.26 + (k % 3) * .11), math.sin(a) * rad * (.27 + (k % 2) * .10));
+      final w = rad * (.32 + r.nextDouble() * .34), h = rad * (.14 + r.nextDouble() * .19), rot = a * .37;
+      final outer = _blob(cc, w, h, rot, seed + k * 13, 48);
+      c.drawPath(outer, Paint()..color = fills[k % fills.length]);
+      for (var q = 1; q <= 6; q++) c.drawPath(_blob(cc, w * (1 - q * .105), h * (1 - q * .105), rot, seed + k * 13 + q, 40), Paint()..style = PaintingStyle.stroke..strokeWidth = rad * .006..color = Colors.white.withValues(alpha: .010 + (7 - q) * .004));
+      for (var ridge = 0; ridge < 3; ridge++) { final yy = cc.dy + (ridge - 1) * h * .23; c.drawArc(Rect.fromCenter(center: Offset(cc.dx, yy), width: w * 1.2, height: h * .55), .15 + rot, 2.5, false, Paint()..style = PaintingStyle.stroke..strokeWidth = rad * .009..color = Colors.black.withValues(alpha: .08)); }
+    }
+    for (var i = 0; i < 180; i++) { final x = center.dx + (r.nextDouble() * 2 - 1) * rad, y = center.dy + (r.nextDouble() * 2 - 1) * rad; if ((Offset(x, y) - center).distance < rad) c.drawCircle(Offset(x, y), .18 + r.nextDouble() * .85, Paint()..color = Colors.white.withValues(alpha: .006 + r.nextDouble() * .018)); }
+  }
+  void _surface(Canvas c, Offset center, double rad, math.Random r) {
+    for (var i = 0; i < 28; i++) { final a = r.nextDouble() * math.pi * 2, rr = rad * (.15 + r.nextDouble() * .72), p = center + Offset(math.cos(a) * rr, math.sin(a) * rr); c.drawCircle(p, rad * (.004 + r.nextDouble() * .012), Paint()..color = const Color(0x334B5150)); }
+    for (var k = 0; k < 5; k++) { final y = center.dy - rad * .58 + k * rad * .29 + math.sin(phase * math.pi * 2 + k + seed) * rad * .025; c.drawArc(Rect.fromCenter(center: Offset(center.dx, y), width: rad * 1.72, height: rad * .22), .08, 2.95, false, Paint()..style = PaintingStyle.stroke..strokeWidth = rad * .025..color = Colors.white.withValues(alpha: .025)); }
+  }
+  void _clouds(Canvas c, Offset center, double rad, double phase) { for (var i = 0; i < 7; i++) { final y = center.dy - rad * .72 + i * rad * .23 + math.sin(phase * math.pi * 2 * (i.isEven ? 1 : -.7) + seed) * rad * .035; c.drawArc(Rect.fromCenter(center: Offset(center.dx, y), width: rad * 1.9, height: rad * .16), .03, math.pi * .92, false, Paint()..style = PaintingStyle.stroke..strokeWidth = rad * .032..color = Colors.white.withValues(alpha: .028)); } }
+  void _moon(Canvas c, Offset center, double rad, double phase, int n) { final a = phase * math.pi * 2 + n, p = center + Offset(math.cos(a) * rad * 1.72, math.sin(a) * rad * .48); c.drawCircle(p, rad * .032, Paint()..color = Colors.white.withValues(alpha: .16)); c.drawCircle(p + Offset(rad * .012, rad * .008), rad * .018, Paint()..color = Colors.black.withValues(alpha: .16)); }
+  Path _blob(Offset c, double w, double h, double rot, int local, int points) { final q = math.Random(local * 19 + 3), pts = <Offset>[]; for (var i = 0; i < points; i++) { final a = i * math.pi * 2 / points, n = .82 + math.sin(a * 2.1 + local) * .10 + math.sin(a * 4.7 + local * .3) * .06 + q.nextDouble() * .08, x = math.cos(a) * w * .5 * n, y = math.sin(a) * h * .5 * n; pts.add(Offset(c.dx + x * math.cos(rot) - y * math.sin(rot), c.dy + x * math.sin(rot) + y * math.cos(rot))); } final p = Path()..moveTo(pts[0].dx, pts[0].dy); for (var i = 0; i < pts.length; i++) { final a = pts[i], b = pts[(i + 1) % pts.length]; p.quadraticBezierTo(a.dx, a.dy, (a.dx + b.dx) / 2, (a.dy + b.dy) / 2); } return p..close(); }
+  @override bool shouldRepaint(covariant _PlanetPainter old) => old.phase != phase || old.active != active || old.depth != depth;
 }
+
+class _SystemArchitecture extends CustomPainter {
+  final double phase, orbit; final bool mapMode;
+  const _SystemArchitecture(this.phase, this.orbit, this.mapMode);
+  @override void paint(Canvas c, Size s) {
+    final center = Offset(s.width * .5, s.height * .52), min = math.min(s.width, s.height);
+    c.drawCircle(center, min * .075, Paint()..shader = RadialGradient(colors: [const Color(0xCDE8E0D0), const Color(0x44766A86), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: min * .075)));
+    c.drawCircle(center, min * .020, Paint()..color = const Color(0xE8EEE7D8));
+    for (var i = 0; i < 12; i++) { final wobble = math.sin(phase * math.pi * 2 + i) * .006; final rect = Rect.fromCenter(center: center, width: min * (.20 + i * .073 + wobble), height: min * (.13 + i * .054)); c.drawOval(rect, Paint()..style = PaintingStyle.stroke..strokeWidth = i < 2 ? 1.0 : .32..color = Color.fromRGBO(143, 130, 166, mapMode ? .15 : .075)); }
+    for (var i = 0; i < 36; i++) { final a = phase * math.pi * 2 * (i.isEven ? .012 : -.009) + i * .91 + orbit, rr = min * (.12 + (i % 10) * .073); final p = Offset(center.dx + math.cos(a) * rr, center.dy + math.sin(a) * rr * .63); c.drawCircle(p, .7 + (i % 4) * .35, Paint()..color = const Color(0x3CACA1BA)); }
+    for (var i = 0; i < 8; i++) { final a = phase * math.pi * 2 * (i.isEven ? .018 : -.014) + i * .8; final p1 = Offset(center.dx + math.cos(a) * min * .16, center.dy + math.sin(a) * min * .10); final p2 = Offset(center.dx + math.cos(a + .42) * min * .44, center.dy + math.sin(a + .42) * min * .28); final path = Path()..moveTo(p1.dx, p1.dy)..quadraticBezierTo(center.dx + math.cos(a + .2) * min * .27, center.dy + math.sin(a + .2) * min * .16, p2.dx, p2.dy); c.drawPath(path, Paint()..style = PaintingStyle.stroke..strokeWidth = .55..color = const Color(0x1F9A8DB0)); }
+  }
+  @override bool shouldRepaint(covariant _SystemArchitecture old) => old.phase != phase || old.orbit != orbit || old.mapMode != mapMode;
+}
+
+class _GalaxyField extends CustomPainter {
+  final double phase, orbit; final bool focused, mapMode;
+  const _GalaxyField(this.phase, this.orbit, this.focused, this.mapMode);
+  @override void paint(Canvas c, Size s) {
+    final rect = Offset.zero & s, center = Offset(s.width * .5, s.height * .5);
+    c.drawRect(rect, Paint()..shader = const RadialGradient(center: Alignment(0, -.10), radius: 1.22, colors: [Color(0xFF342B47), Color(0xFF0B0A13), Color(0xFF010104)]).createShader(rect));
+    final rnd = math.Random(8127);
+    for (var i = 0; i < 1120; i++) { final layer = i % 6, speed = .0015 + layer * .0038, x = (rnd.nextDouble() * s.width + phase * s.width * speed + orbit * s.width * (.05 + layer * .018)) % s.width, y = rnd.nextDouble() * s.height; final a = .009 + layer * .007 + .016 * (.5 + .5 * math.sin(phase * math.pi * 2 + i)); c.drawCircle(Offset(x, y), .08 + rnd.nextDouble() * (layer > 3 ? .9 : .55), Paint()..color = Colors.white.withValues(alpha: a)); }
+    for (var k = 0; k < 7; k++) { final p = Offset(s.width * (.15 + k * .13), s.height * (.18 + math.sin(k * 1.7) * .12)); c.drawCircle(p, s.shortestSide * (.16 + k * .012), Paint()..shader = RadialGradient(colors: [Color.fromRGBO(106, 91, 142, focused ? .045 : .03), Colors.transparent]).createShader(Rect.fromCircle(center: p, radius: s.shortestSide * .17))); }
+    for (var i = 0; i < 18; i++) { final a = phase * math.pi * 2 * (i.isEven ? .008 : -.006) + i * .37 + orbit * .25, rx = s.width * (.20 + i * .035), ry = s.height * (.13 + i * .022); final p = Offset(center.dx + math.cos(a) * rx, center.dy + math.sin(a) * ry); c.drawCircle(p, 1 + (i % 5) * .55, Paint()..color = const Color(0x248B7FA3)); }
+    c.drawRect(rect, Paint()..shader = const RadialGradient(colors: [Colors.transparent, Color(0x68000000)]).createShader(Rect.fromCenter(center: center, width: s.width * 1.12, height: s.height * 1.12)));
+  }
+  @override bool shouldRepaint(covariant _GalaxyField old) => old.phase != phase || old.orbit != orbit || old.focused != focused || old.mapMode != mapMode;
+}
+
+class _SystemReadout extends StatelessWidget {
+  final double phase; final bool mapMode, compact; final GalaxyWorld? selected;
+  const _SystemReadout({required this.phase, required this.mapMode, required this.selected, required this.compact});
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: const Color(0x9907070D), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x183F3A55))), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.radio_button_checked, size: 8, color: Color(0x887F70B0)), const SizedBox(width: 6), Text(selected == null ? 'SYSTEM STABLE' : 'NODE LOCK  •  ${selected!.title.toUpperCase()}', style: const TextStyle(color: Colors.white38, fontSize: 6.2, letterSpacing: 1.3)), if (!compact) ...[const SizedBox(width: 12), Text('${(phase * 360).round() % 360}°', style: const TextStyle(color: Colors.white24, fontSize: 6)), const SizedBox(width: 10), Text(mapMode ? 'MAP' : 'ORBIT', style: const TextStyle(color: Colors.white24, fontSize: 6))]]));
+}
+
+class _WorldPanel extends StatelessWidget {
+  final GalaxyWorld world; final bool compact; final double phase; final VoidCallback onClose, onEnter;
+  const _WorldPanel({required this.world, required this.compact, required this.phase, required this.onClose, required this.onEnter});
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xF20A0912), borderRadius: BorderRadius.circular(17), border: Border.all(color: const Color(0x557F70B0)), boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 26)]), child: Row(children: [Container(width: 4, height: 48, decoration: BoxDecoration(color: const Color(0x667F70B0), borderRadius: BorderRadius.circular(4))), const SizedBox(width: 11), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(world.title.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 13, letterSpacing: 2.8)), const SizedBox(height: 4), Text(world.description, maxLines: compact ? 1 : 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white38, fontSize: 7.5)), const SizedBox(height: 7), Text('WORLD NODE  •  ORBIT ${(phase * 360).round() % 360}°', style: const TextStyle(color: Colors.white24, fontSize: 5.8, letterSpacing: 1.4))])), if (!compact) TextButton(onPressed: onClose, child: const Text('CLOSE', style: TextStyle(fontSize: 8))), FilledButton(onPressed: onEnter, child: const Text('ENTER', style: TextStyle(fontSize: 9)))]));
+}
+
+class _Hint extends StatelessWidget { const _Hint(); @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8), decoration: BoxDecoration(color: const Color(0x88070710), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0x223F3A55))), child: const Text('DRAG TO ORBIT  •  PINCH TO ZOOM  •  SELECT A WORLD', style: TextStyle(color: Colors.white38, fontSize: 6.5, letterSpacing: 1.7))); }
