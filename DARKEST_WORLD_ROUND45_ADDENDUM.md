@@ -69,3 +69,13 @@
 - Preserved drag orbit, pinch zoom, zoom controls, reset, world selection and ENTER navigation.
 - No large image assets were introduced; the system remains procedural and runtime-generated.
 - This is a multi-system visual build, not a cosmetic color/animation patch.
+
+## GO 40 — Deep planetary system layer
+- Added a dedicated procedural planetary-system rendering layer behind the worlds rather than adding another isolated planet effect.
+- Added a central luminous system core with pulse, radial halo and six subtle energy rays.
+- Added 11 orbital architecture bands with animated tilt, plus 24 periapsis/apoapsis markers for readable spatial structure.
+- Added a second deep-space field, procedural nebula volume, 130 drifting dust particles and four signal arcs.
+- Added system-map depth cues so the Galaxy reads as a physical star system instead of a flat collection of planets.
+- Kept all existing planet rendering, drag orbit, pinch zoom, zoom controls, selection and ENTER navigation intact.
+- The new layer is procedural and adds no image assets.
+- This round changes the composition across the whole Galaxy view: background depth, central system structure, orbital geometry, dust and telemetry now work together.
