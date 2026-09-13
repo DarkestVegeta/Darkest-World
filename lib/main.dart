@@ -5,8 +5,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/access_policy.dart';
 import 'screens/guest_mode_page.dart';
 import 'screens/galaxy_home_page.dart';
-import 'screens/galaxy_command_center_page.dart';
-import 'widgets/darkest_world_universe.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabasePublishableKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -25,13 +23,19 @@ class DarkestWorldApp extends StatelessWidget {
   final bool configurationMissing;
   const DarkestWorldApp({super.key, this.configurationMissing = false});
   @override
-  Widget build(BuildContext context) => MaterialApp(title: 'Darkest-World', theme: ThemeData.dark(useMaterial3: true), home: configurationMissing ? const _ConfigurationMissingPage() : const _AccessControlledHome());
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'Darkest-World',
+        theme: ThemeData.dark(useMaterial3: true),
+        home: configurationMissing ? const _ConfigurationMissingPage() : const _AccessControlledHome(),
+      );
 }
 
 class _ConfigurationMissingPage extends StatelessWidget {
   const _ConfigurationMissingPage();
   @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('DarkestWorld configuration is missing.')));
+  Widget build(BuildContext context) => const Scaffold(
+        body: Center(child: Text('DarkestWorld configuration is missing.')),
+      );
 }
 
 class _AccessControlledHome extends StatefulWidget {
@@ -43,18 +47,6 @@ class _AccessControlledHome extends StatefulWidget {
 class _AccessControlledHomeState extends State<_AccessControlledHome> {
   late bool _signedIn;
   late final StreamSubscription<AuthState> _authSubscription;
-
-  static const _worlds = <GalaxyWorld>[
-    GalaxyWorld(kind: GalaxyWorldKind.vegeta, title: 'VEGETA', description: 'The darker heart of DarkestWorld.'),
-    GalaxyWorld(kind: GalaxyWorldKind.game, title: 'GAME-WORLD', description: 'Games you have played and what comes next.'),
-    GalaxyWorld(kind: GalaxyWorldKind.music, title: 'MUSIC-WORLD', description: 'Music, sound and the worlds they create.'),
-    GalaxyWorld(kind: GalaxyWorldKind.identity, title: 'DARKEST-IDENTITY', description: 'The identity behind DarkestWorld.'),
-    GalaxyWorld(kind: GalaxyWorldKind.family, title: 'DARKESTFAMILY', description: 'Personas, people and stories.'),
-    GalaxyWorld(kind: GalaxyWorldKind.cinema, title: 'CINEMA-WORLD', description: 'Films and series.'),
-    GalaxyWorld(kind: GalaxyWorldKind.creation, title: 'CREATION', description: 'Art, projects and experiments.'),
-    GalaxyWorld(kind: GalaxyWorldKind.archive, title: 'ARCHIVE', description: 'Things worth keeping.'),
-    GalaxyWorld(kind: GalaxyWorldKind.comingSoon, title: 'COMING SOON', description: 'What DarkestWorld can become.'),
-  ];
 
   @override
   void initState() {
@@ -71,41 +63,14 @@ class _AccessControlledHomeState extends State<_AccessControlledHome> {
     super.dispose();
   }
 
-  void _openCommandWorld(BuildContext context, GalaxyWorld world) {
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GalaxyHomePage()));
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (!DarkestWorldAccessPolicy.canEnterGalaxy(signedIn: _signedIn)) return const GuestModePage();
-    return Stack(fit: StackFit.expand, children: [
-      const GalaxyHomePage(),
-      Positioned(
-        right: 18,
-        bottom: 18,
-        child: Semantics(
-          button: true,
-          label: 'Open Galaxy Command Center',
-          child: Material(
-            color: const Color(0xE0060710),
-            child: InkWell(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GalaxyCommandCenterPage(
-                worlds: _worlds,
-                selected: null,
-                mapped: const <GalaxyWorldKind>{},
-                visited: const <GalaxyWorldKind>{},
-                onOpen: (world) => _openCommandWorld(context, world),
-                onClose: () => Navigator.of(context).pop(),
-              ))),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-                decoration: BoxDecoration(border: Border.all(color: Colors.white24), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 18)]),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('COMMAND', style: TextStyle(color: Colors.white70, fontSize: 7, letterSpacing: 1.8)), SizedBox(width: 9), Text('⌘', style: TextStyle(color: Color(0x4DFFFFFF), fontSize: 10))]),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ]);
+    if (!DarkestWorldAccessPolicy.canEnterGalaxy(signedIn: _signedIn)) {
+      return const GuestModePage();
+    }
+    // GalaxyHomePage owns the complete Galaxy navigation session. Keeping a
+    // second command center here would create a disconnected state machine:
+    // its mapped/visited/selection state could not reflect the live Galaxy.
+    return const GalaxyHomePage();
   }
 }
