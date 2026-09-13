@@ -82,5 +82,16 @@ GO43 did not reach deployment because CI found an orphaned V3 import plus parser
 ## Hardware rule carried into this round
 The development baseline is documented in Notion as `DarkestWorld — Hardware & Rendering Baseline`: Ryzen 5 3600, 32 GB RAM, NVIDIA GTX 950 with 2 GB VRAM, and three active displays. GPU/VRAM is treated as the main practical rendering constraint; CPU/RAM have more headroom.
 
+## GO 51 — soft purple-blue cosmic veil
+- Corrected the GO50 selected-panel widget nesting error that blocked Analyze/Web Build.
+- Reworked the deep-space composition around the requested visual direction: **far fewer visible stars** and much more continuous purple/blue environmental volume.
+- Reduced Cinematic stars from 1,250 to **190** and Efficient stars to **90**, so stars no longer dominate the image.
+- Added multiple broad, softly overlapping purple/blue veil bands that sweep across the whole scene, with changing transparency so the viewer can visually look **between and through** the layers.
+- Added a second set of thinner translucent crossing windows to create depth inside the veil instead of one flat fog layer.
+- Added restrained moving dust streaks that reinforce flow without turning the background into a particle field.
+- Shifted the background from a starfield-first composition to a **cosmic-mass-first composition**: purple/blue atmosphere fills more of the first glance while the orbital system and worlds remain readable through it.
+- Kept the palette muted and mature; no neon, cartoon cloud shapes or Earth-like surface imagery.
+- Kept the renderer procedural and asset-free.
+
 ## Stability rule
-GO50 was committed before verification. No deployment is claimed until the new main commit passes Flutter Analyze, Test and Web Build in GitHub Actions.
+GO51 is committed before verification. No deployment is claimed until the new main commit passes Flutter Analyze, Test and Web Build in GitHub Actions.
