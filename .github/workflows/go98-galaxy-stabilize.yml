@@ -25,6 +25,7 @@ jobs:
               Path('lib/main.dart'),
               Path('lib/screens/galaxy_home_page.dart'),
               Path('lib/screens/galaxy_command_center_page.dart'),
+              Path('lib/screens/game_world_planet_page.dart'),
               Path('lib/widgets/darkest_world_universe.dart'),
           ]
 
@@ -33,21 +34,38 @@ jobs:
                   pct = int(m.group(1))
                   alpha = round(255 * pct / 100)
                   return f'Color(0x{alpha:02X}FFFFFF)'
-              return re.sub(r'Colors\\.white(\\d+)', repl, text)
+              return re.sub(r'Colors\.white(\d+)', repl, text)
 
           for path in files:
-              text = path.read_text()
-              text = fix_colors(text)
+              text = fix_colors(path.read_text())
               path.write_text(text)
 
+          # Replace the entire GalaxyHome keyboard handler with one valid handler.
           p = Path('lib/screens/galaxy_home_page.dart')
           text = p.read_text()
-          open_cmd = '  void _openCommand() => setState(() => _commandOpen = true);'
-          close_cmd = '  void _closeCommand() => setState(() => _commandOpen = false);'
-          text = re.sub(r'(?:^' + re.escape(open_cmd) + r'\\n?)+', open_cmd + '\\n', text, flags=re.M)
-          text = re.sub(r'(?:^' + re.escape(close_cmd) + r'\\n?)+', close_cmd + '\\n', text, flags=re.M)
-          key_line = "    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }"
-          text = re.sub(r'(?:^' + re.escape(key_line) + r'\\n?)+', key_line + '\\n', text, flags=re.M)
+          start = text.find('  KeyEventResult key(')
+          end = text.find('  @override Widget build', start)
+          if start >= 0 and end > start:
+              handler = '''  KeyEventResult key(FocusNode node, KeyEvent event) {\n    if (event is! KeyDownEvent) return KeyEventResult.ignored;\n    if (event.logicalKey == LogicalKeyboardKey.keyA) {\n      setState(() => atlas = !atlas);\n      return KeyEventResult.handled;\n    }\n    if (event.logicalKey == LogicalKeyboardKey.keyG) {\n      setState(() => command = !command);\n      return KeyEventResult.handled;\n    }\n    if (event.logicalKey == LogicalKeyboardKey.escape && (atlas || command)) {\n      setState(() { atlas = false; command = false; });\n      return KeyEventResult.handled;\n    }\n    return KeyEventResult.ignored;\n  }\n'''
+              text = text[:start] + handler + text[end:]
+          # Remove the unused legacy command button that still referenced invalid Colors.white* constants.
+          text = re.sub(r'\nclass _CommandButton .*?\n$', '\n', text, flags=re.S)
+          # The Atlas card's nested Column needs one additional close paren.
+          text = text.replace("fontSize: 6))]));\n    })),", "fontSize: 6))]));\n    }))),")
+          p.write_text(text)
+
+          # Game-World map card: close Row, Container and InkWell before the itemBuilder callback closes.
+          p = Path('lib/screens/game_world_planet_page.dart')
+          text = p.read_text()
+          text = text.replace("child: const Text('ENTER'))])); })));", "child: const Text('ENTER'))]))); }))));")
+          p.write_text(text)
+
+          # Procedural Galaxy map card: same nested-widget closure correction.
+          p = Path('lib/widgets/darkest_world_universe.dart')
+          text = p.read_text()
+          text = text.replace("fontSize: 6))]));\n  }\n}", "fontSize: 6))]));\n  }\n}")
+          # Explicitly repair the known GridView card ending if present.
+          text = text.replace("fontSize: 6))]));\n    })),", "fontSize: 6)));\n    })),")
           p.write_text(text)
       - name: Format
         run: dart format lib test
@@ -67,5 +85,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib test
-          git commit -m "GO98: stabilized Galaxy source"
+          git commit -m "GO111: stabilized Galaxy source"
           git push
