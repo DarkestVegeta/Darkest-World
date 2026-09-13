@@ -17,6 +17,7 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
   final search = TextEditingController();
   int filter = 0;
   int cursor = 0;
+
   List<GalaxyWorld> get items {
     final q = search.text.trim().toLowerCase();
     return widget.worlds.where((w) {
@@ -27,21 +28,59 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
       return filterOk && (q.isEmpty || text.contains(q));
     }).toList();
   }
-  @override void dispose() { search.dispose(); super.dispose(); }
-  void move(int delta) { final list = items; if (list.isEmpty) return; setState(() => cursor = (cursor + delta + list.length) % list.length); }
-  void openSelected() { final list = items; if (list.isNotEmpty) widget.onOpen(list[cursor.clamp(0, list.length - 1)]); }
+
+  @override
+  void initState() {
+    super.initState();
+    _syncCursor();
+  }
+
+  @override
+  void didUpdateWidget(covariant GalaxyCommandCenterPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncCursor();
+  }
+
+  void _syncCursor() {
+    final list = items;
+    if (list.isEmpty) { cursor = 0; return; }
+    if (widget.selected != null) {
+      final selectedIndex = list.indexWhere((world) => world.kind == widget.selected);
+      if (selectedIndex >= 0) { cursor = selectedIndex; return; }
+    }
+    cursor = cursor.clamp(0, list.length - 1);
+  }
+
+  @override
+  void dispose() { search.dispose(); super.dispose(); }
+
+  void move(int delta) {
+    final list = items;
+    if (list.isEmpty) return;
+    setState(() => cursor = (cursor + delta + list.length) % list.length);
+  }
+
+  void openSelected() {
+    final list = items;
+    if (list.isNotEmpty) widget.onOpen(list[cursor.clamp(0, list.length - 1)]);
+  }
+
   KeyEventResult key(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.escape) { widget.onClose(); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown || event.logicalKey == LogicalKeyboardKey.keyJ) { move(1); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.keyK) { move(-1); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) { widget.onClose(); return KeyEventResult.handled; }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown || event.logicalKey == LogicalKeyboardKey.keyJ || event.logicalKey == LogicalKeyboardKey.arrowRight) { move(1); return KeyEventResult.handled; }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.keyK || event.logicalKey == LogicalKeyboardKey.arrowLeft) { move(-1); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.enter) { openSelected(); return KeyEventResult.handled; }
     return KeyEventResult.ignored;
   }
-  @override Widget build(BuildContext context) {
+
+  @override
+  Widget build(BuildContext context) {
     final list = items;
     final compact = MediaQuery.sizeOf(context).width < 760;
+    final current = list.isEmpty ? null : list[cursor.clamp(0, list.length - 1)];
+    final previous = list.isEmpty ? null : list[(cursor - 1 + list.length) % list.length];
+    final next = list.isEmpty ? null : list[(cursor + 1) % list.length];
     return Scaffold(
       backgroundColor: const Color(0xFF020308),
       body: SafeArea(child: Focus(autofocus: true, onKeyEvent: key, child: Padding(
@@ -58,15 +97,28 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
             ]),
             const SizedBox(width: 12), TextButton(onPressed: widget.onClose, child: const Text('CLOSE')),
           ]),
-          const SizedBox(height: 16),
-          TextField(controller: search, onChanged: (_) => setState(() => cursor = 0), style: const TextStyle(color: Colors.white70, fontSize: 9), decoration: const InputDecoration(hintText: 'SEARCH GATES', hintStyle: TextStyle(color: Color(0x33FFFFFF), fontSize: 7), prefixIcon: Icon(Icons.search, color: Color(0x33FFFFFF), size: 15), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0x1AFFFFFF))), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0x40FFFFFF))))),
+          const SizedBox(height: 12),
+          if (current != null) Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(color: const Color(0x0CFFFFFF), border: Border.all(color: const Color(0x24FFFFFF))),
+            child: Row(children: [
+              const Text('TARGET LOCK', style: TextStyle(color: Color(0x55FFFFFF), fontSize: 5, letterSpacing: 1.4)),
+              const SizedBox(width: 12),
+              Expanded(child: Text(current.title, style: const TextStyle(color: Colors.white, fontSize: 10, letterSpacing: 1.5))),
+              Text(widget.visited.contains(current.kind) ? 'VISITED' : widget.mapped.contains(current.kind) ? 'MAPPED' : 'UNMAPPED', style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 5)),
+            ]),
+          ),
+          const SizedBox(height: 10),
+          if (current != null) RouteControls(previous: previous, current: current, next: next, onPrevious: () => move(-1), onCurrent: openSelected, onNext: () => move(1)),
+          const SizedBox(height: 12),
+          TextField(controller: search, onChanged: (_) => setState(() { cursor = 0; _syncCursor(); }), style: const TextStyle(color: Colors.white70, fontSize: 9), decoration: const InputDecoration(hintText: 'SEARCH GATES', hintStyle: TextStyle(color: Color(0x33FFFFFF), fontSize: 7), prefixIcon: Icon(Icons.search, color: Color(0x33FFFFFF), size: 15), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0x1AFFFFFF))), focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0x40FFFFFF))))),
           const SizedBox(height: 10),
           SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
-            FilterButton(label: 'ALL', active: filter == 0, onTap: () => setState(() { filter = 0; cursor = 0; })),
-            const SizedBox(width: 6), FilterButton(label: 'MAPPED', active: filter == 1, onTap: () => setState(() { filter = 1; cursor = 0; })),
-            const SizedBox(width: 6), FilterButton(label: 'UNMAPPED', active: filter == 2, onTap: () => setState(() { filter = 2; cursor = 0; })),
-            const SizedBox(width: 6), FilterButton(label: 'DISCOVERED', active: filter == 3, onTap: () => setState(() { filter = 3; cursor = 0; })),
-            const SizedBox(width: 6), FilterButton(label: 'VISITED', active: filter == 4, onTap: () => setState(() { filter = 4; cursor = 0; })),
+            FilterButton(label: 'ALL', active: filter == 0, onTap: () => setState(() { filter = 0; _syncCursor(); })),
+            const SizedBox(width: 6), FilterButton(label: 'MAPPED', active: filter == 1, onTap: () => setState(() { filter = 1; _syncCursor(); })),
+            const SizedBox(width: 6), FilterButton(label: 'UNMAPPED', active: filter == 2, onTap: () => setState(() { filter = 2; _syncCursor(); })),
+            const SizedBox(width: 6), FilterButton(label: 'DISCOVERED', active: filter == 3, onTap: () => setState(() { filter = 3; _syncCursor(); })),
+            const SizedBox(width: 6), FilterButton(label: 'VISITED', active: filter == 4, onTap: () => setState(() { filter = 4; _syncCursor(); })),
             const SizedBox(width: 12), Text('${list.length} VISIBLE', style: const TextStyle(color: Color(0x33FFFFFF), fontSize: 6)),
           ])),
           const SizedBox(height: 12),
@@ -76,7 +128,7 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
             itemBuilder: (_, i) {
               final world = list[i]; final active = i == cursor; final isMapped = widget.mapped.contains(world.kind); final isVisited = widget.visited.contains(world.kind);
               final status = isVisited ? 'VISITED / MAPPED' : isMapped ? 'MAPPED / UNVISITED' : 'UNMAPPED';
-              return InkWell(onTap: () => widget.onOpen(world), child: Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: active ? const Color(0x221A1D2A) : const Color(0x120A0C14), border: Border.all(color: active ? const Color(0x66FFFFFF) : const Color(0x1AFFFFFF))), child: Row(children: [
+              return InkWell(onTap: () { setState(() => cursor = i); widget.onOpen(world); }, child: Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: active ? const Color(0x221A1D2A) : const Color(0x120A0C14), border: Border.all(color: active ? const Color(0x66FFFFFF) : const Color(0x1AFFFFFF))), child: Row(children: [
                 Text('${i + 1}'.padLeft(2, '0'), style: const TextStyle(color: Color(0x33FFFFFF), fontSize: 7)), const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(world.title, style: TextStyle(color: active ? Colors.white : const Color(0xA6FFFFFF), fontSize: 10, letterSpacing: 1.3)), const SizedBox(height: 5), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x47FFFFFF), fontSize: 6.2))])),
                 Text(status, textAlign: TextAlign.right, style: TextStyle(color: isVisited ? const Color(0x70FFFFFF) : isMapped ? const Color(0x58FFFFFF) : const Color(0x30FFFFFF), fontSize: 5)),
@@ -84,11 +136,42 @@ class _GalaxyCommandCenterPageState extends State<GalaxyCommandCenterPage> {
             },
           )),
           const SizedBox(height: 8),
-          const Text('↑ ↓ / J K  NAVIGATE    ENTER  OPEN    ←  RETURN    ESC  CLOSE', style: TextStyle(color: Color(0x2EFFFFFF), fontSize: 5.5, letterSpacing: 1.1)),
+          const Text('↑ ↓ ← →  NAVIGATE    ENTER  OPEN TARGET    ESC  CLOSE', style: TextStyle(color: Color(0x2EFFFFFF), fontSize: 5.5, letterSpacing: 1.1)),
         ]),
       ))),
     );
   }
+}
+
+class RouteControls extends StatelessWidget {
+  final GalaxyWorld? previous, current, next;
+  final VoidCallback onPrevious, onCurrent, onNext;
+  const RouteControls({super.key, required this.previous, required this.current, required this.next, required this.onPrevious, required this.onCurrent, required this.onNext});
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 48,
+    decoration: BoxDecoration(color: const Color(0x0AFFFFFF), border: Border.all(color: const Color(0x1Fffffff))),
+    child: Row(children: [
+      _RouteCell(label: 'PREVIOUS', world: previous, onTap: onPrevious),
+      _RouteCell(label: 'CURRENT', world: current, active: true, onTap: onCurrent),
+      _RouteCell(label: 'NEXT', world: next, onTap: onNext),
+    ]),
+  );
+}
+
+class _RouteCell extends StatelessWidget {
+  final String label; final GalaxyWorld? world; final bool active; final VoidCallback onTap;
+  const _RouteCell({required this.label, required this.world, required this.onTap, this.active = false});
+  @override
+  Widget build(BuildContext context) => Expanded(child: InkWell(onTap: onTap, child: Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10),
+    decoration: BoxDecoration(color: active ? const Color(0x12FFFFFF) : Colors.transparent, border: Border(right: BorderSide(color: const Color(0x16FFFFFF)))),
+    child: Row(children: [
+      Text(label, style: TextStyle(color: active ? const Color(0x99FFFFFF) : const Color(0x40FFFFFF), fontSize: 5, letterSpacing: 1)),
+      const SizedBox(width: 8),
+      Expanded(child: Text(world?.title ?? '—', overflow: TextOverflow.ellipsis, style: TextStyle(color: active ? Colors.white : const Color(0x66FFFFFF), fontSize: 7, letterSpacing: .8))),
+    ]),
+  )));
 }
 
 class FilterButton extends StatelessWidget {
