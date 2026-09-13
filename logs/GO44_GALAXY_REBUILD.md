@@ -29,5 +29,11 @@ GO43 did not reach deployment because CI found an orphaned V3 import plus parser
 - Preserved the large GO44 visual system: 1,180 stars, 13 orbital bands, 28 markers, procedural continents, relief, surface detail, clouds, atmospheric lighting, selection and navigation.
 - Removed reliance on the failed V3 implementation from the active Galaxy path.
 
+## GO 46 — analyzer gate repair
+- GitHub Actions found exactly one blocking analyzer issue in the active renderer: an unnecessary non-null assertion on the selected world passed into `_WorldPanel`.
+- Removed that assertion without changing the visual system or interaction model.
+- Kept the renderer asset-free and retained all GO44/GO45 procedural systems and navigation behavior.
+- This was intentionally a stabilization round: no new visual layer was stacked on a failing build.
+
 ## Stability rule
 No deployment is claimed until the new main commit passes Flutter Analyze, Test and Web Build in GitHub Actions.
