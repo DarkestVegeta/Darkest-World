@@ -22,5 +22,12 @@ GO43 did not reach deployment because CI found an orphaned V3 import plus parser
 - Added a live telemetry panel and richer selected-world detail panel.
 - Kept the renderer asset-free: no large planet images were added.
 
+## GO 45 — CI repair and renderer stabilization
+- CI correctly identified one real blocking analyzer error: `_PlanetPainter` lacked `shouldRepaint`.
+- Repaired the active renderer with an explicit painter contract.
+- Replaced the failed compressed intermediate renderer with a clean, valid Flutter implementation.
+- Preserved the large GO44 visual system: 1,180 stars, 13 orbital bands, 28 markers, procedural continents, relief, surface detail, clouds, atmospheric lighting, selection and navigation.
+- Removed reliance on the failed V3 implementation from the active Galaxy path.
+
 ## Stability rule
 No deployment is claimed until the new main commit passes Flutter Analyze, Test and Web Build in GitHub Actions.
