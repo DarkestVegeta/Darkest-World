@@ -66,5 +66,21 @@ GO43 did not reach deployment because CI found an orphaned V3 import plus parser
 - Preserved the floating `VISIT PLANET →` panel, drag orbit, pinch zoom, zoom controls, labels, System Map and reset.
 - Kept the entire Galaxy renderer procedural and asset-free; no large image storage was introduced.
 
+## GO 50 — five-times-scale Galaxy rebuild + hardware-aware rendering
+- Fixed the GO49 CI blocker by adding the required Flutter keyboard-services import for `LogicalKeyboardKey`.
+- Rebuilt the active Galaxy renderer as a larger multi-system composition instead of applying a small cosmetic patch.
+- Added a two-layer deep-space field: animated deterministic stars plus a separate drifting dust layer, with **1,250 stars in Cinematic mode** and a lighter efficient mode for older GPUs.
+- Added a larger orbital architecture: **16 primary orbital bands + 13 secondary navigation bands + 40 moving orbital markers**.
+- Expanded the central system into a dedicated multi-layer stellar core with up to 20 inner bands, 52 moving core markers, radial light and rotating energy-ray detail.
+- Rebuilt planet rendering as a substantially richer procedural sphere: spherical light/night-side shading, atmospheric depth, nested terrain contours, up to 38 surface details, crater-like micro-features, moving cloud arcs and selection rings.
+- Added a dedicated **CINEMATIC / EFFICIENT** render switch so the same visual system can be tuned for the GTX 950 + 2 GB VRAM baseline without removing the high-quality mode.
+- Added a larger, clearer interaction layer: drag orbit, pinch zoom, zoom controls, System Map, labels/clean mode, detail/minimal mode, cinematic/efficient mode, reset, hover target lock and keyboard navigation.
+- Reworked the selected-world panel to remain attached to the selected planet while providing description, close and direct `VISIT PLANET →` navigation.
+- Kept the visual language realistic and restrained: no literal game characters, logos, cartoon terrain or large external texture assets.
+- Kept the renderer procedural and asset-light; no planet image packs or 3D texture libraries were introduced.
+
+## Hardware rule carried into this round
+The development baseline is documented in Notion as `DarkestWorld — Hardware & Rendering Baseline`: Ryzen 5 3600, 32 GB RAM, NVIDIA GTX 950 with 2 GB VRAM, and three active displays. GPU/VRAM is treated as the main practical rendering constraint; CPU/RAM have more headroom.
+
 ## Stability rule
-No deployment is claimed until the new main commit passes Flutter Analyze, Test and Web Build in GitHub Actions.
+GO50 was committed before verification. No deployment is claimed until the new main commit passes Flutter Analyze, Test and Web Build in GitHub Actions.
