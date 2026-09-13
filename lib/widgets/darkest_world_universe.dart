@@ -62,7 +62,6 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
             animation: clock,
             builder: (_, __) => Stack(fit: StackFit.expand, children: [
               CustomPaint(painter: _DeepSpacePainter(clock.value, detail, cinematic)),
-              CustomPaint(painter: _GalaxyDustPainter(clock.value, cinematic)),
               Transform.scale(
                 scale: zoom,
                 child: CustomPaint(painter: _OrbitArchitecturePainter(clock.value, orbit, systemMap, detail)),
@@ -231,68 +230,110 @@ class _DeepSpacePainter extends CustomPainter {
   @override void paint(Canvas c, Size s) {
     final m = math.min(s.width, s.height);
     c.drawRect(Offset.zero & s, Paint()..color = const Color(0xFF010107));
-    final base = Paint()..shader = RadialGradient(colors: [const Color(0xFF39224F).withValues(alpha: .22), const Color(0xFF17234A).withValues(alpha: .10), Colors.transparent]).createShader(Rect.fromCircle(center: Offset(s.width * .48, s.height * .48), radius: m * .82));
-    c.drawCircle(Offset(s.width * .48, s.height * .48), m * .82, base);
 
-    final veil = Paint()..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
-    final veilLayers = cinematic ? 9 : 6;
-    for (var i = 0; i < veilLayers; i++) {
-      final path = Path();
-      final y0 = s.height * (.16 + i * .085);
-      path.moveTo(-m * .10, y0);
-      path.cubicTo(s.width * .18, y0 - m * (.15 + i * .012), s.width * .38, y0 + m * (.18 + i * .010), s.width * .62, y0 - m * (.05 + i * .008));
-      path.cubicTo(s.width * .80, y0 - m * (.13 + i * .012), s.width * 1.02, y0 + m * (.11 + i * .010), s.width * 1.12, y0 - m * .02);
-      final alpha = .045 - i * .0025;
-      veil.color = (i.isEven ? const Color(0xFF6A4C86) : const Color(0xFF405F91)).withValues(alpha: alpha);
-      veil.strokeWidth = m * (.085 + (i % 3) * .018);
-      c.drawPath(path, veil);
-    }
+    final center = Offset(s.width * .50, s.height * .49);
+    final base = Paint()..shader = RadialGradient(
+      center: const Alignment(-.05, -.08),
+      radius: 1.0,
+      colors: [
+        const Color(0xFF342049).withValues(alpha: .23),
+        const Color(0xFF17264D).withValues(alpha: .12),
+        const Color(0xFF090A18).withValues(alpha: .035),
+        Colors.transparent,
+      ],
+      stops: const [0.0, .38, .68, 1.0],
+    ).createShader(Rect.fromCircle(center: center, radius: m * .86));
+    c.drawCircle(center, m * .86, base);
 
-    final transparentWindows = Paint()..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
-    for (var i = 0; i < 5; i++) {
-      final path = Path();
-      final y0 = s.height * (.24 + i * .14);
-      path.moveTo(-m * .08, y0);
-      path.cubicTo(s.width * .25, y0 + m * .10, s.width * .44, y0 - m * .12, s.width * .72, y0 + m * .04);
-      path.cubicTo(s.width * .88, y0 + m * .11, s.width * 1.02, y0 - m * .08, s.width * 1.10, y0);
-      transparentWindows.color = (i % 2 == 0 ? const Color(0xFF7C5A99) : const Color(0xFF5876A3)).withValues(alpha: .018);
-      transparentWindows.strokeWidth = m * .045;
-      c.drawPath(path, transparentWindows);
-    }
+    // ONE continuous astrophotography-style nebula filament:
+    // broad/dense in the centre, tapering smoothly toward both ends.
+    final path = Path();
+    path.moveTo(-m * .18, s.height * .63);
+    path.cubicTo(
+      s.width * .10, s.height * .58,
+      s.width * .24, s.height * .39,
+      s.width * .43, s.height * .46,
+    );
+    path.cubicTo(
+      s.width * .57, s.height * .52,
+      s.width * .67, s.height * .66,
+      s.width * .83, s.height * .58,
+    );
+    path.cubicTo(
+      s.width * .95, s.height * .52,
+      s.width * 1.06, s.height * .43,
+      s.width * 1.18, s.height * .47,
+    );
 
-    final stars = cinematic ? 190 : 90;
+    final outer = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = m * (cinematic ? .22 : .17)
+      ..color = const Color(0xFF526AA0).withValues(alpha: cinematic ? .035 : .026);
+    c.drawPath(path, outer);
+
+    final mid = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = m * (cinematic ? .145 : .11)
+      ..shader = LinearGradient(
+        colors: [
+          Colors.transparent,
+          const Color(0xFF536E9E).withValues(alpha: .035),
+          const Color(0xFF75538D).withValues(alpha: .105),
+          const Color(0xFF536E9E).withValues(alpha: .055),
+          Colors.transparent,
+        ],
+        stops: const [0.0, .28, .50, .72, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, s.width, s.height));
+    c.drawPath(path, mid);
+
+    final core = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = m * (cinematic ? .052 : .038)
+      ..color = const Color(0xFF8A6AA1).withValues(alpha: cinematic ? .045 : .032);
+    c.drawPath(path, core);
+
+    // Very slow drift along the single veil; no second strand or parallel ribbon.
+    final shimmer = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = m * .010
+      ..color = const Color(0xFF9A7AB0).withValues(alpha: .018 + .008 * math.sin(phase * math.pi * 2));
+    final shimmerPath = Path();
+    shimmerPath.moveTo(-m * .08, s.height * (.63 + math.sin(phase * math.pi * 2) * .006));
+    shimmerPath.cubicTo(
+      s.width * .28, s.height * (.43 + math.sin(phase * math.pi * 2 + 1) * .006),
+      s.width * .56, s.height * (.59 + math.sin(phase * math.pi * 2 + 2) * .006),
+      s.width * 1.08, s.height * (.46 + math.sin(phase * math.pi * 2 + 3) * .006),
+    );
+    c.drawPath(shimmerPath, shimmer);
+
+    final stars = cinematic ? 125 : 70;
     for (var i = 0; i < stars; i++) {
-      final x = _noise(i * 2.13) * s.width; final y = _noise(i * 4.71 + 3) * s.height;
+      final x = _noise(i * 2.13) * s.width;
+      final y = _noise(i * 4.71 + 3) * s.height;
       final tw = .55 + .45 * math.sin(phase * math.pi * 2 * (1 + i % 3) + i);
       final r = .22 + (i % 3) * .14;
-      c.drawCircle(Offset(x, y), r, Paint()..color = Colors.white.withValues(alpha: (.022 + (i % 5) * .006) * tw));
+      c.drawCircle(Offset(x, y), r, Paint()..color = Colors.white.withValues(alpha: (.018 + (i % 5) * .004) * tw));
     }
 
     if (detail) {
       final p = Paint()..style = PaintingStyle.stroke;
-      for (var i = 0; i < 5; i++) { final rr = m * (.34 + i * .09); p.color = (i.isEven ? const Color(0xFF66467F) : const Color(0xFF3E5D8D)).withValues(alpha: .018); p.strokeWidth = 12 + i * 5; c.drawOval(Rect.fromCenter(center: Offset(s.width * .50, s.height * .50), width: rr * 2.0, height: rr * .40), p); }
+      for (var i = 0; i < 3; i++) {
+        final rr = m * (.40 + i * .10);
+        p.color = (i.isEven ? const Color(0xFF66467F) : const Color(0xFF3E5D8D)).withValues(alpha: .012);
+        p.strokeWidth = 9 + i * 4;
+        c.drawOval(Rect.fromCenter(center: Offset(s.width * .50, s.height * .50), width: rr * 2.0, height: rr * .36), p);
+      }
     }
-    final vignette = Paint()..shader = RadialGradient(colors: [Colors.transparent, Colors.black.withValues(alpha: .48)]).createShader(Rect.fromLTWH(-m * .2, -m * .2, s.width + m * .4, s.height + m * .4));
+
+    final vignette = Paint()..shader = RadialGradient(colors: [Colors.transparent, Colors.black.withValues(alpha: .50)]).createShader(Rect.fromLTWH(-m * .2, -m * .2, s.width + m * .4, s.height + m * .4));
     c.drawRect(Offset.zero & s, vignette);
   }
   double _noise(double x) => (math.sin(x * 12.9898) * 43758.5453).abs() % 1.0;
   @override bool shouldRepaint(covariant _DeepSpacePainter old) => old.phase != phase || old.detail != detail || old.cinematic != cinematic;
-}
-
-class _GalaxyDustPainter extends CustomPainter {
-  final double phase; final bool cinematic;
-  _GalaxyDustPainter(this.phase, this.cinematic);
-  @override void paint(Canvas c, Size s) {
-    final m = math.min(s.width, s.height); final center = Offset(s.width * .50, s.height * .50); final p = Paint()..style = PaintingStyle.stroke..strokeCap = StrokeCap.round; final count = cinematic ? 72 : 38;
-    for (var i = 0; i < count; i++) {
-      final a = i * .73 + phase * math.pi * 2 * .045; final rr = m * (.16 + (i % 21) * .021);
-      final q = Offset(center.dx + math.cos(a) * rr * 1.75, center.dy + math.sin(a) * rr * .48);
-      p.color = (i.isEven ? const Color(0xFF74558D) : const Color(0xFF526F9D)).withValues(alpha: .014 + (i % 4) * .004);
-      p.strokeWidth = 2.0 + (i % 3) * 1.2;
-      c.drawLine(q, q + Offset(math.cos(a + 1.2) * m * .035, math.sin(a + 1.2) * m * .010), p);
-    }
-  }
-  @override bool shouldRepaint(covariant _GalaxyDustPainter old) => old.phase != phase || old.cinematic != cinematic;
 }
 
 class _FloatingVisitPanel extends StatelessWidget {
