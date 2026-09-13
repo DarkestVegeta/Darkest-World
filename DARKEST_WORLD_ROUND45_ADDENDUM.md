@@ -28,3 +28,11 @@
 - Verified the rebuilt `game_world_planet_page.dart` is now on `main` in the GO 29 commit.
 - The previous failed CI run analyzed the older GO 28 SHA, so this round triggers a fresh Analyze/Test/Web Build/Pages cycle against the corrected source.
 - No visual architecture was removed; the four-region Game World navigation remains intact.
+
+## GO 34 — Planetary visual quality upgrade
+- Raised the DarkestWorld universe planets toward the CreateWorld/Galaxy reference standard.
+- Added stronger spherical shading, terminator lighting, atmospheric rim, layered orbital depth, irregular procedural landmasses, terrain contours and surface detail.
+- Kept the system procedural so visual detail does not require large planet image assets.
+- Preserved animated motion, world selection and existing navigation.
+- Main visual change committed in `b20f0f7aa08991fd3d13d85c7a97abae48a1f25b`.
+- This is an iterative visual foundation; future GO rounds can deepen terrain realism further without replacing the procedural architecture.
