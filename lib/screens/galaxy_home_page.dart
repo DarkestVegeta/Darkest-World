@@ -20,6 +20,8 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
   final repository = WorldSectionsRepository();
   late Future<List<WorldSection>> sections = repository.load();
   bool _appActive = true;
+  String? _lastVisited;
+  int _visitCount = 0;
 
   static const _fallback = <GalaxyWorld>[
     GalaxyWorld(kind: GalaxyWorldKind.vegeta, title: 'VEGETA', description: 'The darker heart of DarkestWorld.'),
@@ -52,6 +54,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
           TickerMode(enabled: _appActive, child: DarkestWorldUniverse(worlds: worlds, onWorldTap: _openWorld)),
           Positioned(left: 30, bottom: 28, child: _GalaxyStatus(synced: synced, loading: snapshot.connectionState == ConnectionState.waiting, error: snapshot.hasError, count: worlds.length, onReload: _reload)),
           Positioned(right: 26, bottom: 28, child: _GalaxyIndex(worlds: worlds, loading: snapshot.connectionState == ConnectionState.waiting, onSelect: _openWorld)),
+          Positioned(right: 26, top: 118, child: _GalaxyTelemetry(synced: synced, loading: snapshot.connectionState == ConnectionState.waiting, worldCount: worlds.length, lastVisited: _lastVisited, visitCount: _visitCount)),
         ]);
       },
     );
@@ -79,6 +82,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
   }
 
   void _openWorld(GalaxyWorld world) {
+    setState(() { _lastVisited = world.title; _visitCount++; });
     switch (world.kind) {
       case GalaxyWorldKind.game: _push(const GameWorldPlanetPage()); return;
       case GalaxyWorldKind.music: _push(MusicWorldPage(title: 'MUSIC-WORLD', description: world.description)); return;
@@ -106,6 +110,34 @@ class _GalaxyStatus extends StatelessWidget {
       InkWell(onTap: onReload, child: const Padding(padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2), child: Text('↻', style: TextStyle(color: Colors.white38, fontSize: 13)))),
     ]));
   }
+}
+
+class _GalaxyTelemetry extends StatelessWidget {
+  final bool synced, loading; final int worldCount, visitCount; final String? lastVisited;
+  const _GalaxyTelemetry({required this.synced, required this.loading, required this.worldCount, required this.lastVisited, required this.visitCount});
+  @override Widget build(BuildContext context) {
+    final state = loading ? 'SYNCING' : synced ? 'ONLINE' : 'FALLBACK';
+    return Container(
+      width: 190,
+      padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
+      decoration: BoxDecoration(color: const Color(0xB805060C), border: Border.all(color: Colors.white10), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 20)]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [const Text('GALAXY TELEMETRY', style: TextStyle(color: Colors.white54, fontSize: 6.5, letterSpacing: 1.7)), const Spacer(), Text(state, style: const TextStyle(color: Colors.white30, fontSize: 5.5, letterSpacing: 1.1))]),
+        const SizedBox(height: 8),
+        Row(children: [Expanded(child: _Metric(label: 'GATES', value: '$worldCount')), Expanded(child: _Metric(label: 'VISITS', value: '$visitCount'))]),
+        const SizedBox(height: 8),
+        Text('LAST GATE', style: const TextStyle(color: Colors.white20, fontSize: 5.5, letterSpacing: 1.2)),
+        const SizedBox(height: 3),
+        Text(lastVisited?.toUpperCase() ?? 'NO GATE VISITED', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 7, letterSpacing: 1.1)),
+      ]),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  final String label, value;
+  const _Metric({required this.label, required this.value});
+  @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Colors.white20, fontSize: 5.5, letterSpacing: 1.1)), const SizedBox(height: 2), Text(value, style: const TextStyle(color: Colors.white70, fontSize: 10, letterSpacing: 1.2))]);
 }
 
 class _GalaxyIndex extends StatelessWidget {
