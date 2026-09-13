@@ -71,9 +71,12 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> with WidgetsBindingObse
   void _closeCommand() => setState(() => _commandOpen = false);
   void _openCommand() => setState(() => _commandOpen = true);
   void _closeCommand() => setState(() => _commandOpen = false);
+  void _openCommand() => setState(() => _commandOpen = true);
+  void _closeCommand() => setState(() => _commandOpen = false);
 
   KeyEventResult _key(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
