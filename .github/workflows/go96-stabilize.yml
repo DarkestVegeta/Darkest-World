@@ -28,51 +28,63 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Repair generated source damage
+      - name: Repair Galaxy source
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
 
-          files = [
+          paths = [
               Path('lib/main.dart'),
               Path('lib/screens/galaxy_home_page.dart'),
               Path('lib/screens/galaxy_command_center_page.dart'),
               Path('lib/widgets/darkest_world_universe.dart'),
           ]
 
-          for p in files:
-              s = p.read_text(encoding='utf-8')
+          for path in paths:
+              text = path.read_text(encoding='utf-8')
 
-              # Flutter does not expose Colors.white10/20/30/... constants.
-              def white(m):
-                  n = max(0, min(100, int(m.group(1))))
-                  alpha = round(255 * n / 100)
+              # Flutter has no Colors.white10/20/30/... constants.
+              def white(match):
+                  percent = max(0, min(100, int(match.group(1))))
+                  alpha = round(255 * percent / 100)
                   return f'Color(0x{alpha:02X}FFFFFF)'
-              s = re.sub(r'Colors\\.white(\\d+)', white, s)
+              text = re.sub(r'Colors\.white(\d+)', white, text)
 
-              # Remove accidental repeated method declarations introduced by prior repair rounds.
-              if p.name == 'galaxy_home_page.dart':
-                  pattern = re.compile(r'  void _openCommand\(\) => setState\(\(\) => _commandOpen = true\);\n  void _closeCommand\(\) => setState\(\(\) => _commandOpen = false\);\n')
-                  block = '  void _openCommand() => setState(() => _commandOpen = true);\n  void _closeCommand() => setState(() => _commandOpen = false);\n'
-                  s = pattern.sub(block, s)
-                  # Keep only the first identical G-key handler branch.
-                  branch = "    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }\n"
-                  first = s.find(branch)
-                  if first >= 0:
-                      before, after = s[:first], s[first+len(branch):]
-                      after = after.replace(branch, '')
-                      s = before + branch + after
+              if path.name == 'galaxy_home_page.dart':
+                  open_line = '  void _openCommand() => setState(() => _commandOpen = true);'
+                  close_line = '  void _closeCommand() => setState(() => _commandOpen = false);'
+                  g_line = "    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }"
+                  lines = text.splitlines()
+                  out = []
+                  seen_open = seen_close = seen_g = False
+                  for line in lines:
+                      if line == open_line:
+                          if seen_open: continue
+                          seen_open = True
+                      if line == close_line:
+                          if seen_close: continue
+                          seen_close = True
+                      if line == g_line:
+                          if seen_g: continue
+                          seen_g = True
+                      out.append(line)
+                  text = '\n'.join(out) + ('\n' if text.endswith('\n') else '')
 
-              p.write_text(s, encoding='utf-8')
+              if path.name == 'main.dart':
+                  # Convert the legacy collection-for into a valid spread/map expression.
+                  pattern = re.compile(
+                      r'for \(final section in sections\)\s*_SectionButton\((.*?)\n\s*\),',
+                      re.S,
+                  )
+                  text = pattern.sub(
+                      lambda m: '...sections.map((section) => _SectionButton(' + m.group(1) + '\n    )),',
+                      text,
+                      count=1,
+                  )
 
-          # Fix the known malformed legacy collection-for if it is still present.
-          p = Path('lib/main.dart')
-          s = p.read_text(encoding='utf-8')
-          s = s.replace('for (final section in sections) _SectionButton(', '...sections.map((section) => _SectionButton(')
-          s = re.sub(r'\)\s*\),\s*\n\s*\);', ')),\n        );', s) if False else s
-          p.write_text(s, encoding='utf-8')
+              path.write_text(text, encoding='utf-8')
           PY
 
       - name: Format
