@@ -79,3 +79,15 @@
 - Kept all existing planet rendering, drag orbit, pinch zoom, zoom controls, selection and ENTER navigation intact.
 - The new layer is procedural and adds no image assets.
 - This round changes the composition across the whole Galaxy view: background depth, central system structure, orbital geometry, dust and telemetry now work together.
+
+## GO 41 — Deep Galaxy presentation rebuild
+- Replaced the active Galaxy V2 presentation with a new dedicated procedural Galaxy V3 renderer; the existing V2 file remains in the repository as a fallback and was not deleted.
+- Added a physically layered deep-space field with 1,050 multi-speed procedural stars, a broad nebula volume, moving distant haze and a stronger cinematic vignette.
+- Rebuilt the central system into a luminous stellar core with ten orbital architecture bands, moving orbital particles, system-map rings and additional deep-space dust.
+- Reworked every world node with spherical lighting, terminator shading, irregular continental masses, five nested relief contours, 150 micro-surface points, cloud bands and silhouette depth.
+- Added two Galaxy interaction modes: DEEP ORBIT and SYSTEM MAP, with a live grid overlay in map mode.
+- Added live view controls for zoom, labels, mode switching and reset, while retaining drag orbit and pinch zoom.
+- Added live system telemetry and a stronger selected-world lock panel with ENTER navigation into the existing world pages.
+- Preserved the Supabase-backed world descriptions and all existing world navigation destinations.
+- No image assets were introduced; the new presentation remains procedural and storage-light.
+- This round is a full replacement of the active Galaxy presentation across rendering, interaction, HUD and navigation rather than a small visual patch.
