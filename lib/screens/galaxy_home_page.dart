@@ -151,6 +151,6 @@ class Atlas extends StatelessWidget {
           Text('$state${gate < 0 ? '' : ' / GATE ${gate + 1}'}', style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 5)), const SizedBox(height: 5), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 6)),
         ])));
       }),
-    ]))));
+    ])))));
   }
 }
