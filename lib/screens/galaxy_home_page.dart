@@ -58,6 +58,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   KeyEventResult key(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
+    if (event.logicalKey == LogicalKeyboardKey.keyG) { _commandOpen ? _closeCommand() : _openCommand(); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.keyA) { setState(() => atlas = !atlas); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.keyG) { setState(() => command = !command); return KeyEventResult.handled; }
     if (event.logicalKey == LogicalKeyboardKey.escape && (atlas || command)) { setState(() { atlas = false; command = false; }); return KeyEventResult.handled; }
