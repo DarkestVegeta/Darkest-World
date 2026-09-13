@@ -27,7 +27,6 @@ void main() {
 
   testWidgets('Galaxy renders all world nodes and exposes semantics', (tester) async {
     await pumpGalaxy(tester);
-
     expect(find.text('DARKESTWORLD'), findsOneWidget);
     for (final world in worlds) {
       expect(find.bySemanticsLabel(world.title), findsOneWidget);
@@ -37,13 +36,10 @@ void main() {
   testWidgets('Selecting a world opens its command panel and VISIT callback', (tester) async {
     GalaxyWorld? visited;
     await pumpGalaxy(tester, onWorldTap: (world) => visited = world);
-
     await tester.tap(find.bySemanticsLabel('Game World'));
     await tester.pump(const Duration(milliseconds: 120));
-
     expect(find.text('GAME WORLD'), findsOneWidget);
     expect(find.textContaining('VISIT'), findsOneWidget);
-
     await tester.tap(find.textContaining('VISIT'));
     await tester.pump();
     expect(visited?.kind, GalaxyWorldKind.game);
@@ -51,23 +47,40 @@ void main() {
 
   testWidgets('Keyboard digit navigation targets the matching world', (tester) async {
     await pumpGalaxy(tester);
-
     await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
     await tester.pump(const Duration(milliseconds: 120));
-
     expect(find.text('CINEMA WORLD'), findsOneWidget);
     expect(find.text('TARGET LOCK'), findsOneWidget);
   });
 
+  testWidgets('All nine digit shortcuts target the correct galaxy world', (tester) async {
+    await pumpGalaxy(tester);
+    const keys = <LogicalKeyboardKey>[
+      LogicalKeyboardKey.digit1,
+      LogicalKeyboardKey.digit2,
+      LogicalKeyboardKey.digit3,
+      LogicalKeyboardKey.digit4,
+      LogicalKeyboardKey.digit5,
+      LogicalKeyboardKey.digit6,
+      LogicalKeyboardKey.digit7,
+      LogicalKeyboardKey.digit8,
+      LogicalKeyboardKey.digit9,
+    ];
+    for (var i = 0; i < keys.length; i++) {
+      await tester.sendKeyEvent(keys[i]);
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(find.text('TARGET LOCK'), findsOneWidget);
+      expect(find.text(worlds[i].title.toUpperCase()), findsOneWidget);
+    }
+  });
+
   testWidgets('Previous and next controls cycle through the world chain', (tester) async {
     await pumpGalaxy(tester);
-
     await tester.tap(find.bySemanticsLabel('Game World'));
     await tester.pump(const Duration(milliseconds: 120));
     expect(find.text('CURRENT'), findsOneWidget);
     expect(find.text('PREVIOUS'), findsOneWidget);
     expect(find.text('NEXT'), findsOneWidget);
-
     await tester.tap(find.text('NEXT'));
     await tester.pump(const Duration(milliseconds: 120));
     expect(find.text('CINEMA WORLD'), findsOneWidget);
@@ -75,7 +88,6 @@ void main() {
 
   testWidgets('Galaxy controls are present', (tester) async {
     await pumpGalaxy(tester);
-
     expect(find.text('MAP'), findsOneWidget);
     expect(find.text('LABELS'), findsOneWidget);
     expect(find.text('DETAIL'), findsOneWidget);
