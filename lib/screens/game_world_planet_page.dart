@@ -2,158 +2,30 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'game_platform_page.dart';
 
-class GameWorldPlanetPage extends StatefulWidget {
-  const GameWorldPlanetPage({super.key});
-  @override State<GameWorldPlanetPage> createState() => _GameWorldPlanetPageState();
+class GameWorldPlanetPage extends StatefulWidget{const GameWorldPlanetPage({super.key});@override State<GameWorldPlanetPage> createState()=>_GameWorldPlanetPageState();}
+class _TerritoryData{final String name,description;final List<GamePlatformGroup> groups;final int x,y;const _TerritoryData(this.name,this.description,this.groups,this.x,this.y);}
+class _GameWorldPlanetPageState extends State<GameWorldPlanetPage> with SingleTickerProviderStateMixin{
+ late final AnimationController clock=AnimationController(vsync:this,duration:const Duration(seconds:90))..repeat();int? selected;
+ final territories=const <_TerritoryData>[
+  _TerritoryData('NINTENDO','A northern region of classic and modern home worlds.',[GamePlatformGroup('HOME CONSOLES','Home generations.',[GamePlatform('NES',[18]),GamePlatform('SNES',[19]),GamePlatform('N64',[4]),GamePlatform('GameCube',[21]),GamePlatform('Wii',[5]),GamePlatform('Wii U',[41]),GamePlatform('Switch',[130])]),GamePlatformGroup('HANDHELD','Portable generations.',[GamePlatform('Game Boy',[33]),GamePlatform('Game Boy Color',[22]),GamePlatform('Game Boy Advance',[24]),GamePlatform('DS',[20]),GamePlatform('3DS',[37])])],23,31),
+  _TerritoryData('SEGA','A western coast of arcade, console and portable history.',[GamePlatformGroup('CONSOLES','Console generations.',[GamePlatform('Master System',[64]),GamePlatform('Mega Drive',[29]),GamePlatform('Saturn',[32]),GamePlatform('Dreamcast',[23])]),GamePlatformGroup('PORTABLE','Portable generation.',[GamePlatform('Game Gear',[35])])],68,34),
+  _TerritoryData('PLAYSTATION','A southern continent of PlayStation generations.',[GamePlatformGroup('GENERATIONS','Main generations.',[GamePlatform('PlayStation',[7]),GamePlatform('PlayStation 2',[8]),GamePlatform('PlayStation 3',[9]),GamePlatform('PlayStation 4',[48]),GamePlatform('PlayStation 5',[167])])],49,70),
+  _TerritoryData('XBOX','An eastern highland spanning Xbox generations.',[GamePlatformGroup('GENERATIONS','Main generations.',[GamePlatform('Xbox',[11]),GamePlatform('Xbox 360',[12]),GamePlatform('Xbox One',[49]),GamePlatform('Xbox Series',[169])])],78,57),
+ ];
+ @override void dispose(){clock.dispose();super.dispose();}void enter(int i)=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>GamePlatformPage(territory:territories[i].name,groups:territories[i].groups)));
+ @override Widget build(BuildContext context){final compact=MediaQuery.sizeOf(context).width<760;return Scaffold(backgroundColor:const Color(0xFF05060B),body:AnimatedBuilder(animation:clock,builder:(_,__)=>Stack(fit:StackFit.expand,children:[CustomPaint(painter:_MapBackground(clock.value)),Positioned(left:compact?14:36,top:compact?14:30,child:_Header(back:()=>Navigator.pop(context))),Center(child:LayoutBuilder(builder:(context,b){final w=b.maxWidth*(compact?.94:.86),h=math.min(b.maxHeight*(compact?.78:.82),w*.66);return SizedBox(width:w,height:h,child:Stack(children:[Positioned.fill(child:CustomPaint(painter:_WorldMapPainter(clock.value))),for(var i=0;i<territories.length;i++)_TerritoryNode(data:territories[i],selected:selected==i,onTap:()=>setState(()=>selected=i),onOpen:()=>enter(i))]));})),if(selected!=null)Positioned(left:compact?16:36,right:compact?16:36,bottom:compact?16:28,child:_Info(data:territories[selected!],index:selected!,close:()=>setState(()=>selected=null)))else const Positioned(left:0,right:0,bottom:28,child:Center(child:Text('1× CLICK  FOCUS     2× CLICK  ENTER REGION',style:TextStyle(color:Color(0x58FFFFFF),fontSize:7,letterSpacing:2))))]));}
 }
-
-class _TerritoryData {
-  final String name, description;
-  final List<GamePlatformGroup> groups;
-  const _TerritoryData(this.name, this.description, this.groups);
-}
-
-class _GameWorldPlanetPageState extends State<GameWorldPlanetPage> with SingleTickerProviderStateMixin {
-  int? selected;
-  late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 55))..repeat();
-
-  final territories = const <_TerritoryData>[
-    _TerritoryData('NINTENDO', 'Nintendo generations.', [
-      GamePlatformGroup('HOME CONSOLES', 'Home generations.', [GamePlatform('NES', [18]), GamePlatform('SNES', [19]), GamePlatform('N64', [4]), GamePlatform('GameCube', [21]), GamePlatform('Wii', [5]), GamePlatform('Wii U', [41]), GamePlatform('Switch', [130])]),
-      GamePlatformGroup('HANDHELD', 'Portable generations.', [GamePlatform('Game Boy', [33]), GamePlatform('Game Boy Color', [22]), GamePlatform('Game Boy Advance', [24]), GamePlatform('DS', [20]), GamePlatform('3DS', [37])]),
-    ]),
-    _TerritoryData('SEGA', 'Sega generations.', [
-      GamePlatformGroup('CONSOLES', 'Console generations.', [GamePlatform('Master System', [64]), GamePlatform('Mega Drive', [29]), GamePlatform('Saturn', [32]), GamePlatform('Dreamcast', [23])]),
-      GamePlatformGroup('PORTABLE', 'Portable generation.', [GamePlatform('Game Gear', [35])]),
-    ]),
-    _TerritoryData('PLAYSTATION', 'PlayStation generations.', [
-      GamePlatformGroup('GENERATIONS', 'Main generations.', [GamePlatform('PlayStation', [7]), GamePlatform('PlayStation 2', [8]), GamePlatform('PlayStation 3', [9]), GamePlatform('PlayStation 4', [48]), GamePlatform('PlayStation 5', [167])]),
-    ]),
-    _TerritoryData('XBOX', 'Xbox generations.', [
-      GamePlatformGroup('GENERATIONS', 'Main generations.', [GamePlatform('Xbox', [11]), GamePlatform('Xbox 360', [12]), GamePlatform('Xbox One', [49]), GamePlatform('Xbox Series', [169])]),
-    ]),
-  ];
-
-  @override void dispose() { clock.dispose(); super.dispose(); }
-  void _enter(int index) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GamePlatformPage(territory: territories[index].name, groups: territories[index].groups)));
-
-  @override
-  Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 760;
-    return Scaffold(
-      backgroundColor: const Color(0xFF02010A),
-      body: AnimatedBuilder(
-        animation: clock,
-        builder: (_, __) => Stack(fit: StackFit.expand, children: [
-          CustomPaint(painter: _GameSpacePainter(clock.value)),
-          Positioned(left: compact ? 18 : 34, top: compact ? 18 : 30, child: _GameTitle(onBack: () => Navigator.pop(context))),
-          Center(child: LayoutBuilder(builder: (context, box) {
-            final d = math.min(box.maxWidth * (compact ? .82 : .72), box.maxHeight * (compact ? .68 : .76));
-            return SizedBox(width: d, height: d, child: Stack(children: [
-              Positioned.fill(child: CustomPaint(painter: _WorldCorePainter(clock.value))),
-              for (var i = 0; i < territories.length; i++) _Region(
-                index: i, total: territories.length, selected: selected == i, size: d,
-                onTap: () => setState(() => selected = i), onOpen: () => _enter(i),
-              ),
-            ]));
-          })),
-          if (selected != null) Positioned(left: compact ? 18 : 34, right: compact ? 18 : 34, bottom: compact ? 18 : 30, child: _TerritoryInfo(
-            territory: territories[selected!], index: selected!, onClose: () => setState(() => selected = null),
-          )),
-          if (selected == null) Positioned(left: 0, right: 0, bottom: compact ? 18 : 30, child: const Center(child: Text('CLICK TO FOCUS   •   DOUBLE-CLICK TO ENTER', style: TextStyle(color: Color(0x45FFFFFF), fontSize: 6.5, letterSpacing: 1.8)))),
-        ]),
-      ),
-    );
-  }
-}
-
-class _GameTitle extends StatelessWidget {
-  final VoidCallback onBack;
-  const _GameTitle({required this.onBack});
-  @override Widget build(BuildContext context) => Row(children: [
-    InkWell(onTap: onBack, child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.arrow_back_ios_new, size: 14, color: Color(0x88FFFFFF)))),
-    const SizedBox(width: 5), const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('GAME-WORLD', style: TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 4.5)), SizedBox(height: 7), Text('WORLD MAP', style: TextStyle(color: Color(0x78FFFFFF), fontSize: 7, letterSpacing: 3.0))]),
-  ]);
-}
-
-class _TerritoryInfo extends StatelessWidget {
-  final _TerritoryData territory; final int index; final VoidCallback onClose;
-  const _TerritoryInfo({required this.territory, required this.index, required this.onClose});
-  @override Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(18, 15, 12, 15),
-    decoration: BoxDecoration(color: const Color(0xC9070710), border: Border.all(color: const Color(0x28FFFFFF)), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 30)]),
-    child: Row(children: [
-      Container(width: 3, height: 42, color: const Color(0x667D5AA2)), const SizedBox(width: 13),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('REGION ${(index + 1).toString().padLeft(2, '0')}', style: const TextStyle(color: Color(0x45FFFFFF), fontSize: 5.5, letterSpacing: 1.6)), const SizedBox(height: 4), Text(territory.name, style: const TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 2.6)), const SizedBox(height: 4), Text(territory.description, style: const TextStyle(color: Color(0x68FFFFFF), fontSize: 7.5))])),
-      InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(8), child: Text('×', style: TextStyle(color: Color(0x80FFFFFF), fontSize: 18)))),
-    ]),
-  );
-}
-
-class _Region extends StatelessWidget {
-  final int index, total; final bool selected; final double size; final VoidCallback onTap, onOpen;
-  const _Region({required this.index, required this.total, required this.selected, required this.size, required this.onTap, required this.onOpen});
-  @override
-  Widget build(BuildContext context) {
-    final angle = -math.pi / 2 + index * math.pi * 2 / total;
-    final center = size / 2;
-    final p = Offset(center + math.cos(angle) * size * .29, center + math.sin(angle) * size * .29);
-    final d = size * (selected ? .18 : .14);
-    return Positioned(left: p.dx - d / 2, top: p.dy - d / 2, width: d, height: d, child: MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        onDoubleTap: onOpen,
-        child: CustomPaint(painter: _RegionPainter(index, selected)),
-      ),
-    ));
-  }
-}
-
-class _RegionPainter extends CustomPainter {
-  final int index; final bool selected;
-  const _RegionPainter(this.index, this.selected);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero), r = size.width * .36;
-    final halo = r * (selected ? 2.0 : 1.35);
-    canvas.drawCircle(c, halo, Paint()..shader = RadialGradient(colors: [const Color(0xFF8B6AA0).withValues(alpha: selected ? .22 : .10), Colors.transparent]).createShader(Rect.fromCircle(center: c, radius: halo)));
-    canvas.drawCircle(c, r, Paint()..shader = const RadialGradient(center: Alignment(-.3, -.35), colors: [Color(0xFFE0D8E5), Color(0xFF766080), Color(0xFF17121D)]).createShader(Rect.fromCircle(center: c, radius: r)));
-    for (var i = 0; i < 4; i++) canvas.drawOval(Rect.fromCenter(center: c, width: r * (1.0 + i * .25), height: r * (.45 + i * .14)), Paint()..style = PaintingStyle.stroke..strokeWidth = .5..color = const Color(0x38101015));
-    if (selected) canvas.drawCircle(c, r * 1.2, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = const Color(0x88FFFFFF));
-  }
-  @override bool shouldRepaint(covariant _RegionPainter old) => old.index != index || old.selected != selected;
-}
-
-class _WorldCorePainter extends CustomPainter {
-  final double phase;
-  const _WorldCorePainter(this.phase);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero), r = math.min(size.width, size.height) * .16;
-    final outer = r * 2.6;
-    canvas.drawCircle(c, outer, Paint()..shader = RadialGradient(colors: [const Color(0xFF79578E).withValues(alpha: .12), Colors.transparent]).createShader(Rect.fromCircle(center: c, radius: outer)));
-    canvas.drawCircle(c, r, Paint()..shader = const RadialGradient(colors: [Color(0xFFD8CDE1), Color(0xFF6D557D), Color(0xFF15101A)]).createShader(Rect.fromCircle(center: c, radius: r)));
-    canvas.drawCircle(c, r * .83, Paint()..style = PaintingStyle.stroke..strokeWidth = .7..color = const Color(0x60FFFFFF));
-    final ring = Paint()..style = PaintingStyle.stroke..strokeWidth = .45..color = const Color(0x22FFFFFF);
-    canvas.drawOval(Rect.fromCenter(center: c, width: r * 6.0, height: r * 2.0), ring);
-    canvas.drawArc(Rect.fromCenter(center: c, width: r * 6.0, height: r * 2.0), phase * math.pi * 2, math.pi * .45, false, Paint()..style = PaintingStyle.stroke..strokeWidth = .8..color = const Color(0x45FFFFFF));
-  }
-  @override bool shouldRepaint(covariant _WorldCorePainter old) => old.phase != phase;
-}
-
-class _GameSpacePainter extends CustomPainter {
-  final double phase;
-  const _GameSpacePainter(this.phase);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(rect, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF05030C), Color(0xFF02020A), Color(0xFF090414)]).createShader(rect));
-    final random = math.Random(412);
-    for (var i = 0; i < 340; i++) canvas.drawCircle(Offset(random.nextDouble() * size.width, random.nextDouble() * size.height), .2 + random.nextDouble() * .7, Paint()..color = Colors.white.withValues(alpha: .025 + random.nextDouble() * .14));
-    final c = Offset(size.width * .5, size.height * .5), glow = math.min(size.width, size.height) * .45;
-    canvas.drawCircle(c, glow, Paint()..shader = RadialGradient(colors: [const Color(0xFF624675).withValues(alpha: .07), Colors.transparent]).createShader(Rect.fromCircle(center: c, radius: glow)));
-  }
-  @override bool shouldRepaint(covariant _GameSpacePainter old) => old.phase != phase;
-}
+class _Header extends StatelessWidget{final VoidCallback back;const _Header({required this.back});@override Widget build(BuildContext c)=>Row(children:[InkWell(onTap:back,child:const Padding(padding:EdgeInsets.all(8),child:Icon(Icons.arrow_back_ios_new,size:14,color:Color(0x90FFFFFF)))),const SizedBox(width:7),const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('GAME-WORLD',style:TextStyle(color:Colors.white,fontSize:15,letterSpacing:4.8)),SizedBox(height:7),Text('WORLD MAP / REGIONS',style:TextStyle(color:Color(0x72FFFFFF),fontSize:7,letterSpacing:3.1))])]);}
+class _TerritoryNode extends StatelessWidget{final _TerritoryData data;final bool selected;final VoidCallback onTap,onOpen;const _TerritoryNode({required this.data,required this.selected,required this.onTap,required this.onOpen});@override Widget build(BuildContext c)=>LayoutBuilder(builder:(context,b){final p=Offset(b.maxWidth*data.x/100,b.maxHeight*data.y/100),d=b.maxWidth*(selected?.115:.085);return Positioned(left:p.dx-d/2,top:p.dy-d/2,width:d,height:d,child:MouseRegion(cursor:SystemMouseCursors.click,child:GestureDetector(onTap:onTap,onDoubleTap:onOpen,child:CustomPaint(painter:_NodePainter(data.name,selected)))));});}
+class _NodePainter extends CustomPainter{final String name;final bool selected;const _NodePainter(this.name,this.selected);@override void paint(Canvas x,Size s){final c=s.center(Offset.zero),r=s.width*.31;final glow=r*(selected?4:2.3);x.drawCircle(c,glow,Paint()..shader=RadialGradient(colors:[const Color(0xFF9C7BB7).withValues(alpha:selected?.28:.08),Colors.transparent]).createShader(Rect.fromCircle(center:c,radius:glow)));x.drawCircle(c,r,Paint()..shader=const RadialGradient(center:Alignment(-.35,-.4),colors:[Color(0xFFE6DDEB),Color(0xFF7A6884),Color(0xFF20202A)]).createShader(Rect.fromCircle(center:c,radius:r)));x.drawCircle(c,r*1.32,Paint()..style=PaintingStyle.stroke..strokeWidth=selected?1.5:.55..color=const Color(0x55FFFFFF));final tp=TextPainter(text:TextSpan(text:name,style:TextStyle(color:Colors.white.withValues(alpha:selected?.95:.68),fontSize:math.max(7,s.width*.045),letterSpacing:1.7,fontWeight:selected?FontWeight.w600:FontWeight.w400)),textDirection:TextDirection.ltr)..layout();tp.paint(x,Offset(c.dx-tp.width/2,s.height*.69));} @override bool shouldRepaint(covariant _NodePainter o)=>o.name!=name||o.selected!=selected;}
+class _Info extends StatelessWidget{final _TerritoryData data;final int index;final VoidCallback close;const _Info({required this.data,required this.index,required this.close});@override Widget build(BuildContext c)=>Container(padding:const EdgeInsets.fromLTRB(20,16,12,16),decoration:BoxDecoration(color:const Color(0xE00A0B11),border:Border.all(color:const Color(0x35FFFFFF)),boxShadow:const[BoxShadow(color:Colors.black87,blurRadius:34)]),child:Row(children:[Container(width:3,height:48,color:const Color(0x887D5AA2)),const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('REGION ${(index+1).toString().padLeft(2,'0')}',style:const TextStyle(color:Color(0x58FFFFFF),fontSize:6,letterSpacing:1.8)),const SizedBox(height:5),Text(data.name,style:const TextStyle(color:Colors.white,fontSize:16,letterSpacing:3)),const SizedBox(height:5),Text(data.description,style:const TextStyle(color:Color(0x78FFFFFF),fontSize:8))])),InkWell(onTap:close,child:const Padding(padding:EdgeInsets.all(9),child:Text('×',style:TextStyle(color:Color(0x90FFFFFF),fontSize:19))))]));}
+class _MapBackground extends CustomPainter{final double phase;const _MapBackground(this.phase);@override void paint(Canvas x,Size s){final q=Offset.zero&s;x.drawRect(q,Paint()..shader=const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF05070C),Color(0xFF0A0D14),Color(0xFF04050A)]).createShader(q));final r=math.Random(410);for(var i=0;i<280;i++)x.drawCircle(Offset(r.nextDouble()*s.width,r.nextDouble()*s.height),.15+r.nextDouble()*.65,Paint()..color=Colors.white.withValues(alpha:.018+r.nextDouble()*.07));final c=Offset(s.width*.5,s.height*.5),g=math.min(s.width,s.height)*.65;x.drawCircle(c,g,Paint()..shader=RadialGradient(colors:[const Color(0xFF596C87).withValues(alpha:.055),Colors.transparent]).createShader(Rect.fromCircle(center:c,radius:g)));} @override bool shouldRepaint(covariant _MapBackground o)=>o.phase!=phase;}
+class _WorldMapPainter extends CustomPainter{final double phase;const _WorldMapPainter(this.phase);Path land(Size s,List<Offset> pts){final p=Path()..moveTo(pts.first.dx*s.width,pts.first.dy*s.height);for(var i=1;i<pts.length;i++){final q=pts[i];p.lineTo(q.dx*s.width,q.dy*s.height);}p.close();return p;}
+ @override void paint(Canvas x,Size s){final rect=Offset.zero&s;final ocean=Paint()..shader=const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF111C29),Color(0xFF1A2633),Color(0xFF0C1521)]).createShader(rect);x.drawRRect(RRect.fromRectAndRadius(rect,const Radius.circular(28)),ocean);final glow=Paint()..shader=RadialGradient(colors:[const Color(0xFF6F8EAC).withValues(alpha:.10),Colors.transparent]).createShader(Rect.fromCircle(center:s.center(Offset.zero),radius:s.width*.6));x.drawCircle(s.center(Offset.zero),s.width*.6,glow);
+  final continents=[land(s,[const Offset(.03,.28),const Offset(.15,.15),const Offset(.29,.18),const Offset(.35,.31),const Offset(.28,.43),const Offset(.17,.48),const Offset(.08,.41)]),land(s,[const Offset(.39,.08),const Offset(.55,.06),const Offset(.66,.16),const Offset(.61,.31),const Offset(.52,.36),const Offset(.40,.28)]),land(s,[const Offset(.69,.24),const Offset(.88,.18),const Offset(.98,.31),const Offset(.91,.48),const Offset(.76,.51),const Offset(.66,.40)]),land(s,[const Offset(.31,.55),const Offset(.45,.47),const Offset(.59,.54),const Offset(.63,.72),const Offset(.53,.91),const Offset(.38,.84),const Offset(.29,.68)]),land(s,[const Offset(.70,.57),const Offset(.84,.53),const Offset(.96,.64),const Offset(.90,.83),const Offset(.74,.88),const Offset(.65,.74)])];
+  final fills=[const Color(0xFF354A42),const Color(0xFF4B4B38),const Color(0xFF3B4D5A),const Color(0xFF4B3E4A),const Color(0xFF384B43)];for(var i=0;i<continents.length;i++){x.drawPath(continents[i],Paint()..color=fills[i]);x.drawPath(continents[i],Paint()..style=PaintingStyle.stroke..strokeWidth=1.0..color=const Color(0x4497A79A));}
+  final routes=Paint()..style=PaintingStyle.stroke..strokeWidth=.55..color=const Color(0x307B9CB5);for(var i=0;i<7;i++){final y=s.height*(.16+i*.105);x.drawArc(Rect.fromLTWH(-s.width*.12,y,s.width*1.24,s.height*.30),math.pi*1.02,math.pi*.96,false,routes);}for(var i=0;i<12;i++){final xx=s.width*(.08+i*.075);x.drawLine(Offset(xx,s.height*.12),Offset(xx+s.width*.06,s.height*.88),routes);}
+  final edge=Paint()..style=PaintingStyle.stroke..strokeWidth=2..color=const Color(0x247E90A5);x.drawRRect(RRect.fromRectAndRadius(rect.deflate(1),const Radius.circular(28)),edge);
+  final scan=Paint()..style=PaintingStyle.stroke..strokeWidth=1..color=const Color(0x18FFFFFF);final yy=(.15+phase*.7)*s.height;x.drawLine(Offset(s.width*.05,yy),Offset(s.width*.95,yy),scan);
+ }
+ @override bool shouldRepaint(covariant _WorldMapPainter o)=>o.phase!=phase;}
