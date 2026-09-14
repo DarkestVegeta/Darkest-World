@@ -3,28 +3,27 @@ import 'package:flutter/foundation.dart';
 enum GalaxyNavigationSurface { galaxy, atlas, commandCenter, world }
 
 /// The single navigation state for Galaxy, Atlas, Command Center and world pages.
-/// World kinds are intentionally stored as Object so the navigation session stays
-/// independent from the renderer/model layer and cannot create an import cycle.
+/// Dynamic world values keep this state layer independent from the renderer/model layer.
 class GalaxyNavigationSession extends ChangeNotifier {
   GalaxyNavigationSession._();
   static final GalaxyNavigationSession instance = GalaxyNavigationSession._();
 
-  Object? selected;
-  Object? lastVisited;
+  dynamic selected;
+  dynamic lastVisited;
   GalaxyNavigationSurface surface = GalaxyNavigationSurface.galaxy;
   int visits = 0;
   int selectionRevision = 0;
   bool targetLocked = false;
-  final visited = <Object>{};
-  final mapped = <Object>{};
-  final discoveryOrder = <Object>[];
-  final routeHistory = <Object>[];
-  final gateHistory = <Object>[];
+  final visited = <dynamic>{};
+  final mapped = <dynamic>{};
+  final discoveryOrder = <dynamic>[];
+  final routeHistory = <dynamic>[];
+  final gateHistory = <dynamic>[];
   int historyCursor = -1;
 
-  bool isMapped(Object kind) => mapped.contains(kind);
-  bool isVisited(Object kind) => visited.contains(kind);
-  int discoveryIndex(Object kind) {
+  bool isMapped(dynamic kind) => mapped.contains(kind);
+  bool isVisited(dynamic kind) => visited.contains(kind);
+  int discoveryIndex(dynamic kind) {
     final index = discoveryOrder.indexOf(kind);
     return index < 0 ? 0 : index + 1;
   }
@@ -33,7 +32,7 @@ class GalaxyNavigationSession extends ChangeNotifier {
     surface = next;
     notifyListeners();
   }
-  void select(Object kind) {
+  void select(dynamic kind) {
     if (targetLocked && selected != kind) return;
     final changed = selected != kind;
     selected = kind;
@@ -68,7 +67,7 @@ class GalaxyNavigationSession extends ChangeNotifier {
     targetLocked = false;
     notifyListeners();
   }
-  bool visit(Object kind) {
+  bool visit(dynamic kind) {
     if (targetLocked && selected != kind) return false;
     select(kind);
     visited.add(kind);
@@ -91,9 +90,9 @@ class GalaxyNavigationSession extends ChangeNotifier {
   }
   void openAtlas() { surface = GalaxyNavigationSurface.atlas; notifyListeners(); }
   void openCommandCenter() { surface = GalaxyNavigationSurface.commandCenter; notifyListeners(); }
-  Object? historyAt(int index) =>
+  dynamic historyAt(int index) =>
       index < 0 || index >= routeHistory.length ? null : routeHistory[index];
-  Object? moveHistory(int delta) {
+  dynamic moveHistory(int delta) {
     if (routeHistory.isEmpty) return null;
     if (historyCursor < 0 || historyCursor >= routeHistory.length) historyCursor = routeHistory.length - 1;
     final target = historyCursor + delta;
@@ -107,9 +106,9 @@ class GalaxyNavigationSession extends ChangeNotifier {
     notifyListeners();
     return selected;
   }
-  Object? previousHistory() => moveHistory(-1);
-  Object? nextHistory() => moveHistory(1);
-  Object? lastGate() => gateHistory.isEmpty ? null : gateHistory.last;
+  dynamic previousHistory() => moveHistory(-1);
+  dynamic nextHistory() => moveHistory(1);
+  dynamic lastGate() => gateHistory.isEmpty ? null : gateHistory.last;
   bool get canGoBack => historyCursor > 0;
   bool get canGoForward => historyCursor >= 0 && historyCursor < routeHistory.length - 1;
   void resetNavigation() {
