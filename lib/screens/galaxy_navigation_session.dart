@@ -1,13 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import '../core/darkest_world_navigation_state.dart';
 import '../core/galaxy_render_state.dart';
 
 enum GalaxyNavigationSurface { galaxy, atlas, commandCenter, world }
 
 /// Shared navigation state for Galaxy, browser routes, Atlas and world pages.
-/// Renderer state stays independent from route mechanics, while both can observe
-/// the same session for consistent discovery and navigation history.
+/// Renderer state stays independent from route mechanics, while content and
+/// discovery surfaces observe the same lightweight navigation session.
 class GalaxyNavigationSession extends ChangeNotifier {
   GalaxyNavigationSession._();
   static final GalaxyNavigationSession instance = GalaxyNavigationSession._();
@@ -24,11 +25,14 @@ class GalaxyNavigationSession extends ChangeNotifier {
   final routeHistory = <dynamic>[];
   final gateHistory = <dynamic>[];
 
-  /// Browser navigation mirrors the real Navigator stack through the observer.
-  /// Labels are deliberately lightweight so the session never owns Route objects.
   final browserRouteHistory = <String>[];
   int browserHistoryCursor = -1;
   String? currentBrowserRoute;
+
+  /// The single content-level Previous | CURRENT | Next | Related state.
+  /// The actual Navigator remains responsible for routes; this session only
+  /// mirrors stable content objects/IDs for cross-surface consistency.
+  DarkestWorldNavigationState? contentNavigation;
 
   int historyCursor = -1;
   GalaxyRenderState renderState = GalaxyRenderState.initial(compact: false);
@@ -140,8 +144,6 @@ class GalaxyNavigationSession extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Record a real Navigator route in the shared session without storing
-  /// framework Route objects. This keeps the session serializable and cheap.
   void recordBrowserRoute(String label) {
     if (label.isEmpty) return;
     if (browserHistoryCursor >= 0 && browserHistoryCursor < browserRouteHistory.length - 1) {
@@ -179,6 +181,23 @@ class GalaxyNavigationSession extends ChangeNotifier {
     notifyListeners();
   }
 
+  void publishContentNavigation(DarkestWorldNavigationState next) {
+    contentNavigation = next;
+    selected = next.current.id;
+    lastVisited = next.current.id;
+    mapped.add(next.current.id);
+    if (!discoveryOrder.contains(next.current.id)) discoveryOrder.add(next.current.id);
+    surface = GalaxyNavigationSurface.world;
+    selectionRevision++;
+    notifyListeners();
+  }
+
+  void clearContentNavigation() {
+    if (contentNavigation == null) return;
+    contentNavigation = null;
+    notifyListeners();
+  }
+
   dynamic historyAt(int index) => index < 0 || index >= routeHistory.length ? null : routeHistory[index];
   dynamic moveHistory(int delta) {
     if (routeHistory.isEmpty) return null;
@@ -211,6 +230,7 @@ class GalaxyNavigationSession extends ChangeNotifier {
     browserRouteHistory.clear();
     browserHistoryCursor = -1;
     currentBrowserRoute = null;
+    contentNavigation = null;
     historyCursor = -1;
     selectionRevision++;
     renderState = GalaxyRenderState.initial(compact: renderState.compact);
