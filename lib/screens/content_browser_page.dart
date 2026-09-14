@@ -224,7 +224,7 @@ class _EmptyArchive extends StatelessWidget {
   const _EmptyArchive();
   @override Widget build(BuildContext context) => Center(child: Container(padding: const EdgeInsets.all(40), decoration: BoxDecoration(color: const Color(0xAA080812), border: Border.all(color: const Color(0x227F70B0))), child: const Column(mainAxisSize: MainAxisSize.min, children: [
     Icon(Icons.inventory_2_outlined, size: 32, color: Color(0x557F70B0)), SizedBox(height: 15), Text('GEEN CONTENT', style: TextStyle(fontSize: 10, letterSpacing: 3, color: Color(0x99FFFFFF))), SizedBox(height: 7), Text('THIS WORLD IS READY FOR ITS ARCHIVE.', style: TextStyle(fontSize: 6.5, letterSpacing: 1.7, color: Color(0x44FFFFFF))),
-  ]));
+  ])));
 }
 
 class _ArchivePainter extends CustomPainter {
