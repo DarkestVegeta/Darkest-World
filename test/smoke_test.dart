@@ -7,6 +7,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('DARKESTWORLD'), findsOneWidget);
-    expect(find.text('GALAXY / SYSTEM MAP'), findsOneWidget);
+    expect(find.text('GALAXY'), findsOneWidget);
   });
 }
