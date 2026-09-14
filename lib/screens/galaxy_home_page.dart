@@ -15,15 +15,13 @@ import 'galaxy_navigation_session.dart';
 
 class GalaxyHomePage extends StatefulWidget {
   const GalaxyHomePage({super.key});
-  @override
-  State<GalaxyHomePage> createState() => _GalaxyHomePageState();
+  @override State<GalaxyHomePage> createState() => _GalaxyHomePageState();
 }
 
 class _GalaxyHomePageState extends State<GalaxyHomePage> {
   bool atlas = false;
   bool command = false;
   final session = GalaxyNavigationSession();
-
   static const worlds = <GalaxyWorld>[
     GalaxyWorld(kind: GalaxyWorldKind.vegeta, title: 'VEGETA', description: 'The darker heart of DarkestWorld.'),
     GalaxyWorld(kind: GalaxyWorldKind.game, title: 'GAME-WORLD', description: 'Games, platforms and marathons.'),
@@ -37,9 +35,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
   ];
 
   GalaxyWorld worldFor(GalaxyWorldKind kind) => worlds.firstWhere((w) => w.kind == kind);
-
   void selectWorld(GalaxyWorld world) => setState(() => session.select(world.kind));
-
   void openWorld(GalaxyWorld world) {
     setState(() => session.visit(world.kind));
     late final Widget page;
@@ -56,25 +52,13 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
     }
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
   }
-
   void routeMove(int delta) {
-    if (session.selected == null) {
-      selectWorld(worlds[delta < 0 ? worlds.length - 1 : 0]);
-      return;
-    }
+    if (session.selected == null) { selectWorld(worlds[delta < 0 ? worlds.length - 1 : 0]); return; }
     final index = worlds.indexWhere((w) => w.kind == session.selected);
     selectWorld(worlds[(index + delta + worlds.length) % worlds.length]);
   }
-
-  void historyMove(int delta) {
-    setState(() => session.moveHistory(delta));
-  }
-
-  void revisitLastGate() {
-    final kind = session.lastGate();
-    if (kind != null) openWorld(worldFor(kind));
-  }
-
+  void historyMove(int delta) => setState(() => session.moveHistory(delta));
+  void revisitLastGate() { final kind = session.lastGate(); if (kind != null) openWorld(worldFor(kind)); }
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.keyG) { setState(() => command = !command); return KeyEventResult.handled; }
@@ -86,12 +70,10 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
     return KeyEventResult.ignored;
   }
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
+  @override Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFF010207),
     body: Focus(
-      autofocus: true,
-      onKeyEvent: handleKey,
+      autofocus: true, onKeyEvent: handleKey,
       child: Stack(fit: StackFit.expand, children: [
         DarkestWorldUniverse(worlds: worlds, onWorldTap: openWorld, onWorldSelect: selectWorld),
         Positioned(top: 18, left: 18, right: 18, child: Row(children: [
@@ -105,7 +87,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
         Positioned(right: 18, bottom: 18, child: Info(text: 'VISITS ${session.visits} / MAPPED ${session.mapped.length}/${worlds.length} / VISITED ${session.visited.length} / ROUTE ${session.routeHistory.length}')),
         if (session.selected != null) Positioned(left: 18, bottom: 58, right: 18, child: RouteBar(worlds: worlds, selected: session.selected!, onPrevious: () => routeMove(-1), onNext: () => routeMove(1), onCurrent: () => openWorld(worldFor(session.selected!)))),
         if (atlas) Atlas(worlds: worlds, mapped: session.mapped, visited: session.visited, selected: session.selected, discoveryOrder: session.discoveryOrder, gateHistory: session.gateHistory, close: () => setState(() => atlas = false), open: openWorld, revisit: revisitLastGate),
-        if (command) Positioned.fill(child: Material(color: const Color(0xF0020308), child: GalaxyCommandCenterPage(worlds: worlds, selected: session.selected, mapped: session.mapped, visited: session.visited, routeHistory: session.routeHistory, onHistoryPrevious: () => historyMove(-1), onHistoryNext: () => historyMove(1), onOpen: (world) { setState(() => command = false); openWorld(world); }, onClose: () => setState(() => command = false))),
+        if (command) Positioned.fill(child: Material(color: const Color(0xF0020308), child: GalaxyCommandCenterPage(worlds: worlds, selected: session.selected, mapped: session.mapped, visited: session.visited, routeHistory: session.routeHistory, onHistoryPrevious: () => historyMove(-1), onHistoryNext: () => historyMove(1), onOpen: (world) { setState(() => command = false); openWorld(world); }, onClose: () => setState(() => command = false)))),
       ]),
     ),
   );
