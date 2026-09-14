@@ -6,24 +6,38 @@ class DarkestWorldNavigationObserver extends NavigatorObserver {
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
-    _emit(route);
+    final current = [...stack.value];
+    current.removeWhere((item) => identical(item, route));
+    current.add(route);
+    _emit(current);
   }
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPop(route, previousRoute);
-    _emit(previousRoute);
+    final current = [...stack.value]..removeWhere((item) => identical(item, route));
+    if (previousRoute != null && !current.contains(previousRoute)) current.add(previousRoute);
+    _emit(current);
   }
 
   @override
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
-    _emit(newRoute);
+    final current = [...stack.value];
+    if (oldRoute != null) current.removeWhere((item) => identical(item, oldRoute));
+    if (newRoute != null) current.add(newRoute);
+    _emit(current);
   }
 
-  void _emit(Route<dynamic>? route) {
-    if (route == null) return;
-    stack.value = [...stack.value, route].take(10).toList();
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didRemove(route, previousRoute);
+    final current = [...stack.value]..removeWhere((item) => identical(item, route));
+    _emit(current);
+  }
+
+  void _emit(List<Route<dynamic>> routes) {
+    stack.value = routes.length > 10 ? routes.sublist(routes.length - 10) : routes;
   }
 
   String get currentLabel {
@@ -64,31 +78,53 @@ class _DarkestWorldSystemHudState extends State<DarkestWorldSystemHud> {
 
   void _toggleCommand() => setState(() => commandOpen = !commandOpen);
 
+  KeyEventResult _key(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final ctrlOrMeta = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+    if (ctrlOrMeta && event.logicalKey == LogicalKeyboardKey.keyK) {
+      _toggleCommand();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.escape && commandOpen) {
+      setState(() => commandOpen = false);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.escape && !commandOpen) {
+      _back();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 620;
-    return AnimatedBuilder(
-      animation: widget.observer.stack,
-      builder: (context, _) => Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(child: IgnorePointer(child: _TopAtmosphere(compact: compact))),
-          if (commandOpen)
-            Positioned.fill(child: _CommandOverlay(onClose: _toggleCommand, onHome: _home, onBack: _back, routeLabel: widget.observer.currentLabel)),
-          IgnorePointer(
-            ignoring: false,
-            child: SafeArea(
-              minimum: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1180),
-                  child: _HudBar(compact: compact, routeLabel: widget.observer.currentLabel, onHome: _home, onBack: _back, onCommand: _toggleCommand),
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _key,
+      child: AnimatedBuilder(
+        animation: widget.observer.stack,
+        builder: (context, _) => Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(child: IgnorePointer(child: _TopAtmosphere(compact: compact))),
+            if (commandOpen)
+              Positioned.fill(child: _CommandOverlay(onClose: _toggleCommand, onHome: _home, onBack: _back, routeLabel: widget.observer.currentLabel)),
+            IgnorePointer(
+              ignoring: false,
+              child: SafeArea(
+                minimum: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1180),
+                    child: _HudBar(compact: compact, routeLabel: widget.observer.currentLabel, onHome: _home, onBack: _back, onCommand: _toggleCommand),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -181,23 +217,30 @@ class _CommandOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
         color: Colors.transparent,
-        child: Container(
-          color: const Color(0xA8000005),
-          child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: Container(
-            margin: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: const Color(0xF0080910), border: Border.all(color: const Color(0x357F70B0)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 50, spreadRadius: 4)]),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Padding(padding: const EdgeInsets.fromLTRB(20, 18, 14, 14), child: Row(children: [const Expanded(child: Text('DARKESTWORLD COMMAND', style: TextStyle(color: Colors.white, fontSize: 10, letterSpacing: 2.2))), InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(6), child: Icon(Icons.close, size: 15, color: Color(0x88FFFFFF))))])),
-              const Divider(height: 1, color: Color(0x18FFFFFF)),
-              Padding(padding: const EdgeInsets.all(16), child: Column(children: [
-                _CommandRow(label: 'CURRENT LOCATION', value: routeLabel, icon: Icons.my_location),
-                const SizedBox(height: 7),
-                _CommandAction(icon: Icons.public, label: 'RETURN TO GALAXY', detail: 'Reset the world route', onTap: onHome),
-                _CommandAction(icon: Icons.arrow_back_ios_new, label: 'STEP BACK', detail: 'Return to previous layer', onTap: onBack),
-              ])),
-              Container(padding: const EdgeInsets.all(14), decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x18FFFFFF)))), child: const Row(children: [Expanded(child: Text('ESC / CLICK OUTSIDE  CLOSE', style: TextStyle(color: Color(0x45FFFFFF), fontSize: 5, letterSpacing: 1))), Text('SYSTEM CONTROL', style: TextStyle(color: Color(0x35FFFFFF), fontSize: 5, letterSpacing: 1))])),
-            ]),
-          ))),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onClose,
+          child: Container(
+            color: const Color(0xA8000005),
+            child: Center(child: GestureDetector(
+              onTap: () {},
+              child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: Container(
+                margin: const EdgeInsets.all(20),
+                decoration: BoxDecoration(color: const Color(0xF0080910), border: Border.all(color: const Color(0x357F70B0)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 50, spreadRadius: 4)]),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Padding(padding: const EdgeInsets.fromLTRB(20, 18, 14, 14), child: Row(children: [const Expanded(child: Text('DARKESTWORLD COMMAND', style: TextStyle(color: Colors.white, fontSize: 10, letterSpacing: 2.2))), InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(6), child: Icon(Icons.close, size: 15, color: Color(0x88FFFFFF))))])),
+                  const Divider(height: 1, color: Color(0x18FFFFFF)),
+                  Padding(padding: const EdgeInsets.all(16), child: Column(children: [
+                    _CommandRow(label: 'CURRENT LOCATION', value: routeLabel, icon: Icons.my_location),
+                    const SizedBox(height: 7),
+                    _CommandAction(icon: Icons.public, label: 'RETURN TO GALAXY', detail: 'Reset the world route', onTap: onHome),
+                    _CommandAction(icon: Icons.arrow_back_ios_new, label: 'STEP BACK', detail: 'Return to previous layer', onTap: onBack),
+                  ])),
+                  Container(padding: const EdgeInsets.all(14), decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x18FFFFFF)))), child: const Row(children: [Expanded(child: Text('ESC / CLICK OUTSIDE  CLOSE', style: TextStyle(color: Color(0x45FFFFFF), fontSize: 5, letterSpacing: 1))), Text('SYSTEM CONTROL', style: TextStyle(color: Color(0x35FFFFFF), fontSize: 5, letterSpacing: 1))])),
+                ]),
+              )),
+            )),
+          ),
         ),
       );
 }
