@@ -172,7 +172,7 @@ class _Direction extends StatelessWidget {
   final VoidCallback onTap;
   const _Direction(this.value, this.onTap);
   @override
-  Widget build(BuildContext context) => InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.only(left: 7), child: Text(value, style: const TextStyle(fontSize: 10, color: Color(0x778F82A9))));
+  Widget build(BuildContext context) => InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.only(left: 7), child: Text(value, style: const TextStyle(fontSize: 10, color: Color(0x778F82A9)))));
 }
 
 class _RelatedCount extends StatelessWidget {
