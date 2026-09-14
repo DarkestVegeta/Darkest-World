@@ -31,12 +31,39 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
     }
     return null;
   }
+  Map<String, String> get _intel {
+    final source = widget.item.metadata;
+    final map = <String, String>{};
+    void add(String label, List<String> keys) {
+      for (final key in keys) {
+        final value = source[key];
+        if (value != null && '$value'.trim().isNotEmpty) { map[label] = '$value'.trim(); return; }
+      }
+    }
+    add('PLATFORM', ['platform', 'platform_name', 'console']);
+    add('REGION', ['region', 'regions']);
+    add('LANGUAGE', ['language', 'languages']);
+    add('DEVELOPER', ['developer', 'developers']);
+    add('PUBLISHER', ['publisher', 'publishers']);
+    add('GENRE', ['genre', 'genres']);
+    add('PLAYTIME', ['playtime', 'estimated_playtime']);
+    add('RATING', ['rating', 'age_rating']);
+    return map;
+  }
+  String? get _longplayUrl {
+    for (final key in ['longplay_url', 'longplay', 'youtube_url', 'youtube']) {
+      final value = widget.item.metadata[key];
+      if (value is String && value.trim().isNotEmpty) return value.trim();
+    }
+    return null;
+  }
   @override void initState() { super.initState(); if (_isExternal) { _relatedLoading = false; _navigationLoading = false; } else { _loadRelated(); _loadNavigation(); } }
   @override void dispose() { _clock.dispose(); super.dispose(); }
   Future<void> _loadRelated() async { try { final result = await _repository.getRelatedContentItems(widget.item.id); if (!mounted) return; setState(() { _related = result; _relatedLoading = false; }); } catch (e) { if (!mounted) return; setState(() { _relatedLoading = false; _relatedError = e.toString(); }); } }
   Future<void> _loadNavigation() async { try { final result = await _repository.getTypedFranchiseNavigation(widget.item); if (!mounted) return; setState(() { _navigation = result; _navigationLoading = false; }); } catch (e) { if (!mounted) return; setState(() { _navigationLoading = false; _navigationError = e.toString(); }); } }
   ChatContext? get _chatContext { if (_isExternal) return null; ChatScope? scope; if (_type == 'game') scope = ChatScope.games; if (_type == 'movie') scope = ChatScope.movies; if (_type == 'series') scope = ChatScope.series; if (scope == null) return null; return ChatContext(scope: scope, contentId: widget.item.id, contentTitle: _title); }
   void _open(ContentItem item) => Navigator.push(context, MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)));
+  void _copyValue(String value) { Clipboard.setData(ClipboardData(text: value)); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ARCHIVE VALUE COPIED'))); }
   @override Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 850;
     return Scaffold(
@@ -50,7 +77,9 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
             _WorldHero(item: widget.item, artUrl: _artUrl, compact: compact, phase: _clock.value), const SizedBox(height: 22),
             _MetaStrip(item: widget.item, type: _type, franchise: _franchise),
             if (_description.isNotEmpty) ...[const SizedBox(height: 22), _Description(text: _description)],
-            const SizedBox(height: 26), _SectionTitle(label: 'NAVIGATION', detail: 'PREVIOUS  |  CURRENT  |  NEXT'), const SizedBox(height: 11),
+            if (_intel.isNotEmpty) ...[const SizedBox(height: 28), _SectionTitle(label: 'ARCHIVE INTEL', detail: 'STRUCTURED WORLD DATA'), const SizedBox(height: 11), _IntelGrid(values: _intel, compact: compact)],
+            const SizedBox(height: 28), _SectionTitle(label: 'MEDIA CHAMBER', detail: 'LONGPLAY / REFERENCE SIGNAL'), const SizedBox(height: 11), _MediaChamber(url: _longplayUrl, compact: compact, copy: _copyValue),
+            const SizedBox(height: 28), _SectionTitle(label: 'NAVIGATION', detail: 'PREVIOUS  |  CURRENT  |  NEXT'), const SizedBox(height: 11),
             if (_navigationLoading) const _LoadingPanel() else if (_navigationError != null) const _MessagePanel(text: 'FRANCHISE NAVIGATION UNAVAILABLE') else if (_navigation == null) const _MessagePanel(text: 'NO FRANCHISE ORDER AVAILABLE') else _NavigationRow(navigation: _navigation!, compact: compact, open: _open),
             const SizedBox(height: 28), _SectionTitle(label: 'RELATED', detail: 'CONNECTED WORLDS'), const SizedBox(height: 11),
             if (_relatedLoading) const _LoadingPanel() else if (_relatedError != null) const _MessagePanel(text: 'RELATED CONTENT UNAVAILABLE') else if (_related.isEmpty) const _MessagePanel(text: 'NO RELATED WORLDS YET') else _RelatedGrid(items: _related, compact: compact, open: _open),
@@ -152,19 +181,39 @@ class _MetaStrip extends StatelessWidget {
 }
 class _Meta extends StatelessWidget { final String label; final String value; const _Meta({required this.label, required this.value}); @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 5.5, letterSpacing: 2, color: Color(0x557F70B0))), const SizedBox(height: 4), Text(value, style: const TextStyle(fontSize: 8.5, letterSpacing: .8, color: Color(0xCCFFFFFF)))]); }
 class _Description extends StatelessWidget { final String text; const _Description({required this.text}); @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(20), decoration: const BoxDecoration(color: Color(0x66090A13)), child: Text(text, style: const TextStyle(fontSize: 11, height: 1.65, color: Color(0xAAFFFFFF)))); }
-class _SectionTitle extends StatelessWidget { final String label; final String detail; const _SectionTitle({required this.label, required this.detail}); @override Widget build(BuildContext context) => Row(children: [Text(label, style: const TextStyle(fontSize: 10, letterSpacing: 3)), const SizedBox(width: 12), Text(detail, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.8, color: Color(0x557F70B0)))]); }
+class _SectionTitle extends StatelessWidget { final String label; final String detail; const _SectionTitle({required this.label, required this.detail}); @override Widget build(BuildContext context) => Row(children: [Text(label, style: const TextStyle(fontSize: 10, letterSpacing: 3)), const SizedBox(width: 12), Expanded(child: Text(detail, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.8, color: Color(0x557F70B0))))]); }
 class _LoadingPanel extends StatelessWidget { const _LoadingPanel(); @override Widget build(BuildContext context) => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())); }
 class _MessagePanel extends StatelessWidget { final String text; const _MessagePanel({required this.text}); @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: const Color(0x66080912), border: Border.all(color: const Color(0x227F70B0))), child: Text(text, style: const TextStyle(fontSize: 7, letterSpacing: 1.7, color: Color(0x668F82A9)))); }
+
+class _IntelGrid extends StatelessWidget {
+  final Map<String, String> values; final bool compact;
+  const _IntelGrid({required this.values, required this.compact});
+  @override Widget build(BuildContext context) => GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: values.length, gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: compact ? 180 : 240, mainAxisExtent: 82, crossAxisSpacing: 10, mainAxisSpacing: 10), itemBuilder: (_, i) {
+    final entry = values.entries.elementAt(i);
+    return Container(padding: const EdgeInsets.all(13), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x227F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(entry.key, style: const TextStyle(fontSize: 5.5, letterSpacing: 2, color: Color(0x557F70B0))), const SizedBox(height: 6), Text(entry.value, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9, letterSpacing: .8, color: Color(0xCCFFFFFF)))]) );
+  });
+}
+
+class _MediaChamber extends StatelessWidget {
+  final String? url; final bool compact; final ValueChanged<String> copy;
+  const _MediaChamber({required this.url, required this.compact, required this.copy});
+  @override Widget build(BuildContext context) {
+    final has = url != null;
+    return Container(padding: EdgeInsets.all(compact ? 15 : 20), decoration: BoxDecoration(color: const Color(0xAA080811), border: Border.all(color: const Color(0x327F70B0))), child: compact
+      ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_MediaStatus(has: has, url: url), const SizedBox(height: 12), if (has) _MediaButton(url: url!, copy: copy)])
+      : Row(children: [Expanded(child: _MediaStatus(has: has, url: url)), const SizedBox(width: 18), if (has) _MediaButton(url: url!, copy: copy)]));
+  }
+}
+class _MediaStatus extends StatelessWidget { final bool has; final String? url; const _MediaStatus({required this.has, required this.url}); @override Widget build(BuildContext context) => Row(children: [Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: has ? const Color(0xAA8A78B5) : const Color(0x44555566))), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(has ? 'LONGPLAY SIGNAL READY' : 'NO LONGPLAY SIGNAL', style: const TextStyle(fontSize: 8, letterSpacing: 1.7, color: Color(0xCCFFFFFF))), const SizedBox(height: 5), Text(has ? 'REFERENCE LINK STORED IN WORLD METADATA' : 'ADD longplay_url / youtube_url TO THE WORLD METADATA', maxLines: 2, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.2, color: Color(0x557F70B0)))]) )]); }
+class _MediaButton extends StatelessWidget { final String url; final ValueChanged<String> copy; const _MediaButton({required this.url, required this.copy}); @override Widget build(BuildContext context) => FilledButton.icon(onPressed: () => copy(url), icon: const Icon(Icons.copy, size: 13), label: const Text('COPY REFERENCE')); }
 
 class _NavigationRow extends StatelessWidget {
   final TypedFranchiseNavigation navigation; final bool compact; final ValueChanged<ContentItem> open;
   const _NavigationRow({required this.navigation, required this.compact, required this.open});
   @override Widget build(BuildContext context) => Row(children: [
     Expanded(child: _NavCard(item: navigation.previous, label: 'PREVIOUS', compact: compact, onOpen: navigation.previous == null ? null : () => open(navigation.previous!))),
-    const SizedBox(width: 10),
-    Expanded(flex: 2, child: _NavCard(item: navigation.current, label: 'CURRENT', current: true, compact: compact, onOpen: null)),
-    const SizedBox(width: 10),
-    Expanded(child: _NavCard(item: navigation.next, label: 'NEXT', compact: compact, onOpen: navigation.next == null ? null : () => open(navigation.next!))),
+    const SizedBox(width: 10), Expanded(flex: 2, child: _NavCard(item: navigation.current, label: 'CURRENT', current: true, compact: compact, onOpen: null)),
+    const SizedBox(width: 10), Expanded(child: _NavCard(item: navigation.next, label: 'NEXT', compact: compact, onOpen: navigation.next == null ? null : () => open(navigation.next!))),
   ]);
 }
 class _NavCard extends StatelessWidget {
