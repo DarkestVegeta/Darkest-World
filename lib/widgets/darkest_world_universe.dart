@@ -242,15 +242,107 @@ class _GalaxyDustPainter extends CustomPainter {
 }
 
 class _FloatingVisitPanel extends StatelessWidget {
-  final GalaxyWorld world; final bool compact; final double phase, orbit; final int count, index; final VoidCallback onVisit, onClose;
-  const _FloatingVisitPanel({required this.world, required this.compact, required this.phase, required this.orbit, required this.count, required this.index, required this.onVisit, required this.onClose});
-  @override Widget build(BuildContext context) {
-    final width = compact ? 230.0 : 285.0; final angle = index / math.max(1, count) * math.pi * 2 + orbit * .9;
-    return LayoutBuilder(builder: (_, constraints) { final minSide = math.min(constraints.maxWidth, constraints.maxHeight); final radius = minSide * (compact ? .255 : .285); final x = constraints.maxWidth * .52 + math.cos(angle) * radius * 1.62; final y = constraints.maxHeight * .52 + math.sin(angle) * radius * .72; final left = (x + 46).clamp(12.0, constraints.maxWidth - width - 12); final top = (y - 58).clamp(compact ? 150.0 : 110.0, constraints.maxHeight - 170.0); return AnimatedPositioned(duration: const Duration(milliseconds: 260), curve: Curves.easeOutCubic, left: left, top: top, child: Material(color: Colors.transparent, child: Container(width: width, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xE8080910), border: Border.all(color: Colors.white.withValues(alpha: .12)), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 30)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [Expanded(child: Text(world.title.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 11, letterSpacing: 2))), InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(3), child: Text('×', style: TextStyle(color: Colors.white38, fontSize: 15))))]), const SizedBox(height: 7),
-      Text(world.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 9, height: 1.35)), const SizedBox(height: 11),
-      Row(children: [Expanded(child: InkWell(onTap: onVisit, child: Container(padding: const EdgeInsets.symmetric(vertical: 9), alignment: Alignment.center, color: Colors.white10, child: const Text('VISIT PLANET  →', style: TextStyle(color: Colors.white, fontSize: 7, letterSpacing: 1.5)))), const SizedBox(width: 7), const Text('ENTER', style: TextStyle(color: Colors.white24, fontSize: 6, letterSpacing: 1.2))]),
-    ])))); });
+  final GalaxyWorld world;
+  final bool compact;
+  final double phase, orbit;
+  final int count, index;
+  final VoidCallback onVisit, onClose;
+
+  const _FloatingVisitPanel({
+    required this.world,
+    required this.compact,
+    required this.phase,
+    required this.orbit,
+    required this.count,
+    required this.index,
+    required this.onVisit,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final width = compact ? 230.0 : 285.0;
+    final angle = index / math.max(1, count) * math.pi * 2 + orbit * .9;
+
+    return LayoutBuilder(
+      builder: (_, constraints) {
+        final minSide = math.min(constraints.maxWidth, constraints.maxHeight);
+        final radius = minSide * (compact ? .255 : .285);
+        final x = constraints.maxWidth * .52 + math.cos(angle) * radius * 1.62;
+        final y = constraints.maxHeight * .52 + math.sin(angle) * radius * .72;
+        final left = (x + 46).clamp(12.0, constraints.maxWidth - width - 12).toDouble();
+        final top = (y - 58).clamp(compact ? 150.0 : 110.0, constraints.maxHeight - 170.0).toDouble();
+
+        return AnimatedPositioned(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          left: left,
+          top: top,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: width,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xE8080910),
+                border: Border.all(color: Colors.white.withValues(alpha: .12)),
+                boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 30)],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          world.title.toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontSize: 11, letterSpacing: 2),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: onClose,
+                        child: const Padding(
+                          padding: EdgeInsets.all(3),
+                          child: Text('×', style: TextStyle(color: Colors.white38, fontSize: 15)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    world.description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white54, fontSize: 9, height: 1.35),
+                  ),
+                  const SizedBox(height: 11),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: onVisit,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            alignment: Alignment.center,
+                            color: Colors.white10,
+                            child: const Text(
+                              'VISIT PLANET  →',
+                              style: TextStyle(color: Colors.white, fontSize: 7, letterSpacing: 1.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      const Text('ENTER', style: TextStyle(color: Colors.white24, fontSize: 6, letterSpacing: 1.2)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
