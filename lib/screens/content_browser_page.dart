@@ -2,8 +2,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/content_models.dart';
 import '../core/content_repository.dart';
+import '../core/darkest_world_navigation_state.dart';
 import '../core/supabase_client.dart';
 import 'content_detail_page.dart';
+import 'galaxy_navigation_session.dart';
 
 class ContentBrowserPage extends StatefulWidget {
   final String? contentType;
@@ -16,6 +18,7 @@ class ContentBrowserPage extends StatefulWidget {
 class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTickerProviderStateMixin {
   final repository = ContentRepository();
   final items = <ContentItem>[];
+  final navigation = GalaxyNavigationSession.instance;
   late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 80))..repeat();
   bool loading = true;
   String query = '';
@@ -26,6 +29,31 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTick
   @override void initState() { super.initState(); load(); }
   @override void dispose() { clock.dispose(); super.dispose(); }
 
+  void _publishSelection(List<ContentItem> shown) {
+    if (shown.isEmpty) {
+      navigation.clearContentNavigation();
+      return;
+    }
+    if (selected >= shown.length) selected = shown.length - 1;
+    final current = shown[selected];
+    navigation.publishContentNavigation(DarkestWorldNavigationState(
+      previous: selected > 0 ? shown[selected - 1] : null,
+      current: current,
+      next: selected + 1 < shown.length ? shown[selected + 1] : null,
+      related: const [],
+      source: 'archive',
+    ));
+  }
+
+  List<ContentItem> get _shown => items.where((x) => query.isEmpty || x.title.toLowerCase().contains(query.toLowerCase())).toList();
+
+  void _setSelected(int index) {
+    final shown = _shown;
+    if (shown.isEmpty) return;
+    setState(() => selected = index.clamp(0, shown.length - 1));
+    _publishSelection(shown);
+  }
+
   Future<void> load() async {
     try {
       List<ContentItem> result;
@@ -35,9 +63,15 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTick
       } else {
         result = await repository.getContentItemsPage(type: widget.contentType, page: 0);
       }
-      if (mounted) setState(() { items.addAll(result); loading = false; });
+      if (mounted) {
+        setState(() { items.addAll(result); loading = false; });
+        _publishSelection(_shown);
+      }
     } catch (_) {
-      if (mounted) setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+        navigation.clearContentNavigation();
+      }
     }
   }
 
@@ -50,7 +84,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTick
   void open(ContentItem item) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)));
 
   @override Widget build(BuildContext context) {
-    final shown = items.where((x) => query.isEmpty || x.title.toLowerCase().contains(query.toLowerCase())).toList();
+    final shown = _shown;
     if (selected >= shown.length) selected = shown.isEmpty ? 0 : shown.length - 1;
     final compact = MediaQuery.sizeOf(context).width < 850;
     return Scaffold(
@@ -62,18 +96,18 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTick
           SafeArea(child: Padding(
             padding: EdgeInsets.fromLTRB(compact ? 14 : 30, compact ? 12 : 22, compact ? 14 : 30, 12),
             child: Column(children: [
-              _TopBar(title: widget.title, compact: compact, onBack: () => Navigator.pop(context), onSearch: (v) => setState(() { query = v; selected = 0; })),
+              _TopBar(title: widget.title, compact: compact, onBack: () => Navigator.pop(context), onSearch: (v) { query = v; selected = 0; setState(() {}); _publishSelection(_shown); }),
               const SizedBox(height: 18),
               Expanded(child: loading
                   ? const Center(child: CircularProgressIndicator())
                   : shown.isEmpty
                       ? const _EmptyArchive()
                       : ListView(physics: const BouncingScrollPhysics(), children: [
-                          _HeroArchive(items: shown, selected: selected, compact: compact, onSelect: (i) => setState(() => selected = i), onOpen: open),
+                          _HeroArchive(items: shown, selected: selected, compact: compact, onSelect: _setSelected, onOpen: open),
                           const SizedBox(height: 22),
                           _SectionHeader(count: shown.length, query: query),
                           const SizedBox(height: 10),
-                          _ArchiveGrid(items: shown, compact: compact, selected: selected, onSelect: (i) => setState(() => selected = i), onOpen: open),
+                          _ArchiveGrid(items: shown, compact: compact, selected: selected, onSelect: _setSelected, onOpen: open),
                         ])),
             ]),
           )),
