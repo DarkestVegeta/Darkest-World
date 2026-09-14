@@ -44,6 +44,31 @@ class GalaxyRenderState {
     );
   }
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GalaxyRenderState &&
+          other.phase == phase &&
+          other.orbit == orbit &&
+          other.zoom == zoom &&
+          other.systemMap == systemMap &&
+          other.labels == labels &&
+          other.detail == detail &&
+          other.cinematic == cinematic &&
+          other.compact == compact;
+
+  @override
+  int get hashCode => Object.hash(
+        phase,
+        orbit,
+        zoom,
+        systemMap,
+        labels,
+        detail,
+        cinematic,
+        compact,
+      );
+
   static GalaxyRenderState initial({required bool compact}) => GalaxyRenderState(
         phase: 0,
         orbit: 0,
