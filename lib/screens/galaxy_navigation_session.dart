@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import '../core/galaxy_render_state.dart';
 
@@ -23,16 +25,26 @@ class GalaxyNavigationSession extends ChangeNotifier {
   int historyCursor = -1;
 
   GalaxyRenderState renderState = GalaxyRenderState.initial(compact: false);
+  bool _renderNotificationQueued = false;
+
+  void _notifyRenderListeners() {
+    if (_renderNotificationQueued) return;
+    _renderNotificationQueued = true;
+    scheduleMicrotask(() {
+      _renderNotificationQueued = false;
+      if (hasListeners) notifyListeners();
+    });
+  }
 
   void updateRenderState(GalaxyRenderState next) {
     if (renderState == next) return;
     renderState = next;
-    notifyListeners();
+    _notifyRenderListeners();
   }
 
   void resetRenderState({required bool compact}) {
     renderState = GalaxyRenderState.initial(compact: compact);
-    notifyListeners();
+    _notifyRenderListeners();
   }
 
   bool isMapped(dynamic kind) => mapped.contains(kind);
