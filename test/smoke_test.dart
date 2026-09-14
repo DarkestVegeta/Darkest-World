@@ -2,9 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:darkest_world/main.dart';
 
 void main() {
-  testWidgets('DarkestWorld shows the basic configuration state', (tester) async {
-    await tester.pumpWidget(const DarkestWorldApp(configurationMissing: true));
+  testWidgets('DarkestWorld opens the Galaxy preview', (tester) async {
+    await tester.pumpWidget(const DarkestWorldApp());
+    await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('DarkestWorld configuration is missing.'), findsOneWidget);
+    expect(find.text('DARKESTWORLD'), findsOneWidget);
+    expect(find.text('GALAXY / SYSTEM MAP'), findsOneWidget);
   });
 }
