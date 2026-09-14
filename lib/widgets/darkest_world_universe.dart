@@ -328,7 +328,11 @@ class _NodePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) * .30;
-    final ring = Paint()..style = PaintingStyle.stroke..strokeWidth = selected ? 2.0 : .8..color = (selected || hovered ? Colors.white70 : Colors.white24);
+    final ringColor = selected || hovered ? Colors.white70 : Colors.white24;
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = selected ? 2.0 : .8
+      ..color = ringColor;
     canvas.drawCircle(center, radius, ring);
     final fill = Paint()..shader = RadialGradient(colors: [Colors.white.withValues(alpha: selected ? .9 : .58), const Color(0xFF735080).withValues(alpha: .75), const Color(0xFF11101A)]).createShader(Rect.fromCircle(center: center, radius: radius));
     canvas.drawCircle(center, radius * .72, fill);
