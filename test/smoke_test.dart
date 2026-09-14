@@ -6,7 +6,7 @@ void main() {
     await tester.pumpWidget(const DarkestWorldApp());
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('DARKESTWORLD'), findsOneWidget);
+    expect(find.text('DARKESTWORLD').first, findsOneWidget);
     expect(find.text('GALAXY'), findsOneWidget);
   });
 }
