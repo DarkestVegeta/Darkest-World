@@ -41,12 +41,13 @@ class DarkestWorldNavigationObserver extends NavigatorObserver {
     stack.value = routes.length > 10 ? routes.sublist(routes.length - 10) : routes;
   }
 
-  String get currentLabel {
-    final route = stack.value.isEmpty ? null : stack.value.last;
+  String labelFor(Route<dynamic>? route) {
     final name = route?.settings.name;
     if (name != null && name.isNotEmpty) return name.replaceAll('/', ' / ').toUpperCase();
     return _friendlyRoute(route?.runtimeType.toString() ?? 'GalaxyHomePage');
   }
+
+  String get currentLabel => labelFor(stack.value.isEmpty ? null : stack.value.last);
 
   static String _friendlyRoute(String raw) {
     var value = raw.replaceAll('Page', '').replaceAll('_', ' ');
@@ -75,6 +76,11 @@ class _DarkestWorldSystemHudState extends State<DarkestWorldSystemHud> {
   void _back() {
     final nav = widget.navigatorKey.currentState;
     if (nav?.canPop() ?? false) nav!.pop();
+  }
+
+  void _jump(Route<dynamic> target) {
+    widget.navigatorKey.currentState?.popUntil((route) => identical(route, target));
+    setState(() => commandOpen = false);
   }
 
   void _toggleCommand() => setState(() => commandOpen = !commandOpen);
@@ -110,7 +116,15 @@ class _DarkestWorldSystemHudState extends State<DarkestWorldSystemHud> {
           children: [
             Positioned.fill(child: IgnorePointer(child: _TopAtmosphere(compact: compact))),
             if (commandOpen)
-              Positioned.fill(child: _CommandOverlay(onClose: _toggleCommand, onHome: _home, onBack: _back, routeLabel: widget.observer.currentLabel)),
+              Positioned.fill(child: _CommandOverlay(
+                onClose: _toggleCommand,
+                onHome: _home,
+                onBack: _back,
+                onJump: _jump,
+                routeLabel: widget.observer.currentLabel,
+                routes: widget.observer.stack.value,
+                labelFor: widget.observer.labelFor,
+              )),
             IgnorePointer(
               ignoring: false,
               child: SafeArea(
@@ -212,8 +226,11 @@ class _HudButton extends StatelessWidget {
 
 class _CommandOverlay extends StatelessWidget {
   final VoidCallback onClose, onHome, onBack;
+  final ValueChanged<Route<dynamic>> onJump;
   final String routeLabel;
-  const _CommandOverlay({required this.onClose, required this.onHome, required this.onBack, required this.routeLabel});
+  final List<Route<dynamic>> routes;
+  final String Function(Route<dynamic>?) labelFor;
+  const _CommandOverlay({required this.onClose, required this.onHome, required this.onBack, required this.onJump, required this.routeLabel, required this.routes, required this.labelFor});
 
   @override
   Widget build(BuildContext context) => Material(
@@ -233,7 +250,13 @@ class _CommandOverlay extends StatelessWidget {
                   const Divider(height: 1, color: Color(0x18FFFFFF)),
                   Padding(padding: const EdgeInsets.all(16), child: Column(children: [
                     _CommandRow(label: 'CURRENT LOCATION', value: routeLabel, icon: Icons.my_location),
-                    const SizedBox(height: 7),
+                    if (routes.length > 1) ...[
+                      const SizedBox(height: 12),
+                      Align(alignment: Alignment.centerLeft, child: Text('ROUTE HISTORY', style: const TextStyle(color: Color(0x45FFFFFF), fontSize: 5, letterSpacing: 1.3))),
+                      const SizedBox(height: 6),
+                      ...routes.reversed.take(6).map((route) => _CommandRoute(route: route, label: labelFor(route), current: identical(route, routes.last), onTap: () => onJump(route))),
+                    ],
+                    const SizedBox(height: 8),
                     _CommandAction(icon: Icons.public, label: 'RETURN TO GALAXY', detail: 'Reset the world route', onTap: onHome),
                     _CommandAction(icon: Icons.arrow_back_ios_new, label: 'STEP BACK', detail: 'Return to previous layer', onTap: onBack),
                   ])),
@@ -252,6 +275,16 @@ class _CommandRow extends StatelessWidget {
   const _CommandRow({required this.label, required this.value, required this.icon});
   @override
   Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0x0AFFFFFF), border: Border.all(color: const Color(0x14FFFFFF))), child: Row(children: [Icon(icon, size: 13, color: const Color(0x70FFFFFF)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Color(0x45FFFFFF), fontSize: 5, letterSpacing: 1.2)), const SizedBox(height: 4), Text(value, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 7, letterSpacing: 1))]))]));
+}
+
+class _CommandRoute extends StatelessWidget {
+  final Route<dynamic> route;
+  final String label;
+  final bool current;
+  final VoidCallback onTap;
+  const _CommandRoute({required this.route, required this.label, required this.current, required this.onTap});
+  @override
+  Widget build(BuildContext context) => Material(type: MaterialType.transparency, child: InkWell(onTap: current ? null : onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: current ? const Color(0x0DFFFFFF) : Colors.transparent, border: const Border(bottom: BorderSide(color: Color(0x0EFFFFFF)))), child: Row(children: [Icon(current ? Icons.radio_button_checked : Icons.subdirectory_arrow_right, size: 10, color: current ? const Color(0xAAFFFFFF) : const Color(0x507F8AA2)), const SizedBox(width: 8), Expanded(child: Text(label, overflow: TextOverflow.ellipsis, style: TextStyle(color: current ? const Color(0xAAFFFFFF) : const Color(0x607F8AA2), fontSize: 5.5, letterSpacing: .9))), if (!current) const Icon(Icons.chevron_right, size: 12, color: Color(0x356F7890))])));
 }
 
 class _CommandAction extends StatelessWidget {
