@@ -1,13 +1,9 @@
 import 'package:flutter/foundation.dart';
-import '../widgets/darkest_world_universe.dart';
+import '../core/galaxy_models.dart';
 
 enum GalaxyNavigationSurface { galaxy, atlas, commandCenter, world }
 
 /// The single navigation state for Galaxy, Atlas, Command Center and world pages.
-///
-/// The session deliberately lives for the lifetime of the application instead
-/// of being recreated whenever a page is pushed. Every navigation surface reads
-/// the same target, discovery, visit and route state.
 class GalaxyNavigationSession extends ChangeNotifier {
   GalaxyNavigationSession._();
 
@@ -49,8 +45,6 @@ class GalaxyNavigationSession extends ChangeNotifier {
     if (!discoveryOrder.contains(kind)) discoveryOrder.add(kind);
     if (changed) selectionRevision++;
 
-    // Selecting after moving backward creates a new route branch instead of
-    // leaving stale forward history behind.
     if (historyCursor >= 0 && historyCursor < routeHistory.length - 1) {
       routeHistory.removeRange(historyCursor + 1, routeHistory.length);
     }
@@ -129,7 +123,6 @@ class GalaxyNavigationSession extends ChangeNotifier {
 
   GalaxyWorldKind? previousHistory() => moveHistory(-1);
   GalaxyWorldKind? nextHistory() => moveHistory(1);
-
   GalaxyWorldKind? lastGate() => gateHistory.isEmpty ? null : gateHistory.last;
 
   bool get canGoBack => historyCursor > 0;
