@@ -3,6 +3,7 @@ import 'screens/galaxy_home_page.dart';
 import 'widgets/darkest_world_system_hud.dart';
 
 final GlobalKey<NavigatorState> darkestWorldNavigatorKey = GlobalKey<NavigatorState>();
+final DarkestWorldNavigationObserver darkestWorldNavigationObserver = DarkestWorldNavigationObserver();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,12 +19,16 @@ class DarkestWorldApp extends StatelessWidget {
       title: 'Darkest-World',
       debugShowCheckedModeBanner: false,
       navigatorKey: darkestWorldNavigatorKey,
+      navigatorObservers: [darkestWorldNavigationObserver],
       theme: ThemeData.dark(useMaterial3: true),
       builder: (context, child) => Stack(
         fit: StackFit.expand,
         children: [
           child ?? const SizedBox.shrink(),
-          DarkestWorldSystemHud(navigatorKey: darkestWorldNavigatorKey),
+          DarkestWorldSystemHud(
+            navigatorKey: darkestWorldNavigatorKey,
+            observer: darkestWorldNavigationObserver,
+          ),
         ],
       ),
       home: const GalaxyHomePage(),
