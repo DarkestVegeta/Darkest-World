@@ -87,7 +87,7 @@ class _GamePlatformPageState extends State<GamePlatformPage>
                     final diameter = math.min(
                       box.maxWidth * (compact ? .96 : .82),
                       box.maxHeight * (compact ? .70 : .78),
-                    );
+                    ).toDouble();
                     return SizedBox.square(
                       dimension: diameter,
                       child: Stack(
@@ -115,7 +115,9 @@ class _GamePlatformPageState extends State<GamePlatformPage>
                               onOpen: () => _enter(i),
                             ),
                           const Positioned.fill(
-                            child: IgnorePointer(child: Center(child: _StarCore())),
+                            child: IgnorePointer(
+                              child: Center(child: _StarCore()),
+                            ),
                           ),
                         ],
                       ),
@@ -246,18 +248,21 @@ class _PlanetNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final orbit = size * (.18 + (index % 5) * .055);
-    final angle = -math.pi / 2 +
-        index * math.pi * 2 / math.max(1, total) +
-        phase * math.pi * .18 * (index.isEven ? 1 : -1);
+    final orbit =
+        (size * (.18 + (index % 5) * .055)).toDouble();
+    final angle = (-math.pi / 2 +
+            index * math.pi * 2 / math.max(1, total) +
+            phase * math.pi * .18 * (index.isEven ? 1 : -1))
+        .toDouble();
     final center = size / 2;
     final position = Offset(
       center + math.cos(angle) * orbit,
       center + math.sin(angle) * orbit,
     );
-    final diameter = selected
-        ? math.max(76, size * .105)
-        : math.max(54, size * .074);
+    final diameter = (selected
+            ? math.max(76.0, size * .105)
+            : math.max(54.0, size * .074))
+        .toDouble();
 
     return Positioned(
       left: position.dx - diameter / 2,
@@ -378,9 +383,10 @@ class _PlanetPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(px, py),
         crater,
-        Paint()..color = Colors.white.withValues(
-          alpha: .03 + random.nextDouble() * .055,
-        ),
+        Paint()
+          ..color = Colors.white.withValues(
+            alpha: .03 + random.nextDouble() * .055,
+          ),
       );
     }
 
