@@ -117,9 +117,6 @@ class GalaxyNavigationSession extends ChangeNotifier {
     lastVisited = null;
     surface = GalaxyNavigationSurface.galaxy;
     targetLocked = false;
-    visited.clear();
-    mapped.clear();
-    discoveryOrder.clear();
     routeHistory.clear();
     gateHistory.clear();
     historyCursor = -1;
