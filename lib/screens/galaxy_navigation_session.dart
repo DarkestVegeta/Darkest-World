@@ -50,6 +50,13 @@ class GalaxyNavigationSession extends ChangeNotifier {
     historyCursor = routeHistory.isEmpty ? -1 : routeHistory.length - 1;
     notifyListeners();
   }
+  void clearSelection() {
+    if (selected == null && !targetLocked) return;
+    selected = null;
+    targetLocked = false;
+    selectionRevision++;
+    notifyListeners();
+  }
   void toggleTargetLock() {
     if (selected == null) return;
     targetLocked = !targetLocked;
