@@ -34,20 +34,27 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
   void _open(ContentItem item) => Navigator.push(context, MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)));
   @override Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 850;
-    return Scaffold(backgroundColor: const Color(0xFF020208), body: AnimatedBuilder(animation: _clock, builder: (_, __) => Stack(children: [
-      Positioned.fill(child: CustomPaint(painter: _DetailSpacePainter(_clock.value))),
-      SafeArea(child: ListView(padding: EdgeInsets.fromLTRB(compact ? 14 : 42, 14, compact ? 14 : 42, 55), children: [
-        _Header(title: _title, onBack: () => Navigator.pop(context)), const SizedBox(height: 22),
-        _WorldHero(item: widget.item, artUrl: _artUrl, compact: compact, phase: _clock.value), const SizedBox(height: 22),
-        _MetaStrip(item: widget.item, type: _type, franchise: _franchise),
-        if (_description.isNotEmpty) ...[const SizedBox(height: 22), _Description(text: _description)],
-        const SizedBox(height: 26), _SectionTitle(label: 'NAVIGATION', detail: 'PREVIOUS  |  CURRENT  |  NEXT'), const SizedBox(height: 11),
-        if (_navigationLoading) const _LoadingPanel() else if (_navigationError != null) const _MessagePanel(text: 'FRANCHISE NAVIGATION UNAVAILABLE') else if (_navigation == null) const _MessagePanel(text: 'NO FRANCHISE ORDER AVAILABLE') else _NavigationRow(navigation: _navigation!, compact: compact, open: _open),
-        const SizedBox(height: 28), _SectionTitle(label: 'RELATED', detail: 'CONNECTED WORLDS'), const SizedBox(height: 11),
-        if (_relatedLoading) const _LoadingPanel() else if (_relatedError != null) const _MessagePanel(text: 'RELATED CONTENT UNAVAILABLE') else if (_related.isEmpty) const _MessagePanel(text: 'NO RELATED WORLDS YET') else _RelatedGrid(items: _related, compact: compact, open: _open),
-        if (_isExternal) ...[const SizedBox(height: 24), const _MessagePanel(text: 'LIVE EXTERNAL RESULT — NOT STORED IN THE DARKESTWORLD DATABASE')],
-      ])),
-    ])), floatingActionButton: _chatContext == null ? null : Chatbox(contextData: _chatContext!));
+    return Scaffold(
+      backgroundColor: const Color(0xFF020208),
+      body: AnimatedBuilder(
+        animation: _clock,
+        builder: (_, __) => Stack(children: [
+          Positioned.fill(child: CustomPaint(painter: _DetailSpacePainter(_clock.value))),
+          SafeArea(child: ListView(padding: EdgeInsets.fromLTRB(compact ? 14 : 42, 14, compact ? 14 : 42, 55), children: [
+            _Header(title: _title, onBack: () => Navigator.pop(context)), const SizedBox(height: 22),
+            _WorldHero(item: widget.item, artUrl: _artUrl, compact: compact, phase: _clock.value), const SizedBox(height: 22),
+            _MetaStrip(item: widget.item, type: _type, franchise: _franchise),
+            if (_description.isNotEmpty) ...[const SizedBox(height: 22), _Description(text: _description)],
+            const SizedBox(height: 26), _SectionTitle(label: 'NAVIGATION', detail: 'PREVIOUS  |  CURRENT  |  NEXT'), const SizedBox(height: 11),
+            if (_navigationLoading) const _LoadingPanel() else if (_navigationError != null) const _MessagePanel(text: 'FRANCHISE NAVIGATION UNAVAILABLE') else if (_navigation == null) const _MessagePanel(text: 'NO FRANCHISE ORDER AVAILABLE') else _NavigationRow(navigation: _navigation!, compact: compact, open: _open),
+            const SizedBox(height: 28), _SectionTitle(label: 'RELATED', detail: 'CONNECTED WORLDS'), const SizedBox(height: 11),
+            if (_relatedLoading) const _LoadingPanel() else if (_relatedError != null) const _MessagePanel(text: 'RELATED CONTENT UNAVAILABLE') else if (_related.isEmpty) const _MessagePanel(text: 'NO RELATED WORLDS YET') else _RelatedGrid(items: _related, compact: compact, open: _open),
+            if (_isExternal) ...[const SizedBox(height: 24), const _MessagePanel(text: 'LIVE EXTERNAL RESULT — NOT STORED IN THE DARKESTWORLD DATABASE')],
+          ])),
+        ]),
+      ),
+      floatingActionButton: _chatContext == null ? null : Chatbox(contextData: _chatContext!),
+    );
   }
 }
 
@@ -58,17 +65,14 @@ class _ArtStage extends StatelessWidget {
   final String title;
   final double phase;
   const _ArtStage({required this.url, required this.title, required this.phase});
-  @override
-  Widget build(BuildContext context) {
-    return Stack(children: [
-      Positioned.fill(child: CustomPaint(painter: _ArtStagePainter(phase))),
-      Positioned.fill(child: Padding(padding: const EdgeInsets.all(24), child: Center(child: _ArtObject(url: url, title: title)))),
-      Positioned(left: 16, top: 14, child: _StageLabel(text: 'ARCHIVE OBJECT')),
-      Positioned(right: 16, top: 14, child: _StageLabel(text: '01 / 01')),
-      Positioned(left: 16, bottom: 14, child: _StageLabel(text: 'TRANSPARENT ART READY')),
-      Positioned(right: 16, bottom: 14, child: _StageLabel(text: 'CURRENT')),
-    ]);
-  }
+  @override Widget build(BuildContext context) => Stack(children: [
+    Positioned.fill(child: CustomPaint(painter: _ArtStagePainter(phase))),
+    Positioned.fill(child: Padding(padding: const EdgeInsets.all(24), child: Center(child: _ArtObject(url: url, title: title)))),
+    Positioned(left: 16, top: 14, child: _StageLabel(text: 'ARCHIVE OBJECT')),
+    Positioned(right: 16, top: 14, child: _StageLabel(text: '01 / 01')),
+    Positioned(left: 16, bottom: 14, child: _StageLabel(text: 'TRANSPARENT ART READY')),
+    Positioned(right: 16, bottom: 14, child: _StageLabel(text: 'CURRENT')),
+  ]);
 }
 class _ArtObject extends StatelessWidget { final String? url; final String title; const _ArtObject({required this.url, required this.title}); @override Widget build(BuildContext context) { if (url == null) return Text(title.toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, letterSpacing: 2, color: Color(0x77FFFFFF))); return Image.network(url!, fit: BoxFit.contain, filterQuality: FilterQuality.high, errorBuilder: (_, __, ___) => Text(title.toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, letterSpacing: 2, color: Color(0x77FFFFFF))); } }
 class _StageLabel extends StatelessWidget { final String text; const _StageLabel({required this.text}); @override Widget build(BuildContext context) => DecoratedBox(decoration: const BoxDecoration(color: Color(0x9905060D)), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), child: Text(text, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.8, color: Color(0x667F8AA2))))); }
@@ -81,7 +85,35 @@ class _SectionTitle extends StatelessWidget { final String label; final String d
 class _LoadingPanel extends StatelessWidget { const _LoadingPanel(); @override Widget build(BuildContext context) => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())); }
 class _MessagePanel extends StatelessWidget { final String text; const _MessagePanel({required this.text}); @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: const Color(0x66080912), border: Border.all(color: const Color(0x227F70B0))), child: Text(text, style: const TextStyle(fontSize: 7, letterSpacing: 1.7, color: Color(0x668F82A9)))); }
 class _NavigationRow extends StatelessWidget { final TypedFranchiseNavigation navigation; final bool compact; final ValueChanged<ContentItem> open; const _NavigationRow({required this.navigation, required this.compact, required this.open}); @override Widget build(BuildContext context) => Row(children: [Expanded(child: _NavCard(item: navigation.previous, label: 'PREVIOUS', compact: compact, onOpen: navigation.previous == null ? null : () => open(navigation.previous!))), const SizedBox(width: 10), Expanded(flex: 2, child: _NavCard(item: navigation.current, label: 'CURRENT', current: true, compact: compact, onOpen: null)), const SizedBox(width: 10), Expanded(child: _NavCard(item: navigation.next, label: 'NEXT', compact: compact, onOpen: navigation.next == null ? null : () => open(navigation.next!)))]); }
-class _NavCard extends StatelessWidget { final ContentItem? item; final String label; final bool current; final bool compact; final VoidCallback? onOpen; const _NavCard({required this.item, required this.label, this.current = false, required this.compact, required this.onOpen}); @override Widget build(BuildContext context) => GestureDetector(onTap: onOpen, child: AnimatedContainer(duration: const Duration(milliseconds: 180), height: compact ? 130 : 170, padding: EdgeInsets.all(current ? 18 : 13), decoration: BoxDecoration(color: current ? const Color(0xAA151125) : const Color(0x88080911), border: Border.all(color: current ? const Color(0x7D8A78B5) : const Color(0x267F70B0)), boxShadow: current ? const [BoxShadow(color: Color(0x401F163B), blurRadius: 22)] : null), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(label, style: TextStyle(fontSize: current ? 7 : 5.5, letterSpacing: 2.2, color: const Color(0x778F82A9))), const SizedBox(height: 9), Text(item?.title ?? '—', maxLines: 3, textAlign: TextAlign.center, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: current ? 15 : 9, height: 1.1, letterSpacing: current ? 1.2 : .7, color: item == null ? const Color(0x44FFFFFF) : Colors.white))])));
+class _NavCard extends StatelessWidget {
+  final ContentItem? item;
+  final String label;
+  final bool current;
+  final bool compact;
+  final VoidCallback? onOpen;
+  const _NavCard({required this.item, required this.label, this.current = false, required this.compact, required this.onOpen});
+  @override
+  Widget build(BuildContext context) {
+    final card = AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      height: compact ? 130 : 170,
+      padding: EdgeInsets.all(current ? 18 : 13),
+      decoration: BoxDecoration(
+        color: current ? const Color(0xAA151125) : const Color(0x88080911),
+        border: Border.all(color: current ? const Color(0x7D8A78B5) : const Color(0x267F70B0)),
+        boxShadow: current ? const [BoxShadow(color: Color(0x401F163B), blurRadius: 22)] : null,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(label, style: TextStyle(fontSize: current ? 7 : 5.5, letterSpacing: 2.2, color: const Color(0x778F82A9))),
+          const SizedBox(height: 9),
+          Text(item?.title ?? '—', maxLines: 3, textAlign: TextAlign.center, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: current ? 15 : 9, height: 1.1, letterSpacing: current ? 1.2 : .7, color: item == null ? const Color(0x44FFFFFF) : Colors.white)),
+        ],
+      ),
+    );
+    return GestureDetector(onTap: onOpen, child: card);
+  }
 }
 class _RelatedGrid extends StatelessWidget { final List<ContentItem> items; final bool compact; final ValueChanged<ContentItem> open; const _RelatedGrid({required this.items, required this.compact, required this.open}); @override Widget build(BuildContext context) => GridView.builder(physics: const NeverScrollableScrollPhysics(), shrinkWrap: true, itemCount: items.length, gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: compact ? 190 : 260, mainAxisExtent: compact ? 120 : 145, crossAxisSpacing: 10, mainAxisSpacing: 10), itemBuilder: (_, i) { final item = items[i]; final url = item.metadata['public_url'] ?? item.metadata['image_url']; return GestureDetector(onTap: () => open(item), child: Container(decoration: BoxDecoration(color: const Color(0x99080911), border: Border.all(color: const Color(0x267F70B0))), child: Row(children: [SizedBox(width: compact ? 65 : 82, height: double.infinity, child: url is String && url.isNotEmpty ? Image.network(url, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.public, color: Color(0x447F70B0))) : const Icon(Icons.public, color: Color(0x447F70B0))), Expanded(child: Padding(padding: const EdgeInsets.all(10), child: Text(item.title, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9, letterSpacing: .7, color: Color(0xCCFFFFFF)))))]))); }); }
 class _DetailSpacePainter extends CustomPainter { final double phase; const _DetailSpacePainter(this.phase); @override void paint(Canvas c, Size s) { c.drawRect(Offset.zero & s, Paint()..shader = const RadialGradient(center: Alignment(0, -.15), radius: 1.2, colors: [Color(0xFF20192F), Color(0xFF090910), Color(0xFF010106)]).createShader(Offset.zero & s)); final r = math.Random(42); for (var i = 0; i < 150; i++) { final x = r.nextDouble() * s.width; final y = r.nextDouble() * s.height; c.drawCircle(Offset(x, y), .35 + r.nextDouble(), Paint()..color = Colors.white.withValues(alpha: .06 + r.nextDouble() * .2)); } final y = (phase * s.height * 1.25) % (s.height + 120) - 60; c.drawRect(Rect.fromLTWH(0, y, s.width, 1), Paint()..color = const Color(0x127F70B0)); c.drawRect(Offset.zero & s, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x00000000), Color(0x22000000), Color(0x99000000)]).createShader(Offset.zero & s)); } @override bool shouldRepaint(covariant _DetailSpacePainter old) => old.phase != phase; }
