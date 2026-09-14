@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'screens/galaxy_home_page.dart';
+import 'widgets/darkest_world_system_hud.dart';
+
+final GlobalKey<NavigatorState> darkestWorldNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +17,15 @@ class DarkestWorldApp extends StatelessWidget {
     return MaterialApp(
       title: 'Darkest-World',
       debugShowCheckedModeBanner: false,
+      navigatorKey: darkestWorldNavigatorKey,
       theme: ThemeData.dark(useMaterial3: true),
+      builder: (context, child) => Stack(
+        fit: StackFit.expand,
+        children: [
+          child ?? const SizedBox.shrink(),
+          DarkestWorldSystemHud(navigatorKey: darkestWorldNavigatorKey),
+        ],
+      ),
       home: const GalaxyHomePage(),
     );
   }
