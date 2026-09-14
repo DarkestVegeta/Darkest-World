@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/galaxy_home_page.dart';
 import 'widgets/darkest_world_system_hud.dart';
+import 'widgets/darkest_world_route_history.dart';
 
 final GlobalKey<NavigatorState> darkestWorldNavigatorKey = GlobalKey<NavigatorState>();
 final DarkestWorldNavigationObserver darkestWorldNavigationObserver = DarkestWorldNavigationObserver();
@@ -25,6 +26,10 @@ class DarkestWorldApp extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           child ?? const SizedBox.shrink(),
+          DarkestWorldRouteHistory(
+            navigatorKey: darkestWorldNavigatorKey,
+            observer: darkestWorldNavigationObserver,
+          ),
           DarkestWorldSystemHud(
             navigatorKey: darkestWorldNavigatorKey,
             observer: darkestWorldNavigationObserver,
