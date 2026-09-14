@@ -4,212 +4,41 @@ import '../core/galaxy_render_state.dart';
 import '../screens/galaxy_navigation_session.dart';
 
 enum GalaxyWorldKind { vegeta, game, identity, cinema, creation, music, family, archive, comingSoon }
-
 class GalaxyWorld {
-  final GalaxyWorldKind kind;
-  final String title;
-  final String description;
+  final GalaxyWorldKind kind; final String title; final String description;
   const GalaxyWorld({required this.kind, required this.title, required this.description});
 }
 
 class DarkestWorldUniverse extends StatefulWidget {
-  final List<GalaxyWorld> worlds;
-  final ValueChanged<GalaxyWorld>? onWorldTap;
+  final List<GalaxyWorld> worlds; final ValueChanged<GalaxyWorld>? onWorldTap;
   const DarkestWorldUniverse({super.key, required this.worlds, this.onWorldTap});
   @override State<DarkestWorldUniverse> createState() => _DarkestWorldUniverseState();
 }
-
 class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with SingleTickerProviderStateMixin {
-  late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 90))..repeat();
-  final session = GalaxyNavigationSession.instance;
-  GalaxyWorldKind? selected;
-  GalaxyWorldKind? hovered;
-  GalaxyRenderState get render => session.renderState;
-
-  @override
-  void initState() { super.initState(); session.addListener(_changed); }
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final compact = MediaQuery.sizeOf(context).width < 760;
-    if (render.compact != compact) WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) session.updateRenderState(render.copyWith(compact: compact)); });
-  }
-  @override
-  void dispose() { session.removeListener(_changed); clock.dispose(); super.dispose(); }
-  void _changed() { if (mounted) setState(() {}); }
-  void _select(GalaxyWorld world) { setState(() => selected = world.kind); session.select(world.kind); }
-  void _open(GalaxyWorld world) { session.visit(world.kind); widget.onWorldTap?.call(world); }
-  void _clear() { setState(() { selected = null; hovered = null; }); session.clearSelection(); }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final compact = size.width < 760;
-    final state = render;
-    GalaxyWorld? current;
-    for (final world in widget.worlds) { if (world.kind == selected) { current = world; break; } }
-    return Scaffold(
-      backgroundColor: const Color(0xFF02010A),
-      body: AnimatedBuilder(
-        animation: clock,
-        builder: (_, __) => Stack(fit: StackFit.expand, children: [
-          CustomPaint(painter: _GalaxyBackground(clock.value)),
-          CustomPaint(painter: _GalaxySystemPainter(clock.value, state.zoom)),
-          _WorldNodes(worlds: widget.worlds, phase: clock.value, zoom: state.zoom, selected: selected, hovered: hovered, compact: compact, onSelect: _select, onOpen: _open, onHover: (w) => setState(() => hovered = w?.kind)),
-          Positioned(left: compact ? 18 : 34, top: compact ? 18 : 30, child: const _GalaxyTitle()),
-          Positioned(right: compact ? 18 : 34, top: compact ? 18 : 30, child: _MinimalControls(
-            onReset: () { session.resetRenderState(compact: compact); _clear(); },
-            onZoomIn: () => session.updateRenderState(state.copyWith(zoom: (state.zoom + .08).clamp(.82, 1.35).toDouble())),
-            onZoomOut: () => session.updateRenderState(state.copyWith(zoom: (state.zoom - .08).clamp(.82, 1.35).toDouble())),
-          )),
-          if (current != null) Positioned(left: compact ? 18 : 34, right: compact ? 18 : 34, bottom: compact ? 18 : 30, child: _WorldInfo(world: current, index: widget.worlds.indexOf(current), count: widget.worlds.length, onClose: _clear)),
-          if (current == null) Positioned(left: 0, right: 0, bottom: compact ? 18 : 30, child: const Center(child: _InteractionHint())),
-        ]),
-      ),
-    );
+  late final AnimationController clock=AnimationController(vsync:this,duration:const Duration(seconds:120))..repeat();
+  final session=GalaxyNavigationSession.instance; GalaxyWorldKind? selected,hovered; GalaxyRenderState get render=>session.renderState;
+  @override void initState(){super.initState();session.addListener(_changed);}
+  @override void didChangeDependencies(){super.didChangeDependencies();final c=MediaQuery.sizeOf(context).width<760;if(render.compact!=c)WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)session.updateRenderState(render.copyWith(compact:c));});}
+  @override void dispose(){session.removeListener(_changed);clock.dispose();super.dispose();}
+  void _changed(){if(mounted)setState((){});} void _select(GalaxyWorld w){setState(()=>selected=w.kind);session.select(w.kind);} void _open(GalaxyWorld w){session.visit(w.kind);widget.onWorldTap?.call(w);} void _clear(){setState((){selected=null;hovered=null;});session.clearSelection();}
+  @override Widget build(BuildContext context){final compact=MediaQuery.sizeOf(context).width<760;final s=render;GalaxyWorld? current;for(final w in widget.worlds){if(w.kind==selected){current=w;break;}}
+    return Scaffold(backgroundColor:const Color(0xFF020209),body:AnimatedBuilder(animation:clock,builder:(_,__)=>Stack(fit:StackFit.expand,children:[
+      CustomPaint(painter:_GalaxyBackground(clock.value)),CustomPaint(painter:_GalaxyPainter(clock.value,s.zoom,widget.worlds.length)),
+      _WorldNodes(worlds:widget.worlds,phase:clock.value,zoom:s.zoom,compact:compact,selected:selected,hovered:hovered,onSelect:_select,onOpen:_open,onHover:(w)=>setState(()=>hovered=w?.kind)),
+      Positioned(left:compact?18:42,top:compact?18:36,child:const _Title()),Positioned(right:compact?18:42,top:compact?18:36,child:_Controls(reset:(){session.resetRenderState(compact:compact);_clear();},plus:()=>session.updateRenderState(s.copyWith(zoom:(s.zoom+.08).clamp(.78,1.42).toDouble())),minus:()=>session.updateRenderState(s.copyWith(zoom:(s.zoom-.08).clamp(.78,1.42).toDouble())))),
+      if(current!=null)Positioned(left:compact?18:42,right:compact?18:42,bottom:compact?18:34,child:_Info(world:current,index:widget.worlds.indexOf(current),count:widget.worlds.length,close:_clear)) else const Positioned(left:0,right:0,bottom:32,child:Center(child:_Hint()))
+    ])));
   }
 }
-
-class _WorldNodes extends StatelessWidget {
-  final List<GalaxyWorld> worlds;
-  final double phase, zoom;
-  final GalaxyWorldKind? selected, hovered;
-  final bool compact;
-  final ValueChanged<GalaxyWorld> onSelect, onOpen;
-  final ValueChanged<GalaxyWorld?> onHover;
-  const _WorldNodes({required this.worlds, required this.phase, required this.zoom, required this.selected, required this.hovered, required this.compact, required this.onSelect, required this.onOpen, required this.onHover});
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
-    final w = box.maxWidth, h = box.maxHeight, m = math.min(w, h);
-    final center = Offset(w * .50, h * .51);
-    final orbitW = m * (compact ? .28 : .32) * zoom;
-    final orbitH = m * (compact ? .20 : .235) * zoom;
-    final nodes = <Widget>[];
-    for (var i = 0; i < worlds.length; i++) {
-      final world = worlds[i];
-      final a = -math.pi / 2 + i * math.pi * 2 / worlds.length + phase * math.pi * .08;
-      final p = Offset(center.dx + math.cos(a) * orbitW, center.dy + math.sin(a) * orbitH);
-      final depth = (math.sin(a) + 1) / 2;
-      final diameter = m * (.055 + depth * .025 + (selected == world.kind ? .018 : 0));
-      nodes.add(Positioned(
-        left: p.dx - diameter / 2, top: p.dy - diameter / 2, width: diameter, height: diameter,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (_) => onHover(world), onExit: (_) => onHover(null),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onSelect(world),
-            onDoubleTap: () => onOpen(world),
-            child: _WorldOrb(index: i, selected: selected == world.kind, hovered: hovered == world.kind, depth: depth),
-          ),
-        ),
-      ));
-    }
-    return Stack(children: nodes);
-  });
+class _WorldNodes extends StatelessWidget{
+  final List<GalaxyWorld> worlds;final double phase,zoom;final bool compact;final GalaxyWorldKind? selected,hovered;final ValueChanged<GalaxyWorld> onSelect,onOpen;final ValueChanged<GalaxyWorld?> onHover;
+  const _WorldNodes({required this.worlds,required this.phase,required this.zoom,required this.compact,required this.selected,required this.hovered,required this.onSelect,required this.onOpen,required this.onHover});
+  @override Widget build(BuildContext context)=>LayoutBuilder(builder:(context,b){final m=math.min(b.maxWidth,b.maxHeight),c=Offset(b.maxWidth*.5,b.maxHeight*.51),r=m*(compact?.28:.35)*zoom;final out=<Widget>[];for(var i=0;i<worlds.length;i++){final w=worlds[i];final a=-math.pi/2+i*math.pi*2/worlds.length+phase*math.pi*.03;final rr=r*(.84+(i%3)*.16);final p=Offset(c.dx+math.cos(a)*rr,c.dy+math.sin(a)*rr*.66);final d=m*(.075+(math.sin(a)+1)*.012+(selected==w.kind?.025:0));out.add(Positioned(left:p.dx-d/2,top:p.dy-d/2,width:d,height:d,child:MouseRegion(cursor:SystemMouseCursors.click,onEnter:(_)=>onHover(w),onExit:(_)=>onHover(null),child:GestureDetector(onTap:()=>onSelect(w),onDoubleTap:()=>onOpen(w),child:CustomPaint(painter:_OrbPainter(w.kind,w.title,selected==w.kind,hovered==w.kind,(math.sin(a)+1)/2))))));}return Stack(children:out);});
 }
-
-class _WorldOrb extends StatelessWidget {
-  final int index; final bool selected, hovered; final double depth;
-  const _WorldOrb({required this.index, required this.selected, required this.hovered, required this.depth});
-  @override Widget build(BuildContext context) => CustomPaint(painter: _OrbPainter(index, selected, hovered, depth));
-}
-
-class _GalaxyTitle extends StatelessWidget {
-  const _GalaxyTitle();
-  @override Widget build(BuildContext context) => IgnorePointer(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-    Text('DARKESTWORLD', style: TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 5.5, fontWeight: FontWeight.w500)),
-    SizedBox(height: 8), Text('GALAXY', style: TextStyle(color: Color(0x78FFFFFF), fontSize: 7, letterSpacing: 3.2)),
-  ]));
-}
-
-class _MinimalControls extends StatelessWidget {
-  final VoidCallback onReset, onZoomIn, onZoomOut;
-  const _MinimalControls({required this.onReset, required this.onZoomIn, required this.onZoomOut});
-  @override Widget build(BuildContext context) => Row(children: [
-    _Control('+', onZoomIn), const SizedBox(width: 5), _Control('−', onZoomOut), const SizedBox(width: 5), _Control('RESET', onReset),
-  ]);
-}
-class _Control extends StatelessWidget {
-  final String label; final VoidCallback onTap;
-  const _Control(this.label, this.onTap);
-  @override Widget build(BuildContext context) => InkWell(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7), decoration: BoxDecoration(color: const Color(0x4A05050C), border: Border.all(color: const Color(0x22FFFFFF))), child: Text(label, style: const TextStyle(color: Color(0x70FFFFFF), fontSize: 6, letterSpacing: 1.4))));
-}
-
-class _WorldInfo extends StatelessWidget {
-  final GalaxyWorld world; final int index, count; final VoidCallback onClose;
-  const _WorldInfo({required this.world, required this.index, required this.count, required this.onClose});
-  @override Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(18, 15, 12, 15),
-    decoration: BoxDecoration(color: const Color(0xC9070710), border: Border.all(color: const Color(0x28FFFFFF)), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 30)]),
-    child: Row(children: [
-      Container(width: 3, height: 42, color: const Color(0x667D5AA2)), const SizedBox(width: 13),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('${(index + 1).toString().padLeft(2, '0')} / ${count.toString().padLeft(2, '0')}', style: const TextStyle(color: Color(0x45FFFFFF), fontSize: 5.5, letterSpacing: 1.6)),
-        const SizedBox(height: 4), Text(world.title, style: const TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 2.6)),
-        const SizedBox(height: 4), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0x68FFFFFF), fontSize: 7.5)),
-      ])),
-      InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(8), child: Text('×', style: TextStyle(color: Color(0x80FFFFFF), fontSize: 18)))),
-    ]),
-  );
-}
-
-class _InteractionHint extends StatelessWidget {
-  const _InteractionHint();
-  @override Widget build(BuildContext context) => const Text('CLICK TO FOCUS   •   DOUBLE-CLICK TO ENTER', style: TextStyle(color: Color(0x45FFFFFF), fontSize: 6.5, letterSpacing: 1.8));
-}
-
-class _GalaxyBackground extends CustomPainter {
-  final double phase;
-  const _GalaxyBackground(this.phase);
-  @override void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(rect, Paint()..shader = const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF05030C), Color(0xFF02020A), Color(0xFF090414)]).createShader(rect));
-    final random = math.Random(7719);
-    for (var i = 0; i < 420; i++) {
-      final a = .035 + random.nextDouble() * .22;
-      canvas.drawCircle(Offset(random.nextDouble() * size.width, random.nextDouble() * size.height), .2 + random.nextDouble() * .8, Paint()..color = Colors.white.withValues(alpha: a));
-    }
-    final c = Offset(size.width * .50, size.height * .51);
-    final glow = math.min(size.width, size.height) * .44;
-    canvas.drawCircle(c, glow, Paint()..shader = RadialGradient(colors: [const Color(0xFF67457A).withValues(alpha: .08), Colors.transparent]).createShader(Rect.fromCircle(center: c, radius: glow)));
-  }
-  @override bool shouldRepaint(covariant _GalaxyBackground old) => old.phase != phase;
-}
-
-class _GalaxySystemPainter extends CustomPainter {
-  final double phase, zoom;
-  const _GalaxySystemPainter(this.phase, this.zoom);
-  @override void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width * .50, size.height * .51), m = math.min(size.width, size.height);
-    final ow = m * .32 * zoom, oh = m * .235 * zoom;
-    final orbit = Paint()..style = PaintingStyle.stroke..strokeWidth = .55..color = const Color(0x1FFFFFFF);
-    canvas.drawOval(Rect.fromCenter(center: center, width: ow * 2, height: oh * 2), orbit);
-    final inner = Paint()..style = PaintingStyle.stroke..strokeWidth = .35..color = const Color(0x0FFFFFFF);
-    canvas.drawOval(Rect.fromCenter(center: center, width: ow * 1.45, height: oh * 1.45), inner);
-    canvas.drawOval(Rect.fromCenter(center: center, width: ow * .68, height: oh * .68), inner);
-    final core = m * .055;
-    canvas.drawCircle(center, core * 2.6, Paint()..shader = RadialGradient(colors: [const Color(0xFFA77BC8).withValues(alpha: .13), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: core * 2.6)));
-    canvas.drawCircle(center, core, Paint()..shader = const RadialGradient(colors: [Color(0xFFD7CBE3), Color(0xFF755A86), Color(0xFF15101B)]).createShader(Rect.fromCircle(center: center, radius: core)));
-    canvas.drawCircle(center, core * .82, Paint()..style = PaintingStyle.stroke..strokeWidth = .6..color = const Color(0x70FFFFFF));
-    final sweep = Paint()..style = PaintingStyle.stroke..strokeWidth = .7..color = const Color(0x35FFFFFF);
-    canvas.drawArc(Rect.fromCenter(center: center, width: ow * 1.9, height: oh * 1.9), phase * math.pi * 2, math.pi * .55, false, sweep);
-  }
-  @override bool shouldRepaint(covariant _GalaxySystemPainter old) => old.phase != phase || old.zoom != zoom;
-}
-
-class _OrbPainter extends CustomPainter {
-  final int index; final bool selected, hovered; final double depth;
-  _OrbPainter(this.index, this.selected, this.hovered, this.depth);
-  @override void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero), r = math.min(size.width, size.height) * .32;
-    final halo = r * (selected ? 2.0 : hovered ? 1.55 : 1.25);
-    canvas.drawCircle(c, halo, Paint()..shader = RadialGradient(colors: [const Color(0xFF9A78B0).withValues(alpha: selected ? .23 : .13), Colors.transparent]).createShader(Rect.fromCircle(center: c, radius: halo)));
-    final body = Paint()..shader = const RadialGradient(center: Alignment(-.3, -.35), radius: 1.0, colors: [Color(0xFFE6DFEA), Color(0xFF7D668A), Color(0xFF17121D)]).createShader(Rect.fromCircle(center: c, radius: r));
-    canvas.drawCircle(c, r, body);
-    canvas.drawArc(Rect.fromCircle(center: c, radius: r * .74), math.pi * .1, math.pi * .95, false, Paint()..style = PaintingStyle.stroke..strokeWidth = r * .10..color = const Color(0x55100C14));
-    if (selected || hovered) canvas.drawCircle(c, r * 1.18, Paint()..style = PaintingStyle.stroke..strokeWidth = selected ? 1.5 : .8..color = const Color(0x99FFFFFF));
-  }
-  @override bool shouldRepaint(covariant _OrbPainter old) => old.index != index || old.selected != selected || old.hovered != hovered || old.depth != depth;
-}
+class _Title extends StatelessWidget{const _Title();@override Widget build(BuildContext c)=>IgnorePointer(child:const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('DARKESTWORLD',style:TextStyle(color:Colors.white,fontSize:15,letterSpacing:6,fontWeight:FontWeight.w500)),SizedBox(height:8),Text('THE WORLDS / GALAXY',style:TextStyle(color:Color(0x78FFFFFF),fontSize:7,letterSpacing:3.4))]));}
+class _Controls extends StatelessWidget{final VoidCallback reset,plus,minus;const _Controls({required this.reset,required this.plus,required this.minus});@override Widget build(BuildContext c)=>Row(children:[_C('+',plus),const SizedBox(width:5),_C('−',minus),const SizedBox(width:5),_C('RESET',reset)]);}class _C extends StatelessWidget{final String t;final VoidCallback f;const _C(this.t,this.f);@override Widget build(BuildContext c)=>InkWell(onTap:f,child:Container(padding:const EdgeInsets.symmetric(horizontal:10,vertical:8),decoration:BoxDecoration(color:const Color(0x5506060D),border:Border.all(color:const Color(0x30FFFFFF))),child:Text(t,style:const TextStyle(color:Color(0x90FFFFFF),fontSize:6.5,letterSpacing:1.5))));}
+class _Info extends StatelessWidget{final GalaxyWorld world;final int index,count;final VoidCallback close;const _Info({required this.world,required this.index,required this.count,required this.close});@override Widget build(BuildContext c)=>Container(padding:const EdgeInsets.fromLTRB(20,16,12,16),decoration:BoxDecoration(color:const Color(0xE00A0912),border:Border.all(color:const Color(0x38FFFFFF)),boxShadow:const[BoxShadow(color:Colors.black87,blurRadius:36)]),child:Row(children:[Container(width:3,height:52,color:const Color(0x997D5AA2)),const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${(index+1).toString().padLeft(2,'0')} / ${count.toString().padLeft(2,'0')}',style:const TextStyle(color:Color(0x55FFFFFF),fontSize:6,letterSpacing:1.8)),const SizedBox(height:5),Text(world.title,style:const TextStyle(color:Colors.white,fontSize:16,letterSpacing:3)),const SizedBox(height:5),Text(world.description,maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:Color(0x78FFFFFF),fontSize:8))])),InkWell(onTap:close,child:const Padding(padding:EdgeInsets.all(9),child:Text('×',style:TextStyle(color:Color(0x90FFFFFF),fontSize:19))))]));}
+class _Hint extends StatelessWidget{const _Hint();@override Widget build(BuildContext c)=>const Text('1× CLICK  FOCUS     2× CLICK  ENTER WORLD',style:TextStyle(color:Color(0x58FFFFFF),fontSize:7,letterSpacing:2));}
+class _GalaxyBackground extends CustomPainter{final double phase;const _GalaxyBackground(this.phase);@override void paint(Canvas x,Size s){final q=Offset.zero&s;x.drawRect(q,Paint()..shader=const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF030209),Color(0xFF090510),Color(0xFF020208)]).createShader(q));final z=math.Random(7719);for(var i=0;i<620;i++){final a=.025+z.nextDouble()*.20;x.drawCircle(Offset(z.nextDouble()*s.width,z.nextDouble()*s.height),.15+z.nextDouble()*1.05,Paint()..color=Colors.white.withValues(alpha:a));}final c=Offset(s.width*.5,s.height*.51),r=math.min(s.width,s.height)*.62;x.drawCircle(c,r,Paint()..shader=RadialGradient(colors:[const Color(0xFF8D5AB0).withValues(alpha:.10),const Color(0xFF3D376D).withValues(alpha:.035),Colors.transparent]).createShader(Rect.fromCircle(center:c,radius:r)));x.drawOval(Rect.fromCenter(center:c,width:r*1.6,height:r*.48),Paint()..style=PaintingStyle.stroke..strokeWidth=math.min(s.width,s.height)*.018..color=const Color(0x126F477D));} @override bool shouldRepaint(covariant _GalaxyBackground o)=>o.phase!=phase;}
+class _GalaxyPainter extends CustomPainter{final double phase,zoom;final int count;const _GalaxyPainter(this.phase,this.zoom,this.count);@override void paint(Canvas x,Size s){final c=Offset(s.width*.5,s.height*.51),m=math.min(s.width,s.height),ow=m*.36*zoom,oh=m*.24*zoom;for(final f in[1.0,.70,.38])x.drawOval(Rect.fromCenter(center:c,width:ow*2*f,height:oh*2*f),Paint()..style=PaintingStyle.stroke..strokeWidth=.35..color=Color(0x20FFFFFF));for(var i=0;i<count;i++){final a=-math.pi/2+i*math.pi*2/count,p=Offset(c.dx+math.cos(a)*ow,c.dy+math.sin(a)*oh);x.drawLine(c,p,Paint()..color=const Color(0x16B99BD0)..strokeWidth=.4);}final r=m*.085;x.drawCircle(c,r*3,Paint()..shader=RadialGradient(colors:[const Color(0xFFA974CA).withValues(alpha:.18),Colors.transparent]).createShader(Rect.fromCircle(center:c,radius:r*3)));x.drawCircle(c,r,Paint()..shader=const RadialGradient(center:Alignment(-.28,-.38),colors:[Color(0xFFE7DCEC),Color(0xFF8A6B98),Color(0xFF23172A)]).createShader(Rect.fromCircle(center:c,radius:r)));x.drawArc(Rect.fromCenter(center:c,width:ow*1.75,height:oh*1.75),phase*math.pi*2,math.pi*.58,false,Paint()..style=PaintingStyle.stroke..strokeWidth=.9..color=const Color(0x45FFFFFF));x.drawArc(Rect.fromCenter(center:c,width:ow*1.25,height:oh*1.25),-phase*math.pi*1.4,math.pi*.35,false,Paint()..style=PaintingStyle.stroke..strokeWidth=.65..color=const Color(0x35A986B9));} @override bool shouldRepaint(covariant _GalaxyPainter o)=>o.phase!=phase||o.zoom!=zoom||o.count!=count;}
+class _OrbPainter extends CustomPainter{final GalaxyWorldKind kind;final String title;final bool selected,hovered;final double depth;_OrbPainter(this.kind,this.title,this.selected,this.hovered,this.depth);Color get accent=>switch(kind){GalaxyWorldKind.game=>const Color(0xFF7FA7D8),GalaxyWorldKind.music=>const Color(0xFFB98AD0),GalaxyWorldKind.cinema=>const Color(0xFFB5A0D0),GalaxyWorldKind.identity=>const Color(0xFF8EA3B8),GalaxyWorldKind.family=>const Color(0xFF9A87B7),GalaxyWorldKind.creation=>const Color(0xFFB99A76),GalaxyWorldKind.archive=>const Color(0xFF8A8796),GalaxyWorldKind.comingSoon=>const Color(0xFF77727F),GalaxyWorldKind.vegeta=>const Color(0xFFC7A4D8)};@override void paint(Canvas x,Size s){final c=s.center(Offset.zero),r=math.min(s.width,s.height)*.31,h=r*(selected?2.8:hovered?2.15:1.65);x.drawCircle(c,h,Paint()..shader=RadialGradient(colors:[accent.withValues(alpha:selected?.30:.13),Colors.transparent]).createShader(Rect.fromCircle(center:c,radius:h)));final body=Paint()..shader=RadialGradient(center:const Alignment(-.34,-.38),colors:[Color.lerp(Colors.white,accent,.18+depth*.25)!,accent.withValues(alpha:.78),const Color(0xFF17121D)]).createShader(Rect.fromCircle(center:c,radius:r));x.drawCircle(c,r,body);x.drawArc(Rect.fromCircle(center:c,radius:r*.70),math.pi*(.1+depth*.2),math.pi*.72,false,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.11..color=const Color(0x4A100B16));if(selected||hovered)x.drawCircle(c,r*1.25,Paint()..style=PaintingStyle.stroke..strokeWidth=selected?1.8:1..color=accent.withValues(alpha:selected?.9:.62));if(selected)x.drawCircle(c,r*.16,Paint()..color=Colors.white.withValues(alpha:.78));final tp=TextPainter(text:TextSpan(text:title,style:TextStyle(color:Colors.white.withValues(alpha:selected||hovered?.92:.50),fontSize:math.max(6,s.width*.055),letterSpacing:1.4,fontWeight:selected?FontWeight.w600:FontWeight.w400)),textDirection:TextDirection.ltr)..layout(maxWidth:s.width*1.9);tp.paint(x,Offset(c.dx-tp.width/2,s.height*.77));} @override bool shouldRepaint(covariant _OrbPainter o)=>o.kind!=kind||o.selected!=selected||o.hovered!=hovered||o.depth!=depth||o.title!=title;}
