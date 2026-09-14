@@ -78,4 +78,22 @@ void main() {
     expect(session.nextHistory(), GalaxyWorldKind.cinema);
     expect(session.selected, GalaxyWorldKind.cinema);
   });
+
+  test('navigation reset clears route state but preserves discovery state', () {
+    session.select(GalaxyWorldKind.game);
+    session.visit(GalaxyWorldKind.game);
+    session.select(GalaxyWorldKind.music);
+    session.toggleTargetLock();
+
+    session.resetNavigation();
+
+    expect(session.selected, isNull);
+    expect(session.targetLocked, isFalse);
+    expect(session.routeHistory, isEmpty);
+    expect(session.gateHistory, isEmpty);
+    expect(session.historyCursor, -1);
+    expect(session.isMapped(GalaxyWorldKind.game), isTrue);
+    expect(session.isMapped(GalaxyWorldKind.music), isTrue);
+    expect(session.isVisited(GalaxyWorldKind.game), isTrue);
+  });
 }
