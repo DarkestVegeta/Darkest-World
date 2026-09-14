@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../core/galaxy_render_state.dart';
+import '../screens/galaxy_navigation_session.dart';
 
 enum GalaxyWorldKind { vegeta, game, identity, cinema, creation, music, family, archive, comingSoon }
 
@@ -20,24 +22,57 @@ class DarkestWorldUniverse extends StatefulWidget {
 
 class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with SingleTickerProviderStateMixin {
   late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 70))..repeat();
+  final session = GalaxyNavigationSession.instance;
   GalaxyWorldKind? selected;
   GalaxyWorldKind? hovered;
-  double orbit = 0;
-  double zoom = 1;
-  bool systemMap = false;
-  bool labels = true;
-  bool detail = true;
-  bool cinematic = true;
 
-  @override void dispose() { clock.dispose(); super.dispose(); }
+  GalaxyRenderState get render => session.renderState;
+
+  @override
+  void initState() {
+    super.initState();
+    session.addListener(_sessionChanged);
+  }
+
+  @override
+  void dispose() {
+    session.removeListener(_sessionChanged);
+    clock.dispose();
+    super.dispose();
+  }
+
+  void _sessionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _updateRender(GalaxyRenderState next) {
+    session.updateRenderState(next);
+  }
+
+  void _syncCompact(bool compact) {
+    if (render.compact != compact) {
+      _updateRender(render.copyWith(compact: compact));
+    }
+  }
+
   GalaxyWorld? get current => selected == null ? null : widget.worlds.cast<GalaxyWorld?>().firstWhere((w) => w!.kind == selected, orElse: () => null);
-  void select(GalaxyWorld w) => setState(() => selected = selected == w.kind ? null : w.kind);
+  void select(GalaxyWorld w) {
+    final next = selected == w.kind ? null : w.kind;
+    setState(() => selected = next);
+    if (next == null) {
+      session.clearSelection();
+    } else {
+      session.select(next);
+    }
+  }
   void visit() { final w = current; if (w != null) widget.onWorldTap?.call(w); }
 
   @override Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 760;
+    _syncCompact(compact);
     final chosen = current;
+    final state = render;
     return FocusableActionDetector(
       autofocus: true,
       shortcuts: const <ShortcutActivator, Intent>{
@@ -46,57 +81,60 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
       },
       actions: <Type, Action<Intent>>{
         ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) { visit(); return null; }),
-        DismissIntent: CallbackAction<DismissIntent>(onInvoke: (_) { setState(() => selected = null); return null; }),
+        DismissIntent: CallbackAction<DismissIntent>(onInvoke: (_) { select(chosen ?? widget.worlds.first); return null; }),
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF010107),
         body: GestureDetector(
-          onScaleUpdate: (d) => setState(() {
+          onScaleUpdate: (d) {
             if (d.pointerCount > 1) {
-              zoom = (zoom * d.scale).clamp(.66, 1.70).toDouble();
+              _updateRender(state.copyWith(zoom: (state.zoom * d.scale).clamp(.66, 1.70).toDouble()));
             } else {
-              orbit += d.focalPointDelta.dx / math.max(220.0, size.width);
+              _updateRender(state.copyWith(orbit: state.orbit + d.focalPointDelta.dx / math.max(220.0, size.width)));
             }
-          }),
+          },
           child: AnimatedBuilder(
             animation: clock,
             builder: (_, __) => Stack(fit: StackFit.expand, children: [
-              CustomPaint(painter: _DeepSpacePainter(clock.value, detail, cinematic)),
-              CustomPaint(painter: _GalaxyDustPainter(clock.value, cinematic)),
+              CustomPaint(painter: _DeepSpacePainter(clock.value, state.detail, state.cinematic)),
+              CustomPaint(painter: _GalaxyDustPainter(clock.value, state.cinematic)),
               Transform.scale(
-                scale: zoom,
-                child: CustomPaint(painter: _OrbitArchitecturePainter(clock.value, orbit, systemMap, detail)),
+                scale: state.zoom,
+                child: CustomPaint(painter: _OrbitArchitecturePainter(clock.value, state.orbit, state.systemMap, state.detail)),
               ),
               _WorldOrbit(
                 worlds: widget.worlds,
                 phase: clock.value,
-                orbit: orbit,
+                orbit: state.orbit,
                 selected: selected,
                 hovered: hovered,
-                labels: labels,
-                detail: detail,
-                cinematic: cinematic,
-                compact: compact,
+                labels: state.labels,
+                detail: state.detail,
+                cinematic: state.cinematic,
+                compact: state.compact,
                 onTap: select,
                 onHover: (w) => setState(() => hovered = w?.kind),
               ),
-              _Header(systemMap: systemMap, compact: compact, cinematic: cinematic),
-              Positioned(right: compact ? 10 : 26, top: compact ? 70 : 26, child: _Controls(
-                map: systemMap,
-                labels: labels,
-                detail: detail,
-                cinematic: cinematic,
-                onIn: () => setState(() => zoom = (zoom + .1).clamp(.66, 1.70).toDouble()),
-                onOut: () => setState(() => zoom = (zoom - .1).clamp(.66, 1.70).toDouble()),
-                onMap: () => setState(() => systemMap = !systemMap),
-                onLabels: () => setState(() => labels = !labels),
-                onDetail: () => setState(() => detail = !detail),
-                onCinematic: () => setState(() => cinematic = !cinematic),
-                onReset: () => setState(() { orbit = 0; zoom = 1; selected = null; hovered = null; systemMap = false; detail = true; cinematic = true; }),
+              _Header(systemMap: state.systemMap, compact: state.compact, cinematic: state.cinematic),
+              Positioned(right: state.compact ? 10 : 26, top: state.compact ? 70 : 26, child: _Controls(
+                map: state.systemMap,
+                labels: state.labels,
+                detail: state.detail,
+                cinematic: state.cinematic,
+                onIn: () => _updateRender(state.copyWith(zoom: (state.zoom + .1).clamp(.66, 1.70).toDouble())),
+                onOut: () => _updateRender(state.copyWith(zoom: (state.zoom - .1).clamp(.66, 1.70).toDouble())),
+                onMap: () => _updateRender(state.copyWith(systemMap: !state.systemMap)),
+                onLabels: () => _updateRender(state.copyWith(labels: !state.labels)),
+                onDetail: () => _updateRender(state.copyWith(detail: !state.detail)),
+                onCinematic: () => _updateRender(state.copyWith(cinematic: !state.cinematic)),
+                onReset: () {
+                  session.resetRenderState(compact: state.compact);
+                  setState(() { selected = null; hovered = null; });
+                },
               )),
-              Positioned(left: compact ? 12 : 30, top: compact ? 112 : 92, child: _Telemetry(phase: clock.value, selected: chosen, hovered: hovered, map: systemMap, zoom: zoom, cinematic: cinematic)),
+              Positioned(left: state.compact ? 12 : 30, top: state.compact ? 112 : 92, child: _Telemetry(phase: clock.value, selected: chosen, hovered: hovered, map: state.systemMap, zoom: state.zoom, cinematic: state.cinematic)),
               if (chosen != null)
-                _FloatingVisitPanel(world: chosen, compact: compact, phase: clock.value, orbit: orbit, count: widget.worlds.length, index: widget.worlds.indexOf(chosen), onVisit: visit, onClose: () => setState(() => selected = null))
+                _FloatingVisitPanel(world: chosen, compact: state.compact, phase: clock.value, orbit: state.orbit, count: widget.worlds.length, index: widget.worlds.indexOf(chosen), onVisit: visit, onClose: () => select(chosen))
               else const Positioned(left: 0, right: 0, bottom: 22, child: Center(child: _Hint())),
             ]),
           ),
@@ -298,16 +336,7 @@ class _FloatingVisitPanel extends StatelessWidget {
   final int count, index;
   final VoidCallback onVisit, onClose;
 
-  const _FloatingVisitPanel({
-    required this.world,
-    required this.compact,
-    required this.phase,
-    required this.orbit,
-    required this.count,
-    required this.index,
-    required this.onVisit,
-    required this.onClose,
-  });
+  const _FloatingVisitPanel({required this.world, required this.compact, required this.phase, required this.orbit, required this.count, required this.index, required this.onVisit, required this.onClose});
 
   @override
   Widget build(BuildContext context) {
@@ -333,61 +362,21 @@ class _FloatingVisitPanel extends StatelessWidget {
             child: Container(
               width: width,
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xE8080910),
-                border: Border.all(color: Colors.white.withValues(alpha: .12)),
-                boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 30)],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          world.title.toUpperCase(),
-                          style: const TextStyle(color: Colors.white, fontSize: 11, letterSpacing: 2),
-                        ),
-                      ),
-                      InkWell(
-                        onTap: onClose,
-                        child: const Padding(
-                          padding: EdgeInsets.all(3),
-                          child: Text('×', style: TextStyle(color: Colors.white38, fontSize: 15)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 7),
-                  Text(
-                    world.description,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white54, fontSize: 9, height: 1.35),
-                  ),
-                  const SizedBox(height: 11),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: onVisit,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 9),
-                            alignment: Alignment.center,
-                            color: Colors.white10,
-                            child: const Text(
-                              'VISIT PLANET  →',
-                              style: TextStyle(color: Colors.white, fontSize: 7, letterSpacing: 1.5),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 7),
-                      const Text('ENTER', style: TextStyle(color: Colors.white24, fontSize: 6, letterSpacing: 1.2)),
-                    ],
-                  ),
-                ],
-              ),
+              decoration: BoxDecoration(color: const Color(0xE8080910), border: Border.all(color: Colors.white.withValues(alpha: .12)), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 30)]),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text(world.title.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 11, letterSpacing: 2))),
+                  InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(3), child: Text('×', style: TextStyle(color: Colors.white38, fontSize: 15)))),
+                ]),
+                const SizedBox(height: 7),
+                Text(world.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 9, height: 1.35)),
+                const SizedBox(height: 11),
+                Row(children: [
+                  Expanded(child: InkWell(onTap: onVisit, child: Container(padding: const EdgeInsets.symmetric(vertical: 9), alignment: Alignment.center, color: Colors.white10, child: const Text('VISIT PLANET  →', style: TextStyle(color: Colors.white, fontSize: 7, letterSpacing: 1.5))))),
+                  const SizedBox(width: 7),
+                  const Text('ENTER', style: TextStyle(color: Colors.white24, fontSize: 6, letterSpacing: 1.2)),
+                ]),
+              ]),
             ),
           ),
         );
