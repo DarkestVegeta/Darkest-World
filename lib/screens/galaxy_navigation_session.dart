@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../core/galaxy_render_state.dart';
 
 enum GalaxyNavigationSurface { galaxy, atlas, commandCenter, world }
 
@@ -20,6 +21,19 @@ class GalaxyNavigationSession extends ChangeNotifier {
   final routeHistory = <dynamic>[];
   final gateHistory = <dynamic>[];
   int historyCursor = -1;
+
+  GalaxyRenderState renderState = GalaxyRenderState.initial(compact: false);
+
+  void updateRenderState(GalaxyRenderState next) {
+    if (renderState == next) return;
+    renderState = next;
+    notifyListeners();
+  }
+
+  void resetRenderState({required bool compact}) {
+    renderState = GalaxyRenderState.initial(compact: compact);
+    notifyListeners();
+  }
 
   bool isMapped(dynamic kind) => mapped.contains(kind);
   bool isVisited(dynamic kind) => visited.contains(kind);
@@ -90,8 +104,7 @@ class GalaxyNavigationSession extends ChangeNotifier {
   }
   void openAtlas() { surface = GalaxyNavigationSurface.atlas; notifyListeners(); }
   void openCommandCenter() { surface = GalaxyNavigationSurface.commandCenter; notifyListeners(); }
-  dynamic historyAt(int index) =>
-      index < 0 || index >= routeHistory.length ? null : routeHistory[index];
+  dynamic historyAt(int index) => index < 0 || index >= routeHistory.length ? null : routeHistory[index];
   dynamic moveHistory(int delta) {
     if (routeHistory.isEmpty) return null;
     if (historyCursor < 0 || historyCursor >= routeHistory.length) historyCursor = routeHistory.length - 1;
@@ -120,6 +133,7 @@ class GalaxyNavigationSession extends ChangeNotifier {
     gateHistory.clear();
     historyCursor = -1;
     selectionRevision++;
+    renderState = GalaxyRenderState.initial(compact: renderState.compact);
     notifyListeners();
   }
 }
