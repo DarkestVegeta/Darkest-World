@@ -1,18 +1,23 @@
 import 'package:flutter/foundation.dart';
 import '../widgets/darkest_world_universe.dart';
 
-/// The single navigation state for Galaxy, Atlas and Command Center.
+enum GalaxyNavigationSurface { galaxy, atlas, commandCenter, world }
+
+/// The single navigation state for Galaxy, Atlas, Command Center and world pages.
 ///
 /// The session deliberately lives for the lifetime of the application instead
-/// of being recreated whenever a page is pushed. This keeps target, discovery,
-/// visit and route state coherent while moving between Galaxy surfaces.
+/// of being recreated whenever a page is pushed. Every navigation surface reads
+/// the same target, discovery, visit and route state.
 class GalaxyNavigationSession extends ChangeNotifier {
   GalaxyNavigationSession._();
 
   static final GalaxyNavigationSession instance = GalaxyNavigationSession._();
 
   GalaxyWorldKind? selected;
+  GalaxyWorldKind? lastVisited;
+  GalaxyNavigationSurface surface = GalaxyNavigationSurface.galaxy;
   int visits = 0;
+  int selectionRevision = 0;
   bool targetLocked = false;
   final visited = <GalaxyWorldKind>{};
   final mapped = <GalaxyWorldKind>{};
@@ -29,12 +34,20 @@ class GalaxyNavigationSession extends ChangeNotifier {
     return index < 0 ? 0 : index + 1;
   }
 
+  void setSurface(GalaxyNavigationSurface next) {
+    if (surface == next) return;
+    surface = next;
+    notifyListeners();
+  }
+
   void select(GalaxyWorldKind kind) {
     if (targetLocked && selected != kind) return;
+    final changed = selected != kind;
     selected = kind;
     targetLocked = false;
     mapped.add(kind);
     if (!discoveryOrder.contains(kind)) discoveryOrder.add(kind);
+    if (changed) selectionRevision++;
 
     // Selecting after moving backward creates a new route branch instead of
     // leaving stale forward history behind.
@@ -61,14 +74,36 @@ class GalaxyNavigationSession extends ChangeNotifier {
     notifyListeners();
   }
 
-  void visit(GalaxyWorldKind kind) {
-    if (targetLocked && selected != kind) return;
+  bool visit(GalaxyWorldKind kind) {
+    if (targetLocked && selected != kind) return false;
     select(kind);
     visited.add(kind);
+    lastVisited = kind;
     visits++;
     gateHistory.remove(kind);
     gateHistory.add(kind);
     if (gateHistory.length > 12) gateHistory.removeAt(0);
+    surface = GalaxyNavigationSurface.world;
+    notifyListeners();
+    return true;
+  }
+
+  void returnToGalaxy() {
+    surface = GalaxyNavigationSurface.galaxy;
+    if (lastVisited != null) {
+      selected = lastVisited;
+      mapped.add(lastVisited!);
+    }
+    notifyListeners();
+  }
+
+  void openAtlas() {
+    surface = GalaxyNavigationSurface.atlas;
+    notifyListeners();
+  }
+
+  void openCommandCenter() {
+    surface = GalaxyNavigationSurface.commandCenter;
     notifyListeners();
   }
 
@@ -87,6 +122,7 @@ class GalaxyNavigationSession extends ChangeNotifier {
     targetLocked = false;
     mapped.add(selected!);
     if (!discoveryOrder.contains(selected!)) discoveryOrder.add(selected!);
+    selectionRevision++;
     notifyListeners();
     return selected;
   }
@@ -102,10 +138,13 @@ class GalaxyNavigationSession extends ChangeNotifier {
 
   void resetNavigation() {
     selected = null;
+    lastVisited = null;
+    surface = GalaxyNavigationSurface.galaxy;
     targetLocked = false;
     routeHistory.clear();
     gateHistory.clear();
     historyCursor = -1;
+    selectionRevision++;
     notifyListeners();
   }
 }
