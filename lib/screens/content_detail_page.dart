@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../core/chat_scope.dart';
 import '../core/content_models.dart';
 import '../core/content_repository.dart';
+import '../core/darkest_world_navigation_state.dart';
+import '../screens/galaxy_navigation_session.dart';
 import '../widgets/darkest_world_artbox.dart';
 import 'chatbox.dart';
 
@@ -15,6 +17,7 @@ class ContentDetailPage extends StatefulWidget {
 
 class _ContentDetailPageState extends State<ContentDetailPage> with SingleTickerProviderStateMixin {
   final _repository = ContentRepository();
+  final _navigationSession = GalaxyNavigationSession.instance;
   late final AnimationController _clock = AnimationController(vsync: this, duration: const Duration(seconds: 70))..repeat();
   List<ContentItem> _related = const [];
   TypedFranchiseNavigation? _navigation;
@@ -73,6 +76,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
     if (_isExternal) {
       _relatedLoading = false;
       _navigationLoading = false;
+      _publishNavigationState();
     } else {
       _loadRelated();
       _loadNavigation();
@@ -80,14 +84,27 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
   }
   @override void dispose() { _clock.dispose(); super.dispose(); }
 
+  void _publishNavigationState() {
+    final navigation = _navigation;
+    _navigationSession.publishContentNavigation(DarkestWorldNavigationState(
+      previous: navigation?.previous,
+      current: navigation?.current ?? widget.item,
+      next: navigation?.next,
+      related: _related,
+      source: navigation == null ? (_isExternal ? 'external' : 'detail') : 'franchise',
+    ));
+  }
+
   Future<void> _loadRelated() async {
     try {
       final result = await _repository.getRelatedContentItems(widget.item.id);
       if (!mounted) return;
       setState(() { _related = result; _relatedLoading = false; });
+      _publishNavigationState();
     } catch (e) {
       if (!mounted) return;
       setState(() { _relatedLoading = false; _relatedError = e.toString(); });
+      _publishNavigationState();
     }
   }
 
@@ -96,9 +113,11 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
       final result = await _repository.getTypedFranchiseNavigation(widget.item);
       if (!mounted) return;
       setState(() { _navigation = result; _navigationLoading = false; });
+      _publishNavigationState();
     } catch (e) {
       if (!mounted) return;
       setState(() { _navigationLoading = false; _navigationError = e.toString(); });
+      _publishNavigationState();
     }
   }
 
@@ -293,8 +312,8 @@ class _MediaChamber extends StatelessWidget {
       : Row(children: [Expanded(child: _MediaStatus(has: has)), const SizedBox(width: 18), if (has) _MediaButton(url: url!, copy: copy)]));
   }
 }
-class _MediaStatus extends StatelessWidget { final bool has; const _MediaStatus({required this.has}); @override Widget build(BuildContext context) => Row(children: [Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: has ? const Color(0xAA8A78B5) : const Color(0x44555566))), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(has ? 'LONGPLAY SIGNAL READY' : 'NO LONGPLAY SIGNAL', style: const TextStyle(fontSize: 8, letterSpacing: 1.7, color: Color(0xCCFFFFFF))), const SizedBox(height: 5), Text(has ? 'REFERENCE LINK STORED IN WORLD METADATA' : 'ADD longplay_url / youtube_url TO THE WORLD METADATA', maxLines: 2, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.2, color: Color(0x557F70B0)))]) )]); }
-class _MediaButton extends StatelessWidget { final String url; final ValueChanged<String> copy; const _MediaButton({required this.url, required this.copy}); @override Widget build(BuildContext context) => FilledButton.icon(onPressed: () => copy(url), icon: const Icon(Icons.copy, size: 13), label: const Text('COPY REFERENCE')); }
+class _MediaStatus extends StatelessWidget { final bool has; const _MediaStatus({required this.has}); @override Widget build(BuildContext context) => Row(children: [Icon(has ? Icons.play_circle_outline : Icons.hourglass_empty, size: 20, color: const Color(0x778F82A9)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(has ? 'LONGPLAY SIGNAL AVAILABLE' : 'NO LONGPLAY LINK YET', style: const TextStyle(fontSize: 8, letterSpacing: 1.5)), const SizedBox(height: 4), Text(has ? 'Reference playback is linked from archive metadata.' : 'Add a longplay/youtube reference to this world.', style: const TextStyle(fontSize: 6.5, color: Color(0x668F82A9)))]))]); }
+class _MediaButton extends StatelessWidget { final String url; final ValueChanged<String> copy; const _MediaButton({required this.url, required this.copy}); @override Widget build(BuildContext context) => OutlinedButton.icon(onPressed: () => copy(url), icon: const Icon(Icons.link, size: 14), label: const Text('COPY REFERENCE'));
 
 class _NavigationRow extends StatelessWidget {
   final TypedFranchiseNavigation navigation; final bool compact; final ValueChanged<ContentItem> open;
