@@ -13,15 +13,15 @@ class _DarkestWorldDetailOrbitState extends State<DarkestWorldDetailOrbit> with 
   @override void initState(){super.initState();session.addListener(_changed);}
   @override void dispose(){session.removeListener(_changed);_clock.dispose();super.dispose();}
   void _changed(){if(mounted)setState((){});}
-  @override Widget build(BuildContext context){final nav=session.contentNavigation;if(nav==null)return const SizedBox.shrink();final compact=MediaQuery.sizeOf(context).width<760;return IgnorePointer(child:AnimatedBuilder(animation:_clock,builder:(_,__)=>Positioned.fill(child:CustomPaint(painter:_OrbitPainter(_clock.value,current:nav.current.title,related:nav.related.length,compact:compact)))));}
+  @override Widget build(BuildContext context){final nav=session.contentNavigation;if(nav==null)return const SizedBox.shrink();final compact=MediaQuery.sizeOf(context).width<760;return IgnorePointer(child:AnimatedBuilder(animation:_clock,builder:(_,__)=>SizedBox.expand(child:CustomPaint(painter:_OrbitPainter(_clock.value,current:nav.current.title,related:nav.related.length,compact:compact)))));}
 }
 
 class _OrbitPainter extends CustomPainter{
  final double phase;final String current;final int related;final bool compact;
  const _OrbitPainter(this.phase,{required this.current,required this.related,required this.compact});
  @override void paint(Canvas c,Size s){
-  final center=Offset(s.width*.5,s.height*(compact?.53:.55));
-  final radius=math.min(s.width,s.height)*(compact?.27:.32);
+  final center=Offset(s.width*.5,s.height*(compact ? .53 : .55));
+  final radius=math.min(s.width,s.height)*(compact ? .27 : .32);
   final base=Paint()..style=PaintingStyle.stroke..strokeWidth=.7..color=const Color(0x287F70B0);
   for(var i=0;i<5;i++){final r=radius*(.62+i*.13);c.drawOval(Rect.fromCenter(center:center,width:r*2,height:r*.46),base);}
   final sweep=(phase*math.pi*2)%(math.pi*2);
