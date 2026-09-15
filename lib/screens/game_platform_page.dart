@@ -14,9 +14,10 @@ class GamePlatformPage extends StatefulWidget {
 }
 
 class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerProviderStateMixin {
-  late final AnimationController _clock = AnimationController(vsync: this, duration: const Duration(seconds: 90))..repeat();
+  late final AnimationController _clock = AnimationController(vsync: this, duration: const Duration(seconds: 100))..repeat();
   int? _selected;
-  List<GamePlatform> get _platforms => widget.groups.expand((group) => group.platforms).toList(growable: false);
+
+  List<GamePlatform> get _platforms => widget.groups.expand((g) => g.platforms).toList(growable: false);
 
   @override
   void dispose() { _clock.dispose(); super.dispose(); }
@@ -34,71 +35,51 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    final screen = MediaQuery.sizeOf(context);
-    final compact = screen.width < 760;
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 820;
     return Scaffold(
-      backgroundColor: const Color(0xFF010208),
+      backgroundColor: const Color(0xFF01030A),
       body: AnimatedBuilder(
         animation: _clock,
         builder: (context, _) => Stack(
           fit: StackFit.expand,
           children: [
-            CustomPaint(painter: _PlatformSpacePainter(_clock.value)),
-            SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(compact ? 14 : 30, compact ? 12 : 24, compact ? 14 : 30, 0),
-                child: _Header(
-                  territory: widget.territory,
-                  count: _platforms.length,
-                  onBack: () => Navigator.of(context).pop(),
-                ),
-              ),
-            ),
-            Center(
-              child: LayoutBuilder(
-                builder: (context, box) {
-                  final diameter = math.min(
-                    box.maxWidth * (compact ? .96 : .82),
-                    box.maxHeight * (compact ? .70 : .78),
-                  ).toDouble();
-                  return SizedBox.square(
-                    dimension: diameter,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned.fill(child: CustomPaint(painter: _SystemPainter(_clock.value, widget.groups.length))),
-                        for (var i = 0; i < _platforms.length; i++)
-                          _PlanetNode(
-                            platform: _platforms[i],
-                            index: i,
-                            total: _platforms.length,
-                            selected: _selected == i,
-                            size: diameter,
-                            phase: _clock.value,
-                            onTap: () => setState(() => _selected = _selected == i ? null : i),
-                            onOpen: () => _enter(i),
-                          ),
-                        const Positioned.fill(child: IgnorePointer(child: Center(child: _StarCore()))),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            Positioned(
-              left: compact ? 14.0 : 30.0,
-              right: compact ? 14.0 : 30.0,
-              bottom: compact ? 14.0 : 24.0,
-              child: _selected == null
-                  ? const _Hint()
-                  : _PlatformPanel(
-                      platform: _platforms[_selected!],
-                      index: _selected!,
+            CustomPaint(painter: _DeepSpacePainter(_clock.value)),
+            SafeArea(child: Padding(
+              padding: EdgeInsets.fromLTRB(compact ? 14 : 34, compact ? 12 : 24, compact ? 14 : 34, 0),
+              child: _Header(territory: widget.territory, count: _platforms.length, onBack: () => Navigator.of(context).pop()),
+            )),
+            Center(child: LayoutBuilder(builder: (context, box) {
+              final diameter = math.min(box.maxWidth * (compact ? .98 : .84), box.maxHeight * (compact ? .72 : .80));
+              return SizedBox.square(dimension: diameter, child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(child: CustomPaint(painter: _OrbitalSystemPainter(_clock.value, _platforms.length))),
+                  for (var i = 0; i < _platforms.length; i++)
+                    _OrbitalPlatform(
+                      platform: _platforms[i],
+                      index: i,
                       total: _platforms.length,
+                      selected: _selected == i,
+                      diameter: diameter,
+                      phase: _clock.value,
+                      onTap: () => setState(() => _selected = _selected == i ? null : i),
+                      onOpen: () => _enter(i),
+                    ),
+                  const Positioned.fill(child: IgnorePointer(child: Center(child: _ArchiveCore()))),
+                ],
+              ));
+            })),
+            Positioned(left: compact ? 12 : 34, right: compact ? 12 : 34, bottom: compact ? 12 : 24,
+              child: _selected == null
+                  ? const _InteractionHint()
+                  : _PlatformDataPanel(
+                      platform: _platforms[_selected!],
+                      index: _selected!, total: _platforms.length,
                       onClose: () => setState(() => _selected = null),
                       onOpen: () => _enter(_selected!),
-                    ),
-            ),
+                    )),
+            Positioned(top: compact ? 74 : 92, right: compact ? 14 : 36, child: _Telemetry(count: _platforms.length, selected: _selected)),
           ],
         ),
       ),
@@ -124,303 +105,190 @@ class _Header extends StatelessWidget {
   final int count;
   final VoidCallback onBack;
   const _Header({required this.territory, required this.count, required this.onBack});
-
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      InkWell(
-        onTap: onBack,
-        child: const Padding(
-          padding: EdgeInsets.all(8),
-          child: Icon(Icons.arrow_back_ios_new, size: 14, color: Color(0x99FFFFFF)),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${territory.toUpperCase()} / PLATFORM WORLDS', style: const TextStyle(fontSize: 11, letterSpacing: 3.2, color: Colors.white)),
-          const SizedBox(height: 5),
-          const Text('GENERATIONS / ORBITAL ATLAS', style: TextStyle(fontSize: 6.5, letterSpacing: 2.4, color: Color(0x55FFFFFF))),
-        ],
-      ),
-      const Spacer(),
-      Text('${count.toString().padLeft(2, '0')} WORLDS', style: const TextStyle(fontSize: 7, letterSpacing: 2, color: Color(0x55FFFFFF))),
-    ],
+  Widget build(BuildContext context) => Row(children: [
+    InkWell(onTap: onBack, child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.arrow_back_ios_new, size: 14, color: Color(0x99FFFFFF)))),
+    const SizedBox(width: 10),
+    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('${territory.toUpperCase()} / PLATFORM WORLDS', style: const TextStyle(fontSize: 11, letterSpacing: 3.2, color: Colors.white)),
+      const SizedBox(height: 5),
+      const Text('GENERATIONAL ARCHIVE / ORBITAL SYSTEM', style: TextStyle(fontSize: 6.5, letterSpacing: 2.4, color: Color(0x5AFFFFFF))),
+    ]),
+    const Spacer(),
+    Text('${count.toString().padLeft(2, '0')} WORLDS', style: const TextStyle(fontSize: 7, letterSpacing: 2, color: Color(0x66FFFFFF))),
+  ]);
+}
+
+class _Telemetry extends StatelessWidget {
+  final int count;
+  final int? selected;
+  const _Telemetry({required this.count, required this.selected});
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    decoration: BoxDecoration(color: const Color(0xB8060A12), border: Border.all(color: const Color(0x2E8EA5B8))),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      const Text('ATLAS LINK  /  ONLINE', style: TextStyle(fontSize: 6, letterSpacing: 1.6, color: Color(0x709BB0BF))),
+      const SizedBox(height: 5),
+      Text('WORLDS  ${count.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 6, letterSpacing: 1.4, color: Color(0x8AFFFFFF))),
+      Text('FOCUS   ${selected == null ? '--' : (selected! + 1).toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 6, letterSpacing: 1.4, color: Color(0x8AFFFFFF))),
+    ]),
   );
 }
 
-class _PlanetNode extends StatelessWidget {
+class _OrbitalPlatform extends StatelessWidget {
   final GamePlatform platform;
   final int index;
   final int total;
   final bool selected;
-  final double size;
+  final double diameter;
   final double phase;
   final VoidCallback onTap;
   final VoidCallback onOpen;
-  const _PlanetNode({required this.platform, required this.index, required this.total, required this.selected, required this.size, required this.phase, required this.onTap, required this.onOpen});
-
+  const _OrbitalPlatform({required this.platform, required this.index, required this.total, required this.selected, required this.diameter, required this.phase, required this.onTap, required this.onOpen});
   @override
   Widget build(BuildContext context) {
-    final orbit = size * (.18 + (index % 5) * .055);
-    final denominator = total < 1 ? 1.0 : total.toDouble();
-    final angle = (-math.pi / 2) + index * math.pi * 2 / denominator + phase * math.pi * .18 * (index.isEven ? 1 : -1);
-    final center = size / 2;
-    final position = Offset(center + math.cos(angle) * orbit, center + math.sin(angle) * orbit);
-    final selectedSize = size * .105;
-    final normalSize = size * .074;
-    final diameter = selected ? (selectedSize > 76.0 ? selectedSize : 76.0) : (normalSize > 54.0 ? normalSize : 54.0);
-
-    return Positioned(
-      left: position.dx - diameter / 2,
-      top: position.dy - diameter / 2,
-      width: diameter,
-      height: diameter + 28.0,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: onTap,
-          onDoubleTap: onOpen,
-          child: Column(
-            children: [
-              SizedBox.square(
-                dimension: diameter,
-                child: CustomPaint(painter: _PlanetPainter(seed: index, selected: selected, phase: phase)),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                platform.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: selected ? 8 : 6.5,
-                  letterSpacing: 1.5,
-                  color: Colors.white.withValues(alpha: selected ? .95 : .48),
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    final center = diameter / 2;
+    final orbit = diameter * (.19 + (index % 5) * .065);
+    final angle = -math.pi / 2 + index * math.pi * 2 / math.max(1, total) + phase * math.pi * .22 * (index.isEven ? 1 : -1);
+    final p = Offset(center + math.cos(angle) * orbit, center + math.sin(angle) * orbit);
+    final node = selected ? math.max(72, diameter * .112) : math.max(52, diameter * .073);
+    return Positioned(left: p.dx - node / 2, top: p.dy - node / 2, width: node, height: node + 28,
+      child: MouseRegion(cursor: SystemMouseCursors.click, child: GestureDetector(onTap: onTap, onDoubleTap: onOpen,
+        child: Column(children: [
+          SizedBox.square(dimension: node, child: CustomPaint(painter: _WorldPainter(seed: index, selected: selected, phase: phase))),
+          const SizedBox(height: 4),
+          Text(platform.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: selected ? 8 : 6.2, letterSpacing: 1.5, color: Colors.white.withValues(alpha: selected ? .96 : .5), fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+        ])));
   }
 }
 
-class _PlanetPainter extends CustomPainter {
+class _WorldPainter extends CustomPainter {
   final int seed;
   final bool selected;
   final double phase;
-  const _PlanetPainter({required this.seed, required this.selected, required this.phase});
-
+  const _WorldPainter({required this.seed, required this.selected, required this.phase});
   @override
   void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final radius = size.width * .37;
-    final sphere = Rect.fromCircle(center: center, radius: radius);
-    final base = [
-      const Color(0xFFB8A797),
-      const Color(0xFF89979A),
-      const Color(0xFF687B88),
-      const Color(0xFFA08E80),
-      const Color(0xFF748881),
-    ][seed % 5];
-
+    final c = size.center(Offset.zero);
+    final r = size.width * .36;
+    final sphere = Rect.fromCircle(center: c, radius: r);
+    final bases = [0xFF8B7A6D, 0xFF647B87, 0xFF8C927E, 0xFF7D6F83, 0xFF718A86, 0xFF9A806B];
+    final base = Color(bases[seed % bases.length]);
     if (selected) {
-      canvas.drawCircle(
-        center,
-        radius * 1.6,
-        Paint()..shader = RadialGradient(colors: [const Color(0xFF9FB4C8).withValues(alpha: .16), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: radius * 1.6)),
-      );
+      canvas.drawCircle(c, r * 1.58, Paint()..shader = RadialGradient(colors: [const Color(0x5E8EA9BC), Colors.transparent]).createShader(Rect.fromCircle(center: c, radius: r * 1.58)));
     }
-
-    final light = Alignment(-.42 + math.sin(phase * math.pi * 2 + seed) * .04, -.48);
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()..shader = RadialGradient(
-        center: light,
-        radius: 1.02,
-        colors: [base, base.withValues(alpha: .72), const Color(0xFF202833), const Color(0xFF05070B)],
-      ).createShader(sphere),
-    );
-
+    final lightX = -.42 + math.sin(phase * math.pi * 2 + seed) * .035;
+    canvas.drawCircle(c, r, Paint()..shader = RadialGradient(center: Alignment(lightX, -.5), radius: 1.05, colors: [base, base.withValues(alpha: .76), const Color(0xFF26313A), const Color(0xFF04060A)]).createShader(sphere));
     canvas.save();
     canvas.clipPath(Path()..addOval(sphere));
-    final random = math.Random(900 + seed * 17);
-    for (var i = 0; i < 20; i++) {
-      final px = center.dx + (random.nextDouble() * 2 - 1) * radius * .88;
-      final py = center.dy + (random.nextDouble() * 2 - 1) * radius * .88;
-      final crater = 1.1 + random.nextDouble() * radius * .075;
-      canvas.drawCircle(Offset(px, py), crater, Paint()..color = Colors.white.withValues(alpha: .03 + random.nextDouble() * .055));
+    final random = math.Random(700 + seed * 91);
+    for (var i = 0; i < 34; i++) {
+      final x = c.dx + (random.nextDouble() * 2 - 1) * r * .88;
+      final y = c.dy + (random.nextDouble() * 2 - 1) * r * .88;
+      final rr = .7 + random.nextDouble() * r * .065;
+      canvas.drawCircle(Offset(x, y), rr, Paint()..color = Colors.white.withValues(alpha: .025 + random.nextDouble() * .06));
     }
-
-    final longitude = Paint()..style = PaintingStyle.stroke..strokeWidth = .5..color = const Color(0x309EADB5);
-    for (var i = 0; i < 4; i++) {
-      final dx = (i - 1.5) * radius * .32;
-      canvas.drawOval(Rect.fromCenter(center: center.translate(dx, 0), width: radius * (.35 + i * .22), height: radius * 1.82), longitude);
+    final contour = Paint()..style = PaintingStyle.stroke..strokeWidth = .5..color = const Color(0x329BAFBA);
+    for (var i = -2; i <= 2; i++) {
+      canvas.drawOval(Rect.fromCenter(center: c.translate(i * r * .19, 0), width: r * (.44 + (i + 2) * .16), height: r * 1.82), contour);
     }
-
-    final night = Paint()..shader = const LinearGradient(
-      begin: Alignment.centerLeft,
-      end: Alignment.centerRight,
-      colors: [Colors.transparent, Color(0xDD00030A), Color(0x99000308)],
-    ).createShader(sphere);
+    final night = Paint()..shader = const LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: [Colors.transparent, Color(0xE6000207), Color(0xA6000207)]).createShader(sphere);
     canvas.drawOval(sphere, night);
     canvas.restore();
-
-    canvas.drawCircle(center, radius, Paint()..style = PaintingStyle.stroke..strokeWidth = selected ? 1.3 : .65..color = const Color(0x689BAAB5));
+    canvas.drawCircle(c, r, Paint()..style = PaintingStyle.stroke..strokeWidth = selected ? 1.25 : .65..color = const Color(0x6A9AAEBB));
     if (selected) {
-      canvas.drawArc(Rect.fromCircle(center: center, radius: radius * 1.16), -1.8, 1.5, false, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = const Color(0x7898B0C5));
+      canvas.drawArc(Rect.fromCircle(center: c, radius: r * 1.17), phase * math.pi * 2, 1.35, false, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = const Color(0x8A9DB5C6));
+      canvas.drawArc(Rect.fromCircle(center: c, radius: r * 1.27), -phase * math.pi * 2 - 1, .8, false, Paint()..style = PaintingStyle.stroke..strokeWidth = .6..color = const Color(0x457C92A4));
     }
   }
-
   @override
-  bool shouldRepaint(covariant _PlanetPainter old) => old.seed != seed || old.selected != selected || old.phase != phase;
+  bool shouldRepaint(covariant _WorldPainter old) => old.seed != seed || old.selected != selected || old.phase != phase;
 }
 
-class _SystemPainter extends CustomPainter {
+class _OrbitalSystemPainter extends CustomPainter {
   final double phase;
-  final int groups;
-  const _SystemPainter(this.phase, this.groups);
-
+  final int count;
+  const _OrbitalSystemPainter(this.phase, this.count);
   @override
   void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final maxRadius = size.shortestSide * .43;
-    for (var i = 0; i < 5; i++) {
-      final radius = size.shortestSide * (.19 + i * .052);
-      canvas.drawOval(
-        Rect.fromCenter(center: center, width: radius * 2, height: radius * 1.18),
-        Paint()..style = PaintingStyle.stroke..strokeWidth = i == 4 ? 1 : .55..color = const Color(0x2493A4B2),
-      );
+    final c = size.center(Offset.zero);
+    for (var i = 0; i < 7; i++) {
+      final r = size.shortestSide * (.18 + i * .052);
+      canvas.drawOval(Rect.fromCenter(center: c, width: r * 2, height: r * 1.15), Paint()..style = PaintingStyle.stroke..strokeWidth = i == 6 ? .9 : .45..color = Color(0x1F90A7B7));
     }
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: maxRadius),
-      phase * math.pi * 2,
-      .55,
-      false,
-      Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = const Color(0x487D91A3),
-    );
-    final axis = Paint()..style = PaintingStyle.stroke..strokeWidth = .55..color = const Color(0x183F5362);
-    for (var i = 0; i < groups + 1; i++) {
-      canvas.drawOval(
-        Rect.fromCenter(center: center, width: maxRadius * 2 * (.48 + i * .12), height: maxRadius * 1.15),
-        axis,
-      );
+    final sweep = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = const Color(0x507F9AAC);
+    canvas.drawArc(Rect.fromCenter(center: c, width: size.width * .84, height: size.height * .48), phase * math.pi * 2, .65, false, sweep);
+    final tick = Paint()..style = PaintingStyle.stroke..strokeWidth = .5..color = const Color(0x334E6879);
+    for (var i = 0; i < math.min(8, count + 2); i++) {
+      final a = i * math.pi * 2 / math.max(1, math.min(8, count + 2));
+      final p1 = Offset(c.dx + math.cos(a) * size.width * .42, c.dy + math.sin(a) * size.height * .23);
+      final p2 = Offset(c.dx + math.cos(a) * size.width * .455, c.dy + math.sin(a) * size.height * .25);
+      canvas.drawLine(p1, p2, tick);
     }
   }
-
   @override
-  bool shouldRepaint(covariant _SystemPainter old) => old.phase != phase || old.groups != groups;
+  bool shouldRepaint(covariant _OrbitalSystemPainter old) => old.phase != phase || old.count != count;
 }
 
-class _StarCore extends StatelessWidget {
-  const _StarCore();
+class _ArchiveCore extends StatelessWidget {
+  const _ArchiveCore();
   @override
-  Widget build(BuildContext context) => Container(
-    width: 50,
-    height: 50,
-    decoration: const BoxDecoration(
-      shape: BoxShape.circle,
-      gradient: RadialGradient(
-        colors: [Color(0xFFFFFFFF), Color(0xFFD7C6A1), Color(0xFF74644D), Color(0x00000000)],
-        stops: [0, .25, .5, 1],
-      ),
-      boxShadow: [BoxShadow(color: Color(0x669C8868), blurRadius: 28, spreadRadius: 7)],
-    ),
-  );
+  Widget build(BuildContext context) => Container(width: 58, height: 58, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0xFFFFFFFF), Color(0xFFD4C4A4), Color(0xFF695A48), Color(0x00000000)], stops: [0, .2, .48, 1]), boxShadow: [BoxShadow(color: Color(0x668F7B5D), blurRadius: 30, spreadRadius: 8)]));
 }
 
-class _Hint extends StatelessWidget {
-  const _Hint();
+class _InteractionHint extends StatelessWidget {
+  const _InteractionHint();
   @override
-  Widget build(BuildContext context) => const Center(
-    child: Text(
-      '1× CLICK  FOCUS     2× CLICK  ENTER WORLD     •     SCROLL TO ZOOM',
-      style: TextStyle(color: Color(0x4FFFFFFF), fontSize: 6.5, letterSpacing: 1.9),
-    ),
-  );
+  Widget build(BuildContext context) => const Center(child: Text('1× CLICK  FOCUS     2× CLICK  ENTER PLATFORM     •     SCROLL TO ZOOM', style: TextStyle(fontSize: 6.5, letterSpacing: 1.8, color: Color(0x55FFFFFF))));
 }
 
-class _PlatformPanel extends StatelessWidget {
+class _PlatformDataPanel extends StatelessWidget {
   final GamePlatform platform;
   final int index;
   final int total;
   final VoidCallback onClose;
   final VoidCallback onOpen;
-  const _PlatformPanel({required this.platform, required this.index, required this.total, required this.onClose, required this.onOpen});
-
+  const _PlatformDataPanel({required this.platform, required this.index, required this.total, required this.onClose, required this.onOpen});
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(18, 14, 10, 14),
-    decoration: BoxDecoration(
-      color: const Color(0xED070B11),
-      border: Border.all(color: const Color(0x457C91A1)),
-      boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 34)],
-    ),
-    child: Row(
-      children: [
-        Container(width: 3, height: 45, color: const Color(0x907C91A1)),
-        const SizedBox(width: 13),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('PLATFORM WORLD  •  ${index + 1}/$total', style: const TextStyle(fontSize: 6.5, color: Color(0x55FFFFFF), letterSpacing: 1.8)),
-              const SizedBox(height: 5),
-              Text(platform.name, style: const TextStyle(fontSize: 15, color: Colors.white, letterSpacing: 2.7)),
-              const SizedBox(height: 4),
-              const Text('GENERATION ARCHIVE / GAME CATALOG', style: TextStyle(fontSize: 6.5, color: Color(0x66FFFFFF), letterSpacing: 1.4)),
-            ],
-          ),
-        ),
-        InkWell(
-          onTap: onClose,
-          child: const Padding(
-            padding: EdgeInsets.all(9),
-            child: Text('×', style: TextStyle(fontSize: 18, color: Color(0x99FFFFFF))),
-          ),
-        ),
-        const SizedBox(width: 4),
-        FilledButton(onPressed: onOpen, child: const Text('ENTER')),
-      ],
-    ),
+    padding: const EdgeInsets.fromLTRB(18, 14, 12, 14),
+    decoration: BoxDecoration(color: const Color(0xF2070B12), border: Border.all(color: const Color(0x527E98A9)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 40, spreadRadius: 2)]),
+    child: Row(children: [
+      Container(width: 3, height: 48, decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF9DB7C7), Color(0x22728A9A)]))),
+      const SizedBox(width: 13),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('PLATFORM WORLD  /  ${index + 1}/$total', style: const TextStyle(fontSize: 6.5, letterSpacing: 1.8, color: Color(0x62FFFFFF))),
+        const SizedBox(height: 5),
+        Text(platform.name, style: const TextStyle(fontSize: 16, letterSpacing: 2.8, color: Colors.white)),
+        const SizedBox(height: 4),
+        const Text('GENERATION ARCHIVE  •  GAME CATALOG  •  REGION LINKED', style: TextStyle(fontSize: 6.2, letterSpacing: 1.3, color: Color(0x70FFFFFF))),
+      ])),
+      InkWell(onTap: onClose, child: const Padding(padding: EdgeInsets.all(8), child: Text('×', style: TextStyle(fontSize: 18, color: Color(0xAAFFFFFF))))),
+      const SizedBox(width: 4),
+      FilledButton(onPressed: onOpen, child: const Text('ENTER ARCHIVE')),
+    ]),
   );
 }
 
-class _PlatformSpacePainter extends CustomPainter {
+class _DeepSpacePainter extends CustomPainter {
   final double phase;
-  const _PlatformSpacePainter(this.phase);
-
+  const _DeepSpacePainter(this.phase);
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()..shader = const RadialGradient(
-        center: Alignment(.5, .45),
-        radius: 1.15,
-        colors: [Color(0xFF151C27), Color(0xFF070A10), Color(0xFF010207)],
-      ).createShader(rect),
-    );
-    final random = math.Random(412);
-    for (var i = 0; i < 430; i++) {
-      final x = (random.nextDouble() * size.width + phase * size.width * .012) % size.width;
-      final y = random.nextDouble() * size.height;
-      final alpha = .025 + random.nextDouble() * .075;
-      canvas.drawCircle(Offset(x, y), .15 + random.nextDouble() * .7, Paint()..color = Colors.white.withValues(alpha: alpha));
+    canvas.drawRect(Offset.zero & size, Paint()..shader = const RadialGradient(center: Alignment(0, -.05), radius: 1.15, colors: [Color(0xFF0C1420), Color(0xFF030711), Color(0xFF010207)]).createShader(Offset.zero & size));
+    final random = math.Random(1188);
+    for (var i = 0; i < 520; i++) {
+      final p = Offset(random.nextDouble() * size.width, random.nextDouble() * size.height);
+      final twinkle = .16 + .38 * ((math.sin(phase * math.pi * 2 * (1 + i % 3) + i) + 1) / 2);
+      final radius = i % 17 == 0 ? 1.05 : .35 + random.nextDouble() * .55;
+      canvas.drawCircle(p, radius, Paint()..color = Colors.white.withValues(alpha: twinkle));
     }
-    final center = Offset(size.width * .5, size.height * .5);
-    final radius = math.min(size.width, size.height) * .48;
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()..shader = RadialGradient(colors: [const Color(0x667F8DA0), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: radius)),
-    );
+    final haze = Paint()..shader = RadialGradient(colors: [const Color(0x255B7891), Colors.transparent]).createShader(Rect.fromCenter(center: Offset(size.width * .52, size.height * .5), width: size.width * .9, height: size.height * .65));
+    canvas.drawOval(Rect.fromCenter(center: Offset(size.width * .52, size.height * .5), width: size.width * .9, height: size.height * .65), haze);
+    final vignette = Paint()..shader = const RadialGradient(colors: [Colors.transparent, Color(0xC9000000)], stops: [.5, 1]).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, vignette);
   }
-
   @override
-  bool shouldRepaint(covariant _PlatformSpacePainter old) => old.phase != phase;
+  bool shouldRepaint(covariant _DeepSpacePainter old) => old.phase != phase;
 }
