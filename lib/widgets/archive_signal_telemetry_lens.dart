@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../core/content_models.dart';
 import '../core/darkest_world_navigation_state.dart';
 
 /// Cinematic telemetry lens for archive navigation state.
@@ -8,6 +9,8 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
   final DarkestWorldNavigationState state;
   final bool compact;
   final double phase;
+  final ValueChanged<ContentItem>? onPreviousTap;
+  final ValueChanged<ContentItem>? onNextTap;
   final ValueChanged<ContentItem>? onRelatedTap;
 
   const ArchiveSignalTelemetryLens({
@@ -15,6 +18,8 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
     required this.state,
     this.compact = false,
     this.phase = 0,
+    this.onPreviousTap,
+    this.onNextTap,
     this.onRelatedTap,
   });
 
@@ -95,6 +100,8 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
                   state: state,
                   compact: compact,
                   phase: phase,
+                  onPreviousTap: onPreviousTap,
+                  onNextTap: onNextTap,
                 ),
                 const SizedBox(height: 8),
                 _RelatedRail(
@@ -180,7 +187,15 @@ class _ContinuityRail extends StatelessWidget {
   final DarkestWorldNavigationState state;
   final bool compact;
   final double phase;
-  const _ContinuityRail({required this.state, required this.compact, required this.phase});
+  final ValueChanged<ContentItem>? onPreviousTap;
+  final ValueChanged<ContentItem>? onNextTap;
+  const _ContinuityRail({
+    required this.state,
+    required this.compact,
+    required this.phase,
+    this.onPreviousTap,
+    this.onNextTap,
+  });
 
   String _label(String? value, String fallback) {
     if (value == null || value.trim().isEmpty) return fallback;
@@ -195,58 +210,75 @@ class _ContinuityRail extends StatelessWidget {
       _label(state.current.title, 'CURRENT'),
       _label(state.next?.title, 'NO NEXT'),
     ];
+    final actions = <ValueChanged<ContentItem>?>[
+      state.previous == null ? null : onPreviousTap,
+      null,
+      state.next == null ? null : onNextTap,
+    ];
+    final items = <ContentItem?>[state.previous, state.current, state.next];
+
     return Row(
       children: [
         for (var i = 0; i < slots.length; i++) ...[
           if (i > 0) const SizedBox(width: 5),
           Expanded(
-            child: Container(
-              height: compact ? 24 : 27,
-              padding: const EdgeInsets.symmetric(horizontal: 7),
-              alignment: Alignment.centerLeft,
-              decoration: BoxDecoration(
-                color: i == 1 ? const Color(0x287F70B0) : const Color(0x0C7F70B0),
-                border: Border.all(
-                  color: i == 1 ? const Color(0x4C9A8AC4) : const Color(0x1D7F70B0),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    i == 0 ? 'P' : i == 1 ? 'C' : 'N',
-                    style: TextStyle(
-                      fontSize: 6,
-                      letterSpacing: 1.2,
-                      color: i == 1 ? const Color(0xAA9A8AC4) : const Color(0x557F8AA2),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: actions[i] == null || items[i] == null
+                    ? null
+                    : () => actions[i]!(items[i]!),
+                splashColor: const Color(0x227F70B0),
+                highlightColor: i == 1 ? Colors.transparent : const Color(0x147F70B0),
+                child: Container(
+                  height: compact ? 24 : 27,
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: i == 1 ? const Color(0x287F70B0) : const Color(0x0C7F70B0),
+                    border: Border.all(
+                      color: i == 1 ? const Color(0x4C9A8AC4) : const Color(0x1D7F70B0),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      slots[i],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 5.5,
-                        letterSpacing: 1.1,
-                        color: i == 1 ? const Color(0xAA97A8BE) : const Color(0x667F8AA2),
-                      ),
-                    ),
-                  ),
-                  if (i == 1 && state.continuityCount > 0)
-                    Container(
-                      width: 4,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color.lerp(
-                          const Color(0x557F70B0),
-                          const Color(0xAA9A8AC4),
-                          .5 + .5 * math.sin(phase * math.pi * 2),
+                  child: Row(
+                    children: [
+                      Text(
+                        i == 0 ? 'P' : i == 1 ? 'C' : 'N',
+                        style: TextStyle(
+                          fontSize: 6,
+                          letterSpacing: 1.2,
+                          color: i == 1 ? const Color(0xAA9A8AC4) : const Color(0x557F8AA2),
                         ),
                       ),
-                    ),
-                ],
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          slots[i],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 5.5,
+                            letterSpacing: 1.1,
+                            color: i == 1 ? const Color(0xAA97A8BE) : const Color(0x667F8AA2),
+                          ),
+                        ),
+                      ),
+                      if (i == 1 && state.continuityCount > 0)
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color.lerp(
+                              const Color(0x557F70B0),
+                              const Color(0xAA9A8AC4),
+                              .5 + .5 * math.sin(phase * math.pi * 2),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
