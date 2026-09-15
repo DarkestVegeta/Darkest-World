@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../core/chat_scope.dart';
 import '../core/content_models.dart';
 import '../core/content_repository.dart';
+import '../core/darkest_world_navigation_state.dart';
+import '../widgets/archive_signal_telemetry_lens.dart';
 import '../widgets/darkest_world_artbox.dart';
 import 'chatbox.dart';
 
@@ -28,6 +30,19 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
   String get _franchise => widget.item.franchise ?? '';
   String get _description => widget.item.description ?? '';
   bool get _isExternal => widget.item.externalSource != null && widget.item.externalId != null;
+
+  DarkestWorldNavigationState? get _archiveNavigationState {
+    final navigation = _navigation;
+    if (navigation == null) return null;
+    return DarkestWorldNavigationState(
+      previous: navigation.previous,
+      current: widget.item,
+      next: navigation.next,
+      related: _related,
+      source: 'content_detail',
+      entryPoint: 'detail',
+    );
+  }
 
   String? get _artUrl {
     for (final key in ['transparent_artbox_url', 'artbox_url', 'public_url', 'image_url', 'artwork_url', 'cover_url']) {
@@ -120,6 +135,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
 
   @override Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 850;
+    final archiveNavigationState = _archiveNavigationState;
     return Scaffold(
       backgroundColor: const Color(0xFF020208),
       body: AnimatedBuilder(
@@ -147,6 +163,16 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
             _SectionTitle(label: 'MEDIA CHAMBER', detail: 'LONGPLAY / REFERENCE SIGNAL'),
             const SizedBox(height: 11),
             _MediaChamber(url: _longplayUrl, compact: compact, copy: _copyValue),
+            if (archiveNavigationState != null) ...[
+              const SizedBox(height: 28),
+              _SectionTitle(label: 'ARCHIVE SIGNAL', detail: 'LIVE NAVIGATION TELEMETRY'),
+              const SizedBox(height: 11),
+              ArchiveSignalTelemetryLens(
+                state: archiveNavigationState,
+                phase: _clock.value,
+                compact: compact,
+              ),
+            ],
             const SizedBox(height: 28),
             _SectionTitle(label: 'NAVIGATION', detail: 'PREVIOUS  |  CURRENT  |  NEXT'),
             const SizedBox(height: 11),
