@@ -53,13 +53,22 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
                           color: Color(0x7F9AA6BE),
                         ),
                       ),
-                      const SizedBox(height: 7),
+                      const SizedBox(height: 5),
                       Text(
                         state.archiveSignal,
                         style: const TextStyle(
                           fontSize: 13,
                           letterSpacing: 2.1,
                           fontWeight: FontWeight.w300,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        '${state.source.toUpperCase()}  /  ${state.entryLabel}',
+                        style: const TextStyle(
+                          fontSize: 5.5,
+                          letterSpacing: 1.6,
+                          color: Color(0x667F8AA2),
                         ),
                       ),
                     ],
