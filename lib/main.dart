@@ -6,6 +6,7 @@ import 'widgets/darkest_world_content_navigation.dart';
 import 'widgets/darkest_world_detail_navigation_bridge.dart';
 import 'widgets/darkest_world_archive_atmosphere.dart';
 import 'widgets/darkest_world_cinematic_optics.dart';
+import 'widgets/darkest_world_archive_lens.dart';
 
 final GlobalKey<NavigatorState> darkestWorldNavigatorKey = GlobalKey<NavigatorState>();
 final DarkestWorldNavigationObserver darkestWorldNavigationObserver = DarkestWorldNavigationObserver();
@@ -36,6 +37,7 @@ class DarkestWorldApp extends StatelessWidget {
           child ?? const SizedBox.shrink(),
           const DarkestWorldArchiveAtmosphere(),
           const DarkestWorldCinematicOptics(),
+          const DarkestWorldArchiveLens(),
           const DarkestWorldContentNavigation(),
           DarkestWorldRouteHistory(
             navigatorKey: darkestWorldNavigatorKey,
