@@ -190,13 +190,11 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
             else if (_relatedError != null) const _MessagePanel(text: 'RELATED CONTENT UNAVAILABLE')
             else if (_related.isEmpty) const _MessagePanel(text: 'NO RELATED WORLDS YET')
             else _RelatedGrid(items: _related, compact: compact, open: _open),
-            if (_chatContext != null) ...[
-              const SizedBox(height: 28),
-              ChatBox(contextData: _chatContext!),
-            ],
+            if (_isExternal) ...[const SizedBox(height: 24), const _MessagePanel(text: 'LIVE EXTERNAL RESULT — NOT STORED IN THE DARKESTWORLD DATABASE')],
           ])),
         ]),
       ),
+      floatingActionButton: _chatContext == null ? null : Chatbox(contextData: _chatContext!),
     );
   }
 }
@@ -204,36 +202,190 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
 class _Header extends StatelessWidget {
   final String title; final VoidCallback onBack;
   const _Header({required this.title, required this.onBack});
-  @override Widget build(BuildContext context) => Row(children: [InkWell(onTap: onBack, child: const Icon(Icons.arrow_back, size: 16, color: Color(0x8897A8BE))), const SizedBox(width: 10), Expanded(child: Text(title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9, letterSpacing: 2.2, color: Color(0xAA97A8BE))))]);
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String label; final String detail;
-  const _SectionTitle({required this.label, required this.detail});
-  @override Widget build(BuildContext context) => Row(children: [Text(label, style: const TextStyle(fontSize: 7, letterSpacing: 2.2, color: Color(0xAA9A8AC4))), const SizedBox(width: 9), Expanded(child: Text(detail, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.4, color: Color(0x557F8AA2))))]);
+  @override Widget build(BuildContext context) => Row(children: [
+    IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back_ios_new, size: 15, color: Color(0xBBFFFFFF))),
+    const SizedBox(width: 7),
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('DARKESTWORLD / GAME WORLD', style: TextStyle(fontSize: 7, letterSpacing: 2.6, color: Color(0x668F82A9))),
+      const SizedBox(height: 5),
+      Text(title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, letterSpacing: 2.2)),
+    ])),
+  ]);
 }
 
 class _GameWorldHero extends StatelessWidget {
   final ContentItem item; final String? artUrl; final bool compact; final double phase;
   const _GameWorldHero({required this.item, required this.artUrl, required this.compact, required this.phase});
-  @override Widget build(BuildContext context) => Container(height: compact ? 210 : 260, decoration: BoxDecoration(color: const Color(0x99050610), border: Border.all(color: const Color(0x2F7F70B0))), child: Stack(children: [if (artUrl != null) Positioned.fill(child: Opacity(opacity: .22, child: Image.network(artUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()))), Positioned.fill(child: CustomPaint(painter: _HeroFramePainter(phase))), Padding(padding: const EdgeInsets.all(18), child: Align(alignment: Alignment.bottomLeft, child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item.type.name.toUpperCase(), style: const TextStyle(fontSize: 6, letterSpacing: 2.0, color: Color(0x667F8AA2))), const SizedBox(height: 7), Text(item.title.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, letterSpacing: 2.5, fontWeight: FontWeight.w300)), if ((item.franchise ?? '').isNotEmpty) ...[const SizedBox(height: 6), Text(item.franchise!.toUpperCase(), style: const TextStyle(fontSize: 6, letterSpacing: 1.6, color: Color(0x8897A8BE)))] ])))]));
+  @override Widget build(BuildContext context) {
+    final h = compact ? 520.0 : 560.0;
+    return Container(height: h, decoration: BoxDecoration(color: const Color(0xD6070711), border: Border.all(color: const Color(0x507F70B0)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 35)]), child: compact
+      ? Column(children: [Expanded(child: _ArtStage(url: artUrl, title: item.title, phase: phase, compact: true)), _HeroText(item: item, compact: true)])
+      : Row(children: [Expanded(flex: 7, child: _ArtStage(url: artUrl, title: item.title, phase: phase, compact: false)), Expanded(flex: 5, child: _HeroText(item: item, compact: false))]));
+  }
+}
+
+class _ArtStage extends StatelessWidget {
+  final String? url; final String title; final double phase; final bool compact;
+  const _ArtStage({required this.url, required this.title, required this.phase, required this.compact});
+  @override Widget build(BuildContext context) => Stack(children: [
+    Positioned.fill(child: CustomPaint(painter: _ArtStagePainter(phase))),
+    Positioned.fill(child: Padding(padding: EdgeInsets.all(compact ? 14 : 24), child: DarkestWorldArtbox(imageUrl: url, title: title, phase: phase, compact: compact))),
+    Positioned(left: 16, top: 14, child: _StageLabel(text: 'ARCHIVE OBJECT')),
+    Positioned(right: 16, top: 14, child: _StageLabel(text: '01 / 01')),
+    Positioned(left: 16, bottom: 14, child: _StageLabel(text: url == null ? 'ARTBOX SOURCE PENDING' : 'TRANSPARENT ART READY')),
+    Positioned(right: 16, bottom: 14, child: _StageLabel(text: 'CURRENT')),
+  ]);
+}
+
+class _ArtStagePainter extends CustomPainter {
+  final double phase; const _ArtStagePainter(this.phase);
+  @override void paint(Canvas c, Size s) {
+    final rect = Offset.zero & s;
+    c.drawRect(rect, Paint()..shader = const RadialGradient(center: Alignment(0, -.08), radius: 1.05, colors: [Color(0xFF302342), Color(0xFF0B0A15), Color(0xFF020207)]).createShader(rect));
+    final floor = Rect.fromLTWH(0, s.height * .69, s.width, s.height * .31);
+    c.drawRect(floor, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x22000000), Color(0xAA000000)]).createShader(floor));
+    final scan = (phase * s.height * 1.3) % (s.height + 80) - 40;
+    c.drawRect(Rect.fromLTWH(0, scan, s.width, 1), Paint()..color = const Color(0x147F70B0));
+    for (var i = 0; i < 12; i++) {
+      final x = (i + 1) * s.width / 13;
+      c.drawLine(Offset(x, s.height * .72), Offset(x, s.height), Paint()..color = const Color(0x0AFFFFFF));
+    }
+  }
+  @override bool shouldRepaint(covariant _ArtStagePainter old) => old.phase != phase;
+}
+
+class _HeroText extends StatelessWidget {
+  final ContentItem item; final bool compact;
+  const _HeroText({required this.item, required this.compact});
+  @override Widget build(BuildContext context) => Padding(padding: EdgeInsets.all(compact ? 16 : 30), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+    const Text('CURRENT GAME WORLD', style: TextStyle(fontSize: 7, letterSpacing: 3, color: Color(0x7897A8BE))),
+    const SizedBox(height: 12),
+    Text(item.title.toUpperCase(), maxLines: compact ? 2 : 4, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: compact ? 20 : 30, height: 1.02, letterSpacing: 2.2, fontWeight: FontWeight.w300)),
+    const SizedBox(height: 15),
+    const Text('CINEMATIC ARTBOX ARCHIVE', style: TextStyle(fontSize: 7, letterSpacing: 2, color: Color(0x55FFFFFF))),
+    const SizedBox(height: 22),
+    Row(children: [const Icon(Icons.inventory_2_outlined, size: 13, color: Color(0x778F82A9)), const SizedBox(width: 7), Text(item.type.name.toUpperCase(), style: const TextStyle(fontSize: 7, letterSpacing: 1.8, color: Color(0x8897A8BE)))])
+  ]));
+}
+
+class _StageLabel extends StatelessWidget {
+  final String text; const _StageLabel({required this.text});
+  @override Widget build(BuildContext context) => DecoratedBox(decoration: const BoxDecoration(color: Color(0xCC05060D)), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), child: Text(text, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.8, color: Color(0x667F8AA2)))));
+}
+
+class _ArtboxInfo extends StatelessWidget {
+  final bool compact; final bool hasArt;
+  const _ArtboxInfo({required this.compact, required this.hasArt});
+  @override Widget build(BuildContext context) => Container(padding: EdgeInsets.all(compact ? 14 : 18), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x327F70B0))), child: Row(children: [
+    Icon(hasArt ? Icons.check_circle_outline : Icons.hourglass_empty, size: 18, color: hasArt ? const Color(0xAA9A8AC4) : const Color(0x557F70B0)),
+    const SizedBox(width: 12),
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(hasArt ? 'TRANSPARENT ARTBOX PIPELINE ACTIVE' : 'ARTBOX SOURCE AWAITING ASSET', style: const TextStyle(fontSize: 8, letterSpacing: 1.5)),
+      const SizedBox(height: 5),
+      Text(hasArt ? 'FULL CASE PRESERVED • 3D PERSPECTIVE • CONTACT SHADOW • REFLECTION • PARALLAX' : 'The renderer is ready for transparent PNG/WebP artbox assets.', style: const TextStyle(fontSize: 6, color: Color(0x778F9AAF))),
+    ])),
+  ]));
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String label; final String detail;
+  const _SectionTitle({required this.label, required this.detail});
+  @override Widget build(BuildContext context) => Row(children: [
+    Text(label, style: const TextStyle(fontSize: 8, letterSpacing: 2.5)),
+    const SizedBox(width: 10),
+    Expanded(child: Container(height: 1, color: const Color(0x1F7F70B0))),
+    const SizedBox(width: 10),
+    Text(detail, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.4, color: Color(0x557F8AA2))),
+  ]);
+}
+
+class _Description extends StatelessWidget {
+  final String text; const _Description({required this.text});
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x227F70B0))), child: Text(text, style: const TextStyle(fontSize: 8, height: 1.6, color: Color(0xAAADB7C9))));
 }
 
 class _MetaStrip extends StatelessWidget {
   final ContentItem item; final String type; final String franchise;
   const _MetaStrip({required this.item, required this.type, required this.franchise});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: Wrap(spacing: 20, runSpacing: 8, children: [_Meta(label: 'TYPE', value: type.toUpperCase()), if (franchise.isNotEmpty) _Meta(label: 'FRANCHISE', value: franchise.toUpperCase()), _Meta(label: 'ID', value: item.id)]));
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13), decoration: BoxDecoration(color: const Color(0x99060810), border: Border.all(color: const Color(0x267F70B0))), child: Wrap(spacing: 22, runSpacing: 9, children: [
+    _Meta(label: 'TYPE', value: type.toUpperCase()),
+    if (franchise.isNotEmpty) _Meta(label: 'FRANCHISE', value: franchise.toUpperCase()),
+    _Meta(label: 'ID', value: item.id),
+  ]));
 }
-class _Meta extends StatelessWidget { final String label; final String value; const _Meta({required this.label, required this.value}); @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 5, letterSpacing: 1.6, color: Color(0x557F8AA2))), const SizedBox(height: 3), Text(value, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.0, color: Color(0x8897A8BE)))]); }
-class _Description extends StatelessWidget { final String text; const _Description({required this.text}); @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: const Color(0x66080911), border: Border.all(color: const Color(0x147F70B0))), child: Text(text, style: const TextStyle(fontSize: 7, height: 1.5, color: Color(0x778F9AAF)))); }
-class _ArtboxInfo extends StatelessWidget { final bool compact; final bool hasArt; const _ArtboxInfo({required this.compact, required this.hasArt}); @override Widget build(BuildContext context) => Container(height: compact ? 76 : 88, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0x99050610), border: Border.all(color: const Color(0x267F70B0))), child: Row(children: [Icon(Icons.inventory_2_outlined, size: 18, color: hasArt ? const Color(0x779A8AC4) : const Color(0x445F687C)), const SizedBox(width: 10), Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(hasArt ? 'ARTBOX OBJECT LINKED' : 'ARTBOX OBJECT PENDING', style: const TextStyle(fontSize: 6.5, letterSpacing: 1.5, color: Color(0x8897A8BE))), const SizedBox(height: 5), Text(hasArt ? 'TRANSPARENT MEDIA REFERENCE READY' : 'NO ARCHIVE IMAGE SIGNAL', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.1, color: Color(0x557F8AA2)))]) ])); }
-class _IntelGrid extends StatelessWidget { final Map<String,String> values; final bool compact; const _IntelGrid({required this.values, required this.compact}); @override Widget build(BuildContext context) => GridView.count(crossAxisCount: compact ? 2 : 4, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), childAspectRatio: compact ? 2.8 : 2.5, crossAxisSpacing: 7, mainAxisSpacing: 7, children: values.entries.map((entry) => Container(padding: const EdgeInsets.all(9), decoration: BoxDecoration(color: const Color(0x66080911), border: Border.all(color: const Color(0x147F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(entry.key, style: const TextStyle(fontSize: 5, letterSpacing: 1.4, color: Color(0x557F8AA2))), const SizedBox(height: 4), Text(entry.value.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6, letterSpacing: .8, color: Color(0x8897A8BE)))]))).toList()); }
-class _MediaChamber extends StatelessWidget { final String? url; final bool compact; final ValueChanged<String> copy; const _MediaChamber({required this.url, required this.compact, required this.copy}); @override Widget build(BuildContext context) => Container(height: compact ? 76 : 88, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0x99050610), border: Border.all(color: const Color(0x267F70B0))), child: Row(children: [Icon(url == null ? Icons.pause_circle_outline : Icons.play_circle_outline, size: 20, color: url == null ? const Color(0x445F687C) : const Color(0x779A8AC4)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(url == null ? 'NO LONGPLAY SIGNAL' : 'LONGPLAY / REFERENCE READY', style: const TextStyle(fontSize: 6.5, letterSpacing: 1.5, color: Color(0x8897A8BE))), const SizedBox(height: 5), Text(url == null ? 'ARCHIVE REFERENCE NOT LINKED' : url!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 5.5, color: Color(0x557F8AA2)))])), if (url != null) IconButton(onPressed: () => copy(url!), icon: const Icon(Icons.copy, size: 13, color: Color(0x667F8AA2))) ])); }
 
-class _NavigationRow extends StatelessWidget { final TypedFranchiseNavigation navigation; final bool compact; final ValueChanged<ContentItem>? open; const _NavigationRow({required this.navigation, required this.compact, required this.open}); @override Widget build(BuildContext context) => Row(children: [Expanded(child: _NavCard(label: 'PREVIOUS', item: navigation.previous, compact: compact, open: open)), const SizedBox(width: 8), Expanded(child: _NavCard(label: 'CURRENT', item: navigation.current, compact: compact, open: open, active: true)), const SizedBox(width: 8), Expanded(child: _NavCard(label: 'NEXT', item: navigation.next, compact: compact, open: open))]); }
-class _NavCard extends StatelessWidget { final String label; final ContentItem? item; final bool compact; final ValueChanged<ContentItem>? open; final bool active; const _NavCard({required this.label, required this.item, required this.compact, required this.open, this.active = false}); @override Widget build(BuildContext context) { final child = Container(height: compact ? 58 : 66, padding: const EdgeInsets.all(9), decoration: BoxDecoration(color: active ? const Color(0x247F70B0) : const Color(0x0C7F70B0), border: Border.all(color: active ? const Color(0x4C9A8AC4) : const Color(0x1D7F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(label, style: const TextStyle(fontSize: 5, letterSpacing: 1.5, color: Color(0x557F8AA2))), const SizedBox(height: 5), Text(item?.title.toUpperCase() ?? '—', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: .8, color: Color(0x8897A8BE)))])); return open == null || item == null ? child : InkWell(onTap: () => open!(item!), child: child); } }
-class _RelatedGrid extends StatelessWidget { final List<ContentItem> items; final bool compact; final ValueChanged<ContentItem> open; const _RelatedGrid({required this.items, required this.compact, required this.open}); @override Widget build(BuildContext context) => GridView.count(crossAxisCount: compact ? 1 : 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: compact ? 4.4 : 3.8, children: items.map((item) => InkWell(onTap: () => open(item), child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: Row(children: [const Icon(Icons.link, size: 13, color: Color(0x667F70B0)), const SizedBox(width: 9), Expanded(child: Text(item.title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.0, color: Color(0x8897A8BE))))])))).toList()); }
-class _LoadingPanel extends StatelessWidget { const _LoadingPanel(); @override Widget build(BuildContext context) => Container(height: 70, alignment: Alignment.center, decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: const Text('LOADING ARCHIVE SIGNAL…', style: TextStyle(fontSize: 6, letterSpacing: 1.8, color: Color(0x557F8AA2)))); }
-class _MessagePanel extends StatelessWidget { final String text; const _MessagePanel({required this.text}); @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: Text(text, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.2, color: Color(0x557F8AA2)))); }
-class _HeroFramePainter extends CustomPainter { final double phase; const _HeroFramePainter(this.phase); @override void paint(Canvas c, Size s) { final p = Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0x267F70B0); final inset = 18.0; c.drawRect(Rect.fromLTWH(inset, inset, s.width - inset * 2, s.height - inset * 2), p); final scan = Paint()..color = const Color(0x147F70B0); c.drawRect(Rect.fromLTWH(inset, inset + ((s.height - inset * 2) * phase), s.width - inset * 2, 1), scan); } @override bool shouldRepaint(covariant _HeroFramePainter old) => old.phase != phase; }
-class _DetailSpacePainter extends CustomPainter { final double phase; const _DetailSpacePainter(this.phase); @override void paint(Canvas c, Size s) { c.drawRect(Offset.zero & s, Paint()..shader = const RadialGradient(center: Alignment(0, -.35), radius: 1.25, colors: [Color(0xFF11101E), Color(0xFF05050C), Color(0xFF020207)]).createShader(Offset.zero & s)); final glow = Paint()..color = const Color(0x087F70B0); c.drawCircle(Offset(s.width * .82, s.height * .18), 180 + math.sin(phase * math.pi * 2) * 12, glow); } @override bool shouldRepaint(covariant _DetailSpacePainter old) => old.phase != phase; }
+class _Meta extends StatelessWidget {
+  final String label; final String value;
+  const _Meta({required this.label, required this.value});
+  @override Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [Text('$label  ', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.6, color: Color(0x557F8AA2))), Text(value, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.1, color: Color(0x8897A8BE)))]);
+}
+
+class _IntelGrid extends StatelessWidget {
+  final Map<String, String> values; final bool compact;
+  const _IntelGrid({required this.values, required this.compact});
+  @override Widget build(BuildContext context) {
+    final columns = compact ? 2 : 4;
+    return GridView.count(crossAxisCount: columns, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: compact ? 2.6 : 3.1, children: values.entries.map((entry) => Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(entry.key, style: const TextStyle(fontSize: 5, letterSpacing: 1.5, color: Color(0x557F8AA2))), const SizedBox(height: 4), Text(entry.value.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: .8, color: Color(0x8897A8BE)))]))).toList());
+  }
+}
+
+class _MediaChamber extends StatelessWidget {
+  final String? url; final bool compact; final ValueChanged<String> copy;
+  const _MediaChamber({required this.url, required this.compact, required this.copy});
+  @override Widget build(BuildContext context) => Container(padding: EdgeInsets.all(compact ? 14 : 18), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x287F70B0))), child: Row(children: [
+    const Icon(Icons.play_circle_outline, size: 22, color: Color(0x889A8AC4)), const SizedBox(width: 12),
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(url == null ? 'NO LONGPLAY LINK' : 'LONGPLAY / REFERENCE READY', style: const TextStyle(fontSize: 7.5, letterSpacing: 1.4)),
+      const SizedBox(height: 5), Text(url ?? 'Add longplay_url or youtube_url to metadata.', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6, color: Color(0x667F8AA2))),
+    ])),
+    if (url != null) IconButton(onPressed: () => copy(url!), icon: const Icon(Icons.copy, size: 14, color: Color(0x667F8AA2))),
+  ]));
+}
+
+class _NavigationRow extends StatelessWidget {
+  final TypedFranchiseNavigation navigation; final bool compact; final ValueChanged<ContentItem> open;
+  const _NavigationRow({required this.navigation, required this.compact, required this.open});
+  @override Widget build(BuildContext context) => Row(children: [
+    Expanded(child: _NavCard(label: 'PREVIOUS', item: navigation.previous, compact: compact, open: open)),
+    const SizedBox(width: 8),
+    Expanded(child: _NavCard(label: 'CURRENT', item: navigation.current, compact: compact, open: null, active: true)),
+    const SizedBox(width: 8),
+    Expanded(child: _NavCard(label: 'NEXT', item: navigation.next, compact: compact, open: open)),
+  ]);
+}
+
+class _NavCard extends StatelessWidget {
+  final String label; final ContentItem? item; final bool compact; final ValueChanged<ContentItem>? open; final bool active;
+  const _NavCard({required this.label, required this.item, required this.compact, required this.open, this.active = false});
+  @override Widget build(BuildContext context) {
+    final child = Container(height: compact ? 58 : 66, padding: const EdgeInsets.all(9), decoration: BoxDecoration(color: active ? const Color(0x247F70B0) : const Color(0x0C7F70B0), border: Border.all(color: active ? const Color(0x4C9A8AC4) : const Color(0x1D7F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(label, style: const TextStyle(fontSize: 5, letterSpacing: 1.5, color: Color(0x557F8AA2))), const SizedBox(height: 5), Text(item?.title.toUpperCase() ?? '—', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: .8, color: Color(0x8897A8BE)))]));
+    return open == null || item == null ? child : InkWell(onTap: () => open!(item!), child: child);
+  }
+}
+
+class _RelatedGrid extends StatelessWidget {
+  final List<ContentItem> items; final bool compact; final ValueChanged<ContentItem> open;
+  const _RelatedGrid({required this.items, required this.compact, required this.open});
+  @override Widget build(BuildContext context) => GridView.count(crossAxisCount: compact ? 1 : 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: compact ? 4.4 : 3.8, children: items.map((item) => InkWell(onTap: () => open(item), child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: Row(children: [const Icon(Icons.link, size: 13, color: Color(0x667F70B0)), const SizedBox(width: 9), Expanded(child: Text(item.title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.0, color: Color(0x8897A8BE))))])))).toList());
+  }
+}
+
+class _LoadingPanel extends StatelessWidget {
+  const _LoadingPanel();
+  @override Widget build(BuildContext context) => Container(height: 70, alignment: Alignment.center, decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: const Text('LOADING ARCHIVE SIGNAL…', style: TextStyle(fontSize: 6, letterSpacing: 1.8, color: Color(0x557F8AA2))));
+}
+
+class _MessagePanel extends StatelessWidget {
+  final String text; const _MessagePanel({required this.text});
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: Text(text, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.2, color: Color(0x557F8AA2))));
+}
+
+class _DetailSpacePainter extends CustomPainter {
+  final double phase; const _DetailSpacePainter(this.phase);
+  @override void paint(Canvas c, Size s) {
+    c.drawRect(Offset.zero & s, Paint()..shader = const RadialGradient(center: Alignment(0, -.35), radius: 1.25, colors: [Color(0xFF11101E), Color(0xFF05050C), Color(0xFF020207)]).createShader(Offset.zero & s));
+    final glow = Paint()..color = const Color(0x087F70B0);
+    c.drawCircle(Offset(s.width * .82, s.height * .18), 180 + math.sin(phase * math.pi * 2) * 12, glow);
+  }
+  @override bool shouldRepaint(covariant _DetailSpacePainter old) => old.phase != phase;
+}
