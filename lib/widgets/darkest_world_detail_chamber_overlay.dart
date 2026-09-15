@@ -30,7 +30,7 @@ class _DetailChamberOverlayState extends State<DarkestWorldDetailChamberOverlay>
               border: Border.all(color: const Color(0x447F70B0)),
               boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 34, spreadRadius: 1)],
             ),
-            child: compact ? _Compact(state: state) : _Wide(state: state),
+            child: compact ? _Compact(state: state, phase: _clock.value) : _Wide(state: state, phase: _clock.value),
           )),
         ),
       )),
@@ -40,7 +40,8 @@ class _DetailChamberOverlayState extends State<DarkestWorldDetailChamberOverlay>
 
 class _Wide extends StatelessWidget {
   final DarkestWorldNavigationState state;
-  const _Wide({required this.state});
+  final double phase;
+  const _Wide({required this.state, required this.phase});
   @override Widget build(BuildContext context) => Column(children: [
     Row(children: [
       const _Label('DETAIL COMMAND LAYER'),
@@ -60,12 +61,15 @@ class _Wide extends StatelessWidget {
       const SizedBox(width: 18),
       SizedBox(width: 150, child: _RelationTelemetry(state: state)),
     ])),
+    const SizedBox(height: 10),
+    _ArchiveSignalRail(state: state, phase: phase),
   ]);
 }
 
 class _Compact extends StatelessWidget {
   final DarkestWorldNavigationState state;
-  const _Compact({required this.state});
+  final double phase;
+  const _Compact({required this.state, required this.phase});
   @override Widget build(BuildContext context) => Column(children: [
     Row(children: [const _Label('DETAIL'), const SizedBox(width: 8), Expanded(child: Text(state.current.title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8, letterSpacing: 1.6))), _Status(value: '${state.related.length} REL')]),
     const SizedBox(height: 9),
@@ -76,7 +80,98 @@ class _Compact extends StatelessWidget {
       const SizedBox(width: 5),
       Expanded(child: _Node(label: 'NEXT', value: state.next?.title ?? '—', active: state.next != null)),
     ]),
+    const SizedBox(height: 7),
+    _ArchiveSignalRail(state: state, phase: phase, compact: true),
   ]);
+}
+
+class _ArchiveSignalRail extends StatelessWidget {
+  final DarkestWorldNavigationState state;
+  final double phase;
+  final bool compact;
+  const _ArchiveSignalRail({required this.state, required this.phase, this.compact = false});
+  @override Widget build(BuildContext context) {
+    final origin = state.originId != null;
+    final relation = state.related.length;
+    final continuity = (state.previous != null ? 1 : 0) + (state.next != null ? 1 : 0);
+    return Container(
+      height: compact ? 27 : 32,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 9),
+      decoration: BoxDecoration(
+        color: const Color(0x090D101B),
+        border: Border.all(color: const Color(0x223C4660)),
+      ),
+      child: Row(children: [
+        _SignalMark(label: 'ORIGIN', value: origin ? 'LOCKED' : 'OPEN', active: origin, phase: phase),
+        _RailDivider(),
+        _SignalMark(label: 'CHAIN', value: '$continuity/2', active: continuity > 0, phase: phase + .17),
+        _RailDivider(),
+        _SignalMark(label: 'REL', value: relation.toString().padLeft(2, '0'), active: relation > 0, phase: phase + .34),
+        if (!compact) ...[
+          _RailDivider(),
+          Expanded(child: Row(children: [
+            const Text('ARCHIVE SIGNAL', style: TextStyle(fontSize: 5, letterSpacing: 1.7, color: Color(0x557F90A4))),
+            const SizedBox(width: 9),
+            Expanded(child: _SignalLine(phase: phase)),
+            const SizedBox(width: 8),
+            Text(state.current.type.name.toUpperCase(), style: const TextStyle(fontSize: 5, letterSpacing: 1.4, color: Color(0x668F9DB0))),
+          ])),
+        ],
+      ]),
+    );
+  }
+}
+
+class _SignalMark extends StatelessWidget {
+  final String label, value;
+  final bool active;
+  final double phase;
+  const _SignalMark({required this.label, required this.value, required this.active, required this.phase});
+  @override Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+    _PulseDot(active: active, phase: phase),
+    const SizedBox(width: 5),
+    Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(fontSize: 4.5, letterSpacing: 1.4, color: Color(0x447F90A4))),
+      const SizedBox(height: 1),
+      Text(value, style: TextStyle(fontSize: 5.5, letterSpacing: 1.1, color: active ? const Color(0x998F9DB0) : const Color(0x447F8795))),
+    ]),
+  ]);
+}
+
+class _PulseDot extends StatelessWidget {
+  final bool active;
+  final double phase;
+  const _PulseDot({required this.active, required this.phase});
+  @override Widget build(BuildContext context) {
+    final glow = active ? .35 + .25 * math.sin(phase * math.pi * 2).abs() : .15;
+    return Container(width: 5, height: 5, decoration: BoxDecoration(shape: BoxShape.circle, color: Color.fromRGBO(143, 130, 185, glow), boxShadow: active ? [BoxShadow(color: Color.fromRGBO(143, 130, 185, glow * .6), blurRadius: 5)] : null));
+  }
+}
+
+class _RailDivider extends StatelessWidget {
+  @override Widget build(BuildContext context) => Container(width: 1, height: 15, margin: const EdgeInsets.symmetric(horizontal: 10), color: const Color(0x223C4660));
+}
+
+class _SignalLine extends StatelessWidget {
+  final double phase;
+  const _SignalLine({required this.phase});
+  @override Widget build(BuildContext context) => SizedBox(height: 8, child: CustomPaint(painter: _SignalLinePainter(phase)));
+}
+
+class _SignalLinePainter extends CustomPainter {
+  final double phase;
+  const _SignalLinePainter(this.phase);
+  @override void paint(Canvas c, Size s) {
+    final y = s.height * .5;
+    c.drawLine(Offset.zero.translate(0, y), Offset(s.width, y), Paint()..color = const Color(0x243F4B64)..strokeWidth = .7);
+    final x = (phase * s.width) % (s.width + 26) - 13;
+    c.drawLine(Offset(x, y), Offset(math.min(s.width, x + 26), y), Paint()..color = const Color(0x668F82B9)..strokeWidth = 1.1);
+    for (var i = 1; i < 12; i++) {
+      final px = s.width * i / 12;
+      c.drawCircle(Offset(px, y), i % 4 == 0 ? 1.2 : .7, Paint()..color = const Color(0x3D8F9DB0));
+    }
+  }
+  @override bool shouldRepaint(covariant _SignalLinePainter old) => old.phase != phase;
 }
 
 class _Node extends StatelessWidget {
