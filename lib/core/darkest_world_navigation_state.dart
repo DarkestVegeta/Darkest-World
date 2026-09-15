@@ -24,6 +24,8 @@ class DarkestWorldNavigationState {
   String? get previousId => previous?.id;
   String get currentId => current.id;
   String? get nextId => next?.id;
+  bool get hasOrigin => originId != null && originId!.isNotEmpty;
+  String get entryLabel => entryPoint.replaceAll('_', ' ').toUpperCase();
 
   List<String> get relatedIds => related.map((item) => item.id).toList(growable: false);
 
