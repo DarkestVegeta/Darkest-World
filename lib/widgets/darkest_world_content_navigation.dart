@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/content_models.dart';
+import '../core/content_repository.dart';
 import '../core/darkest_world_navigation_state.dart';
 import '../screens/content_detail_page.dart';
 import '../screens/galaxy_navigation_session.dart';
@@ -8,15 +9,69 @@ import '../screens/galaxy_navigation_session.dart';
 /// Global projection of the shared content navigation contract.
 /// Route mechanics remain owned by Navigator; this widget only exposes the
 /// active content snapshot consistently across archive/world surfaces.
-class DarkestWorldContentNavigation extends StatelessWidget {
+class DarkestWorldContentNavigation extends StatefulWidget {
   const DarkestWorldContentNavigation({super.key});
+
+  @override
+  State<DarkestWorldContentNavigation> createState() => _DarkestWorldContentNavigationState();
+}
+
+class _DarkestWorldContentNavigationState extends State<DarkestWorldContentNavigation> {
+  final repository = ContentRepository();
+  final navigation = GalaxyNavigationSession.instance;
+  String? hydratedId;
+  String? hydrationInFlight;
+
+  @override
+  void initState() {
+    super.initState();
+    navigation.addListener(_onNavigationChanged);
+    _onNavigationChanged();
+  }
+
+  @override
+  void dispose() {
+    navigation.removeListener(_onNavigationChanged);
+    super.dispose();
+  }
+
+  void _onNavigationChanged() {
+    final state = navigation.contentNavigation;
+    if (state == null || state.source != 'archive' || state.related.isNotEmpty) return;
+    final id = state.current.id;
+    if (hydratedId == id || hydrationInFlight == id) return;
+    hydrationInFlight = id;
+    _hydrateRelated(state);
+  }
+
+  Future<void> _hydrateRelated(DarkestWorldNavigationState state) async {
+    final id = state.current.id;
+    try {
+      final related = await repository.getRelatedContentItems(id);
+      if (!mounted) return;
+      final latest = navigation.contentNavigation;
+      if (latest == null || latest.current.id != id || latest.source != 'archive') return;
+      hydratedId = id;
+      navigation.publishContentNavigation(DarkestWorldNavigationState(
+        previous: latest.previous,
+        current: latest.current,
+        next: latest.next,
+        related: related,
+        source: latest.source,
+      ));
+    } catch (_) {
+      if (mounted) hydratedId = id;
+    } finally {
+      if (hydrationInFlight == id) hydrationInFlight = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: GalaxyNavigationSession.instance,
+      animation: navigation,
       builder: (context, _) {
-        final state = GalaxyNavigationSession.instance.contentNavigation;
+        final state = navigation.contentNavigation;
         if (state == null) return const SizedBox.shrink();
         final compact = MediaQuery.sizeOf(context).width < 760;
         return Positioned(
@@ -172,7 +227,7 @@ class _Direction extends StatelessWidget {
   final VoidCallback onTap;
   const _Direction(this.value, this.onTap);
   @override
-  Widget build(BuildContext context) => InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.only(left: 7), child: Text(value, style: const TextStyle(fontSize: 10, color: Color(0x778F82A9)))));
+  Widget build(BuildContext context) => InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.only(left: 7), child: Text(value, style: const TextStyle(fontSize: 10, color: Color(0x778F82A9))));
 }
 
 class _RelatedCount extends StatelessWidget {
