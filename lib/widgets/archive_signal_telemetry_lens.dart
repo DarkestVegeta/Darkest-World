@@ -2,94 +2,74 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/darkest_world_navigation_state.dart';
 
-/// Cinematic, bounded telemetry lens for archive navigation state.
-/// Keeps navigation data presentation-only and does not own routing.
-class ArchiveSignalTelemetryLens extends StatefulWidget {
+/// Cinematic telemetry lens for archive navigation state.
+/// The host owns animation timing; this widget does not create a second clock.
+class ArchiveSignalTelemetryLens extends StatelessWidget {
   final DarkestWorldNavigationState state;
   final bool compact;
+  final double phase;
 
   const ArchiveSignalTelemetryLens({
     super.key,
     required this.state,
     this.compact = false,
+    this.phase = 0,
   });
 
   @override
-  State<ArchiveSignalTelemetryLens> createState() => _ArchiveSignalTelemetryLensState();
-}
-
-class _ArchiveSignalTelemetryLensState extends State<ArchiveSignalTelemetryLens>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _clock = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 18),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _clock.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final state = widget.state;
-    return AnimatedBuilder(
-      animation: _clock,
-      builder: (_, __) => Container(
-        height: widget.compact ? 92 : 108,
-        decoration: BoxDecoration(
-          color: const Color(0xB5050610),
-          border: Border.all(color: const Color(0x397F70B0)),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _ArchiveSignalPainter(_clock.value, state.continuityCount),
-              ),
+    return Container(
+      height: compact ? 92 : 108,
+      decoration: BoxDecoration(
+        color: const Color(0xB5050610),
+        border: Border.all(color: const Color(0x397F70B0)),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _ArchiveSignalPainter(phase, state.continuityCount),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: widget.compact ? 12 : 18,
-                vertical: 12,
-              ),
-              child: Row(
-                children: [
-                  _SignalCore(active: state.continuityCount > 0),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'ARCHIVE SIGNAL',
-                          style: TextStyle(
-                            fontSize: 7,
-                            letterSpacing: 2.5,
-                            color: Color(0x7F9AA6BE),
-                          ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 12 : 18,
+              vertical: 12,
+            ),
+            child: Row(
+              children: [
+                _SignalCore(active: state.continuityCount > 0),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'ARCHIVE SIGNAL',
+                        style: TextStyle(
+                          fontSize: 7,
+                          letterSpacing: 2.5,
+                          color: Color(0x7F9AA6BE),
                         ),
-                        const SizedBox(height: 7),
-                        Text(
-                          state.archiveSignal,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            letterSpacing: 2.1,
-                            fontWeight: FontWeight.w300,
-                          ),
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        state.archiveSignal,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          letterSpacing: 2.1,
+                          fontWeight: FontWeight.w300,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  if (!widget.compact)
-                    _SignalMetrics(state: state),
-                ],
-              ),
+                ),
+                if (!compact) _SignalMetrics(state: state),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
