@@ -45,13 +45,7 @@ class _DarkestWorldContentNavigationState extends State<DarkestWorldContentNavig
       final latest = navigation.contentNavigation;
       if (latest == null || latest.current.id != id || latest.source != 'archive') return;
       hydratedId = id;
-      navigation.publishContentNavigation(DarkestWorldNavigationState(
-        previous: latest.previous,
-        current: latest.current,
-        next: latest.next,
-        related: related,
-        source: latest.source,
-      ));
+      navigation.publishContentNavigation(latest.copyWith(related: related));
     } catch (_) {
       if (mounted) hydratedId = id;
     } finally {
@@ -75,8 +69,28 @@ class _ContentRibbon extends StatelessWidget {
   final bool compact;
   const _ContentRibbon({required this.state, required this.compact});
 
-  void _open(BuildContext context, ContentItem item) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)));
+  Future<void> _open(BuildContext context, ContentItem item, {required String entryPoint}) async {
+    final previousState = state;
+    TypedFranchiseNavigation? typed;
+    try {
+      typed = await ContentRepository().getTypedFranchiseNavigation(item);
+    } catch (_) {
+      typed = null;
+    }
+    if (!context.mounted) return;
+
+    final current = typed?.current ?? item;
+    final nextState = DarkestWorldNavigationState(
+      previous: typed?.previous,
+      current: current,
+      next: typed?.next,
+      related: const [],
+      source: previousState.source,
+      entryPoint: entryPoint,
+      originId: previousState.current.id,
+    );
+    GalaxyNavigationSession.instance.publishContentNavigation(nextState);
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentDetailPage(item: current)));
   }
 
   void _showRelated(BuildContext context) {
@@ -94,7 +108,7 @@ class _ContentRibbon extends StatelessWidget {
             dense: true,
             leading: const Icon(Icons.link, size: 14, color: Color(0x778F82A9)),
             title: Text(item.title, style: const TextStyle(fontSize: 9, color: Color(0xCCFFFFFF))),
-            onTap: () { Navigator.of(context).pop(); _open(context, item); },
+            onTap: () { Navigator.of(context).pop(); _open(context, item, entryPoint: 'related'); },
           )),
         ]),
       )),
@@ -110,14 +124,19 @@ class _ContentRibbon extends StatelessWidget {
         decoration: BoxDecoration(color: const Color(0xF0070810), border: Border.all(color: const Color(0x327F70B0)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 26, spreadRadius: 1)]),
         padding: EdgeInsets.symmetric(horizontal: compact ? 9 : 14, vertical: compact ? 8 : 10),
         child: compact
-            ? _CompactContent(state: state, current: current, onOpen: (item) => _open(context, item), onRelated: () => _showRelated(context))
+            ? _CompactContent(
+                state: state,
+                current: current,
+                onOpen: (item) { _open(context, item, entryPoint: item.id == current.id ? 'current' : 'direction'); },
+                onRelated: () => _showRelated(context),
+              )
             : Row(children: [
                 const _Label('CONTENT NAVIGATION'), const SizedBox(width: 14),
-                Expanded(child: _Slot(label: 'PREVIOUS', item: state.previous, onTap: state.previous == null ? null : () => _open(context, state.previous!))),
+                Expanded(child: _Slot(label: 'PREVIOUS', item: state.previous, onTap: state.previous == null ? null : () { _open(context, state.previous!, entryPoint: 'previous'); })),
                 const SizedBox(width: 8),
-                Expanded(flex: 2, child: _Slot(label: 'CURRENT', item: current, active: true, onTap: () => _open(context, current))),
+                Expanded(flex: 2, child: _Slot(label: 'CURRENT', item: current, active: true, onTap: () { _open(context, current, entryPoint: 'current'); })),
                 const SizedBox(width: 8),
-                Expanded(child: _Slot(label: 'NEXT', item: state.next, onTap: state.next == null ? null : () => _open(context, state.next!))),
+                Expanded(child: _Slot(label: 'NEXT', item: state.next, onTap: state.next == null ? null : () { _open(context, state.next!, entryPoint: 'next'); })),
                 if (state.related.isNotEmpty) ...[const SizedBox(width: 14), _RelatedCount(count: state.related.length, onTap: () => _showRelated(context))],
               ]),
       ),
