@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/content_models.dart';
 import '../core/content_repository.dart';
 import '../core/darkest_world_navigation_state.dart';
@@ -54,6 +55,31 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTick
     _publishSelection(shown);
   }
 
+  void _openSelected() {
+    final shown = _shown;
+    if (shown.isEmpty) return;
+    open(shown[selected.clamp(0, shown.length - 1)]);
+  }
+
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final shown = _shown;
+    if (shown.isEmpty) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _setSelected(selected - 1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      _setSelected(selected + 1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.enter && primaryFocus?.context == context) {
+      _openSelected();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   Future<void> load() async {
     try {
       List<ContentItem> result;
@@ -87,31 +113,35 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTick
     final shown = _shown;
     if (selected >= shown.length) selected = shown.isEmpty ? 0 : shown.length - 1;
     final compact = MediaQuery.sizeOf(context).width < 850;
-    return Scaffold(
-      backgroundColor: const Color(0xFF010107),
-      body: AnimatedBuilder(
-        animation: clock,
-        builder: (_, __) => Stack(children: [
-          Positioned.fill(child: CustomPaint(painter: _ArchivePainter(clock.value))),
-          SafeArea(child: Padding(
-            padding: EdgeInsets.fromLTRB(compact ? 14 : 30, compact ? 12 : 22, compact ? 14 : 30, 12),
-            child: Column(children: [
-              _TopBar(title: widget.title, compact: compact, onBack: () => Navigator.pop(context), onSearch: (v) { query = v; selected = 0; setState(() {}); _publishSelection(_shown); }),
-              const SizedBox(height: 18),
-              Expanded(child: loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : shown.isEmpty
-                      ? const _EmptyArchive()
-                      : ListView(physics: const BouncingScrollPhysics(), children: [
-                          _HeroArchive(items: shown, selected: selected, compact: compact, onSelect: _setSelected, onOpen: open),
-                          const SizedBox(height: 22),
-                          _SectionHeader(count: shown.length, query: query),
-                          const SizedBox(height: 10),
-                          _ArchiveGrid(items: shown, compact: compact, selected: selected, onSelect: _setSelected, onOpen: open),
-                        ])),
-            ]),
-          )),
-        ]),
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _handleKey,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF010107),
+        body: AnimatedBuilder(
+          animation: clock,
+          builder: (_, __) => Stack(children: [
+            Positioned.fill(child: CustomPaint(painter: _ArchivePainter(clock.value))),
+            SafeArea(child: Padding(
+              padding: EdgeInsets.fromLTRB(compact ? 14 : 30, compact ? 12 : 22, compact ? 14 : 30, 12),
+              child: Column(children: [
+                _TopBar(title: widget.title, compact: compact, onBack: () => Navigator.pop(context), onSearch: (v) { query = v; selected = 0; setState(() {}); _publishSelection(_shown); }),
+                const SizedBox(height: 18),
+                Expanded(child: loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : shown.isEmpty
+                        ? const _EmptyArchive()
+                        : ListView(physics: const BouncingScrollPhysics(), children: [
+                            _HeroArchive(items: shown, selected: selected, compact: compact, onSelect: _setSelected, onOpen: open),
+                            const SizedBox(height: 22),
+                            _SectionHeader(count: shown.length, query: query),
+                            const SizedBox(height: 10),
+                            _ArchiveGrid(items: shown, compact: compact, selected: selected, onSelect: _setSelected, onOpen: open),
+                          ])),
+              ]),
+            )),
+          ]),
+        ),
       ),
     );
   }
