@@ -171,6 +171,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
                 state: archiveNavigationState,
                 phase: _clock.value,
                 compact: compact,
+                onRelatedTap: _open,
               ),
             ],
             const SizedBox(height: 28),
@@ -279,90 +280,110 @@ class _ArtboxInfo extends StatelessWidget {
     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(hasArt ? 'TRANSPARENT ARTBOX PIPELINE ACTIVE' : 'ARTBOX SOURCE AWAITING ASSET', style: const TextStyle(fontSize: 8, letterSpacing: 1.5)),
       const SizedBox(height: 5),
-      Text(hasArt ? 'FULL CASE PRESERVED • 3D PERSPECTIVE • CONTACT SHADOW • REFLECTION • PARALLAX' : 'The renderer is ready for transparent PNG/WebP artbox assets.', style: const TextStyle(fontSize: 6.5, letterSpacing: 1.05, color: Color(0x668F82A9))),
+      Text(hasArt ? 'FULL CASE PRESERVED • 3D PERSPECTIVE • CONTACT SHADOW • REFLECTION • PARALLAX' : 'The renderer is ready for transparent PNG/WebP artbox assets.', style: const TextStyle(fontSize: 6, color: Color(0x778F9AAF))),
     ])),
   ]));
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String label; final String detail;
+  const _SectionTitle({required this.label, required this.detail});
+  @override Widget build(BuildContext context) => Row(children: [
+    Text(label, style: const TextStyle(fontSize: 8, letterSpacing: 2.5)),
+    const SizedBox(width: 10),
+    Expanded(child: Container(height: 1, color: const Color(0x1F7F70B0))),
+    const SizedBox(width: 10),
+    Text(detail, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.4, color: Color(0x557F8AA2))),
+  ]);
+}
+
+class _Description extends StatelessWidget {
+  final String text; const _Description({required this.text});
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x227F70B0))), child: Text(text, style: const TextStyle(fontSize: 8, height: 1.6, color: Color(0xAAADB7C9))));
 }
 
 class _MetaStrip extends StatelessWidget {
   final ContentItem item; final String type; final String franchise;
   const _MetaStrip({required this.item, required this.type, required this.franchise});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), decoration: BoxDecoration(color: const Color(0xAA080811), border: Border.all(color: const Color(0x267F70B0))), child: Wrap(spacing: 22, runSpacing: 10, children: [
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13), decoration: BoxDecoration(color: const Color(0x99060810), border: Border.all(color: const Color(0x267F70B0))), child: Wrap(spacing: 22, runSpacing: 9, children: [
     _Meta(label: 'TYPE', value: type.toUpperCase()),
     if (franchise.isNotEmpty) _Meta(label: 'FRANCHISE', value: franchise.toUpperCase()),
-    if (item.releaseDate != null) _Meta(label: 'RELEASE', value: item.releaseDate!.toIso8601String().split('T').first),
-    if (item.originalTitle != null && item.originalTitle!.isNotEmpty && item.originalTitle != item.title) _Meta(label: 'ORIGINAL', value: item.originalTitle!),
+    _Meta(label: 'ID', value: item.id),
   ]));
 }
-class _Meta extends StatelessWidget { final String label; final String value; const _Meta({required this.label, required this.value}); @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 5.5, letterSpacing: 2, color: Color(0x557F70B0))), const SizedBox(height: 4), Text(value, style: const TextStyle(fontSize: 8.5, letterSpacing: .8, color: Color(0xCCFFFFFF)))]); }
-class _Description extends StatelessWidget { final String text; const _Description({required this.text}); @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(20), decoration: const BoxDecoration(color: Color(0x66090A13)), child: Text(text, style: const TextStyle(fontSize: 11, height: 1.65, color: Color(0xAAFFFFFF)))); }
-class _SectionTitle extends StatelessWidget { final String label; final String detail; const _SectionTitle({required this.label, required this.detail}); @override Widget build(BuildContext context) => Row(children: [Text(label, style: const TextStyle(fontSize: 10, letterSpacing: 3)), const SizedBox(width: 12), Expanded(child: Text(detail, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.8, color: Color(0x557F70B0))))]); }
-class _LoadingPanel extends StatelessWidget { const _LoadingPanel(); @override Widget build(BuildContext context) => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())); }
-class _MessagePanel extends StatelessWidget { final String text; const _MessagePanel({required this.text}); @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: const Color(0x66080912), border: Border.all(color: const Color(0x227F70B0))), child: Text(text, style: const TextStyle(fontSize: 7, letterSpacing: 1.7, color: Color(0x668F82A9)))); }
+
+class _Meta extends StatelessWidget {
+  final String label; final String value;
+  const _Meta({required this.label, required this.value});
+  @override Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [Text('$label  ', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.6, color: Color(0x557F8AA2))), Text(value, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.1, color: Color(0x8897A8BE)))]);
+}
 
 class _IntelGrid extends StatelessWidget {
   final Map<String, String> values; final bool compact;
   const _IntelGrid({required this.values, required this.compact});
-  @override Widget build(BuildContext context) => GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: values.length, gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: compact ? 180 : 240, mainAxisExtent: 82, crossAxisSpacing: 10, mainAxisSpacing: 10), itemBuilder: (_, i) {
-    final entry = values.entries.elementAt(i);
-    return Container(padding: const EdgeInsets.all(13), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x227F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(entry.key, style: const TextStyle(fontSize: 5.5, letterSpacing: 2, color: Color(0x557F70B0))), const SizedBox(height: 6), Text(entry.value, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9, letterSpacing: .8, color: Color(0xCCFFFFFF)))]) );
-  });
+  @override Widget build(BuildContext context) {
+    final columns = compact ? 2 : 4;
+    return GridView.count(crossAxisCount: columns, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: compact ? 2.6 : 3.1, children: values.entries.map((entry) => Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(entry.key, style: const TextStyle(fontSize: 5, letterSpacing: 1.5, color: Color(0x557F8AA2))), const SizedBox(height: 4), Text(entry.value.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: .8, color: Color(0x8897A8BE)))]))).toList());
+  }
 }
 
 class _MediaChamber extends StatelessWidget {
   final String? url; final bool compact; final ValueChanged<String> copy;
   const _MediaChamber({required this.url, required this.compact, required this.copy});
-  @override Widget build(BuildContext context) {
-    final has = url != null;
-    return Container(padding: EdgeInsets.all(compact ? 15 : 20), decoration: BoxDecoration(color: const Color(0xAA080811), border: Border.all(color: const Color(0x327F70B0))), child: compact
-      ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_MediaStatus(has: has), const SizedBox(height: 12), if (has) _MediaButton(url: url!, copy: copy)])
-      : Row(children: [Expanded(child: _MediaStatus(has: has)), const SizedBox(width: 18), if (has) _MediaButton(url: url!, copy: copy)]));
-  }
+  @override Widget build(BuildContext context) => Container(padding: EdgeInsets.all(compact ? 14 : 18), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x287F70B0))), child: Row(children: [
+    const Icon(Icons.play_circle_outline, size: 22, color: Color(0x889A8AC4)), const SizedBox(width: 12),
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(url == null ? 'NO LONGPLAY LINK' : 'LONGPLAY / REFERENCE READY', style: const TextStyle(fontSize: 7.5, letterSpacing: 1.4)),
+      const SizedBox(height: 5), Text(url ?? 'Add longplay_url or youtube_url to metadata.', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6, color: Color(0x667F8AA2))),
+    ])),
+    if (url != null) IconButton(onPressed: () => copy(url!), icon: const Icon(Icons.copy, size: 14, color: Color(0x667F8AA2))),
+  ]));
 }
-class _MediaStatus extends StatelessWidget { final bool has; const _MediaStatus({required this.has}); @override Widget build(BuildContext context) => Row(children: [Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: has ? const Color(0xAA8A78B5) : const Color(0x44555566))), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(has ? 'LONGPLAY SIGNAL READY' : 'NO LONGPLAY SIGNAL', style: const TextStyle(fontSize: 8, letterSpacing: 1.7, color: Color(0xCCFFFFFF))), const SizedBox(height: 5), Text(has ? 'REFERENCE LINK STORED IN WORLD METADATA' : 'ADD longplay_url / youtube_url TO THE WORLD METADATA', maxLines: 2, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.2, color: Color(0x557F70B0)))]) )]); }
-class _MediaButton extends StatelessWidget { final String url; final ValueChanged<String> copy; const _MediaButton({required this.url, required this.copy}); @override Widget build(BuildContext context) => FilledButton.icon(onPressed: () => copy(url), icon: const Icon(Icons.copy, size: 13), label: const Text('COPY REFERENCE')); }
 
 class _NavigationRow extends StatelessWidget {
   final TypedFranchiseNavigation navigation; final bool compact; final ValueChanged<ContentItem> open;
   const _NavigationRow({required this.navigation, required this.compact, required this.open});
   @override Widget build(BuildContext context) => Row(children: [
-    Expanded(child: _NavCard(item: navigation.previous, label: 'PREVIOUS', compact: compact, onOpen: navigation.previous == null ? null : () => open(navigation.previous!))),
-    const SizedBox(width: 10),
-    Expanded(flex: 2, child: _NavCard(item: navigation.current, label: 'CURRENT', current: true, compact: compact, onOpen: null)),
-    const SizedBox(width: 10),
-    Expanded(child: _NavCard(item: navigation.next, label: 'NEXT', compact: compact, onOpen: navigation.next == null ? null : () => open(navigation.next!))),
+    Expanded(child: _NavCard(label: 'PREVIOUS', item: navigation.previous, compact: compact, open: open)),
+    const SizedBox(width: 8),
+    Expanded(child: _NavCard(label: 'CURRENT', item: navigation.current, compact: compact, open: null, active: true)),
+    const SizedBox(width: 8),
+    Expanded(child: _NavCard(label: 'NEXT', item: navigation.next, compact: compact, open: open)),
   ]);
 }
+
 class _NavCard extends StatelessWidget {
-  final ContentItem? item; final String label; final bool current; final bool compact; final VoidCallback? onOpen;
-  const _NavCard({required this.item, required this.label, this.current = false, required this.compact, required this.onOpen});
-  @override Widget build(BuildContext context) => GestureDetector(onTap: onOpen, child: Container(height: compact ? 130 : 170, padding: EdgeInsets.all(current ? 18 : 13), decoration: BoxDecoration(color: current ? const Color(0xAA151125) : const Color(0x88080911), border: Border.all(color: current ? const Color(0x7D8A78B5) : const Color(0x267F70B0)), boxShadow: current ? const [BoxShadow(color: Color(0x401F163B), blurRadius: 22)] : null), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(label, style: TextStyle(fontSize: current ? 7 : 5.5, letterSpacing: 2.2, color: const Color(0x778F82A9))), const SizedBox(height: 9), Text(item?.title ?? '—', maxLines: 3, textAlign: TextAlign.center, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: current ? 15 : 9, height: 1.1, letterSpacing: current ? 1.2 : .7, color: item == null ? const Color(0x44FFFFFF) : Colors.white))])));
+  final String label; final ContentItem? item; final bool compact; final ValueChanged<ContentItem>? open; final bool active;
+  const _NavCard({required this.label, required this.item, required this.compact, required this.open, this.active = false});
+  @override Widget build(BuildContext context) {
+    final child = Container(height: compact ? 58 : 66, padding: const EdgeInsets.all(9), decoration: BoxDecoration(color: active ? const Color(0x247F70B0) : const Color(0x0C7F70B0), border: Border.all(color: active ? const Color(0x4C9A8AC4) : const Color(0x1D7F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(label, style: const TextStyle(fontSize: 5, letterSpacing: 1.5, color: Color(0x557F8AA2))), const SizedBox(height: 5), Text(item?.title.toUpperCase() ?? '—', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: .8, color: Color(0x8897A8BE)))]));
+    return open == null || item == null ? child : InkWell(onTap: () => open!(item!), child: child);
+  }
 }
 
 class _RelatedGrid extends StatelessWidget {
   final List<ContentItem> items; final bool compact; final ValueChanged<ContentItem> open;
   const _RelatedGrid({required this.items, required this.compact, required this.open});
-  @override Widget build(BuildContext context) {
-    final columns = compact ? 2 : 4;
-    return GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: items.length, gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: compact ? 1.25 : 1.45), itemBuilder: (_, index) {
-      final item = items[index];
-      final raw = item.metadata['public_url'] ?? item.metadata['image_url'];
-      final String? url = raw is String && raw.isNotEmpty ? raw : null;
-      return GestureDetector(onTap: () => open(item), child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x227F70B0))), child: Column(children: [Expanded(child: url == null ? const Icon(Icons.inventory_2_outlined, color: Color(0x447F70B0), size: 28) : Image.network(url, fit: BoxFit.contain, width: double.infinity, errorBuilder: (_, __, ___) => const Icon(Icons.inventory_2_outlined, color: Color(0x447F70B0), size: 28))), const SizedBox(height: 7), Text(item.title.toUpperCase(), maxLines: 2, textAlign: TextAlign.center, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.1, color: Color(0xBBFFFFFF)))])));
-    });
+  @override Widget build(BuildContext context) => GridView.count(crossAxisCount: compact ? 1 : 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: compact ? 4.4 : 3.8, children: items.map((item) => InkWell(onTap: () => open(item), child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: Row(children: [const Icon(Icons.link, size: 13, color: Color(0x667F70B0)), const SizedBox(width: 9), Expanded(child: Text(item.title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.0, color: Color(0x8897A8BE))))])))).toList());
   }
+}
+
+class _LoadingPanel extends StatelessWidget {
+  const _LoadingPanel();
+  @override Widget build(BuildContext context) => Container(height: 70, alignment: Alignment.center, decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: const Text('LOADING ARCHIVE SIGNAL…', style: TextStyle(fontSize: 6, letterSpacing: 1.8, color: Color(0x557F8AA2))));
+}
+
+class _MessagePanel extends StatelessWidget {
+  final String text; const _MessagePanel({required this.text});
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x1D7F70B0))), child: Text(text, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.2, color: Color(0x557F8AA2))));
 }
 
 class _DetailSpacePainter extends CustomPainter {
   final double phase; const _DetailSpacePainter(this.phase);
   @override void paint(Canvas c, Size s) {
-    final rect = Offset.zero & s;
-    c.drawRect(rect, Paint()..shader = const RadialGradient(center: Alignment(0, -.15), radius: 1.1, colors: [Color(0xFF171126), Color(0xFF060611), Color(0xFF010104)]).createShader(rect));
-    final random = math.Random(9173);
-    for (var i = 0; i < 170; i++) { final x = random.nextDouble() * s.width; final y = random.nextDouble() * s.height; final r = random.nextDouble() * 1.1 + .15; c.drawCircle(Offset(x, y), r, Paint()..color = Color.fromRGBO(220, 220, 255, random.nextDouble() * .25 + .04)); }
-    final scan = (phase * s.height * 1.15) % (s.height + 100) - 50;
-    c.drawRect(Rect.fromLTWH(0, scan, s.width, 1), Paint()..color = const Color(0x127F70B0));
-    c.drawRect(rect, Paint()..shader = const RadialGradient(center: Alignment.center, radius: .82, colors: [Colors.transparent, Color(0x99000000)]).createShader(rect));
+    c.drawRect(Offset.zero & s, Paint()..shader = const RadialGradient(center: Alignment(0, -.35), radius: 1.25, colors: [Color(0xFF11101E), Color(0xFF05050C), Color(0xFF020207)]).createShader(Offset.zero & s));
+    final glow = Paint()..color = const Color(0x087F70B0);
+    c.drawCircle(Offset(s.width * .82, s.height * .18), 180 + math.sin(phase * math.pi * 2) * 12, glow);
   }
   @override bool shouldRepaint(covariant _DetailSpacePainter old) => old.phase != phase;
 }
