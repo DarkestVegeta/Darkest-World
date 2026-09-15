@@ -19,7 +19,7 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: compact ? 130 : 146,
+      height: compact ? 154 : 170,
       decoration: BoxDecoration(
         color: const Color(0xB5050610),
         border: Border.all(color: const Color(0x397F70B0)),
@@ -94,6 +94,8 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
                   compact: compact,
                   phase: phase,
                 ),
+                const SizedBox(height: 8),
+                _RelatedRail(state: state, compact: compact, phase: phase),
               ],
             ),
           ),
@@ -247,6 +249,87 @@ class _ContinuityRail extends StatelessWidget {
   }
 }
 
+class _RelatedRail extends StatelessWidget {
+  final DarkestWorldNavigationState state;
+  final bool compact;
+  final double phase;
+  const _RelatedRail({required this.state, required this.compact, required this.phase});
+
+  String _label(String value) {
+    final text = value.trim().toUpperCase();
+    if (text.isEmpty) return 'RELATED WORLD';
+    return text.length > 28 ? '${text.substring(0, 25)}…' : text;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.related.isEmpty) {
+      return Container(
+        height: compact ? 22 : 25,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 7),
+        decoration: BoxDecoration(
+          color: const Color(0x087F70B0),
+          border: Border.all(color: const Color(0x147F70B0)),
+        ),
+        child: const Text(
+          'NO RELATED SIGNALS',
+          style: TextStyle(fontSize: 5.5, letterSpacing: 1.4, color: Color(0x557F8AA2)),
+        ),
+      );
+    }
+
+    final visible = state.related.take(compact ? 3 : 5).toList(growable: false);
+    final pulse = .5 + .5 * math.sin(phase * math.pi * 2);
+    return Row(
+      children: [
+        for (var i = 0; i < visible.length; i++) ...[
+          if (i > 0) const SizedBox(width: 5),
+          Expanded(
+            child: Container(
+              height: compact ? 22 : 25,
+              padding: const EdgeInsets.symmetric(horizontal: 7),
+              decoration: BoxDecoration(
+                color: const Color(0x0C7F70B0),
+                border: Border.all(color: Color.lerp(const Color(0x147F70B0), const Color(0x397F70B0), pulse)!),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 3,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0x667F70B0),
+                      boxShadow: [BoxShadow(color: const Color(0x247F70B0), blurRadius: 4 + pulse * 3)],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _label(visible[i].title),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 5.2, letterSpacing: 1.0, color: Color(0x667F8AA2)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        if (state.related.length > visible.length) ...[
+          const SizedBox(width: 5),
+          Text(
+            '+${state.related.length - visible.length}',
+            style: const TextStyle(fontSize: 5.5, letterSpacing: 1.1, color: Color(0x557F8AA2)),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _ArchiveSignalPainter extends CustomPainter {
   final double phase;
   final int links;
@@ -255,8 +338,8 @@ class _ArchiveSignalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width * .18, size.height * .38);
-    final radius = math.min(size.height * .27, 30.0);
+    final center = Offset(size.width * .18, size.height * .31);
+    final radius = math.min(size.height * .21, 30.0);
     final sweep = phase * math.pi * 2;
 
     final ring = Paint()
@@ -270,20 +353,11 @@ class _ArchiveSignalPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2
       ..color = const Color(0x3C9A8AC4);
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      sweep,
-      math.pi * .42,
-      false,
-      sweepPaint,
-    );
+    canvas.drawArc(Rect.fromCircle(center: center, radius: radius), sweep, math.pi * .42, false, sweepPaint);
 
     for (var i = 0; i < links.clamp(0, 2); i++) {
       final angle = sweep + math.pi * (i == 0 ? .72 : 1.28);
-      final point = Offset(
-        center.dx + math.cos(angle) * radius,
-        center.dy + math.sin(angle) * radius,
-      );
+      final point = Offset(center.dx + math.cos(angle) * radius, center.dy + math.sin(angle) * radius);
       canvas.drawCircle(point, 2.1, Paint()..color = const Color(0x609A8AC4));
     }
 
@@ -295,25 +369,15 @@ class _ArchiveSignalPainter extends CustomPainter {
         ..color = const Color(0x187F70B0);
       final relatedRadius = radius + 7;
       canvas.drawCircle(center, relatedRadius, relatedPaint);
-
       for (var i = 0; i < relatedCount; i++) {
         final angle = sweep * .55 + (math.pi * 2 * i / relatedCount);
-        final point = Offset(
-          center.dx + math.cos(angle) * relatedRadius,
-          center.dy + math.sin(angle) * relatedRadius,
-        );
-        canvas.drawCircle(
-          point,
-          1.35,
-          Paint()..color = const Color(0x4A7F70B0),
-        );
+        final point = Offset(center.dx + math.cos(angle) * relatedRadius, center.dy + math.sin(angle) * relatedRadius);
+        canvas.drawCircle(point, 1.35, Paint()..color = const Color(0x4A7F70B0));
       }
     }
   }
 
   @override
   bool shouldRepaint(covariant _ArchiveSignalPainter oldDelegate) =>
-      oldDelegate.phase != phase ||
-      oldDelegate.links != links ||
-      oldDelegate.related != related;
+      oldDelegate.phase != phase || oldDelegate.links != links || oldDelegate.related != related;
 }
