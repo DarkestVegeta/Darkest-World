@@ -13,8 +13,40 @@ import 'widgets/darkest_world_atlas_radar.dart';
 import 'widgets/darkest_world_world_scan.dart';
 import 'widgets/darkest_world_live_detail_chamber.dart';
 import 'widgets/darkest_world_relation_constellation.dart';
+import 'widgets/darkest_world_detail_telemetry.dart';
+
 final GlobalKey<NavigatorState> darkestWorldNavigatorKey = GlobalKey<NavigatorState>();
 final DarkestWorldNavigationObserver darkestWorldNavigationObserver = DarkestWorldNavigationObserver();
 final DarkestWorldContentDetailObserver darkestWorldContentDetailObserver = DarkestWorldContentDetailObserver();
+
 Future<void> main() async { WidgetsFlutterBinding.ensureInitialized(); runApp(const DarkestWorldApp()); }
-class DarkestWorldApp extends StatelessWidget { const DarkestWorldApp({super.key}); @override Widget build(BuildContext context) { return MaterialApp(title:'Darkest-World',debugShowCheckedModeBanner:false,navigatorKey:darkestWorldNavigatorKey,navigatorObservers:[darkestWorldNavigationObserver,darkestWorldContentDetailObserver],theme:ThemeData.dark(useMaterial3:true),builder:(context,child)=>Stack(fit:StackFit.expand,children:[child??const SizedBox.shrink(),const DarkestWorldArchiveAtmosphere(),const DarkestWorldCinematicOptics(),const DarkestWorldArchiveLens(),const DarkestWorldArchiveStage(),const DarkestWorldArchiveDepth(),const DarkestWorldAtlasRadar(),const DarkestWorldWorldScan(),const DarkestWorldLiveDetailChamber(),const DarkestWorldRelationConstellation(),const DarkestWorldContentNavigation(),DarkestWorldRouteHistory(navigatorKey:darkestWorldNavigatorKey,observer:darkestWorldNavigationObserver),DarkestWorldSystemHud(navigatorKey:darkestWorldNavigatorKey,observer:darkestWorldNavigationObserver)]),home:const GalaxyHomePage()); } }
+
+class DarkestWorldApp extends StatelessWidget {
+  const DarkestWorldApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title:'Darkest-World', debugShowCheckedModeBanner:false,
+      navigatorKey:darkestWorldNavigatorKey,
+      navigatorObservers:[darkestWorldNavigationObserver,darkestWorldContentDetailObserver],
+      theme:ThemeData.dark(useMaterial3:true),
+      builder:(context,child)=>Stack(fit:StackFit.expand,children:[
+        child??const SizedBox.shrink(),
+        const DarkestWorldArchiveAtmosphere(),
+        const DarkestWorldCinematicOptics(),
+        const DarkestWorldArchiveLens(),
+        const DarkestWorldArchiveStage(),
+        const DarkestWorldArchiveDepth(),
+        const DarkestWorldAtlasRadar(),
+        const DarkestWorldWorldScan(),
+        const DarkestWorldLiveDetailChamber(),
+        const DarkestWorldRelationConstellation(),
+        const DarkestWorldDetailTelemetry(),
+        const DarkestWorldContentNavigation(),
+        DarkestWorldRouteHistory(navigatorKey:darkestWorldNavigatorKey,observer:darkestWorldNavigationObserver),
+        DarkestWorldSystemHud(navigatorKey:darkestWorldNavigatorKey,observer:darkestWorldNavigationObserver),
+      ]),
+      home:const GalaxyHomePage(),
+    );
+  }
+}
