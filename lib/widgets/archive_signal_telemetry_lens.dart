@@ -19,7 +19,7 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: compact ? 122 : 138,
+      height: compact ? 130 : 146,
       decoration: BoxDecoration(
         color: const Color(0xB5050610),
         border: Border.all(color: const Color(0x397F70B0)),
@@ -45,7 +45,10 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
                 Expanded(
                   child: Row(
                     children: [
-                      _SignalCore(active: state.continuityCount > 0),
+                      _SignalCore(
+                        active: state.continuityCount > 0,
+                        phase: phase,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -86,7 +89,11 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 9),
-                _ContinuityRail(state: state, compact: compact),
+                _ContinuityRail(
+                  state: state,
+                  compact: compact,
+                  phase: phase,
+                ),
               ],
             ),
           ),
@@ -98,25 +105,31 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
 
 class _SignalCore extends StatelessWidget {
   final bool active;
-  const _SignalCore({required this.active});
+  final double phase;
+  const _SignalCore({required this.active, required this.phase});
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0x527F70B0)),
-          boxShadow: active
-              ? const [BoxShadow(color: Color(0x247F70B0), blurRadius: 12)]
-              : null,
-        ),
-        child: Icon(
-          Icons.adjust,
-          size: 14,
-          color: active ? const Color(0xAA9A8AC4) : const Color(0x556F7890),
-        ),
-      );
+  Widget build(BuildContext context) {
+    final pulse = .5 + .5 * math.sin(phase * math.pi * 2);
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0x527F70B0)),
+        boxShadow: active
+            ? [BoxShadow(color: const Color(0x247F70B0), blurRadius: 10 + pulse * 6)]
+            : null,
+      ),
+      child: Icon(
+        Icons.adjust,
+        size: 14,
+        color: active
+            ? Color.lerp(const Color(0x779A8AC4), const Color(0xCCB2A5D8), pulse)
+            : const Color(0x556F7890),
+      ),
+    );
+  }
 }
 
 class _SignalMetrics extends StatelessWidget {
@@ -157,7 +170,8 @@ class _Metric extends StatelessWidget {
 class _ContinuityRail extends StatelessWidget {
   final DarkestWorldNavigationState state;
   final bool compact;
-  const _ContinuityRail({required this.state, required this.compact});
+  final double phase;
+  const _ContinuityRail({required this.state, required this.compact, required this.phase});
 
   String _label(String? value, String fallback) {
     if (value == null || value.trim().isEmpty) return fallback;
@@ -178,7 +192,7 @@ class _ContinuityRail extends StatelessWidget {
           if (i > 0) const SizedBox(width: 5),
           Expanded(
             child: Container(
-              height: compact ? 22 : 25,
+              height: compact ? 24 : 27,
               padding: const EdgeInsets.symmetric(horizontal: 7),
               alignment: Alignment.centerLeft,
               decoration: BoxDecoration(
@@ -210,6 +224,19 @@ class _ContinuityRail extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (i == 1 && state.continuityCount > 0)
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color.lerp(
+                          const Color(0x557F70B0),
+                          const Color(0xAA9A8AC4),
+                          .5 + .5 * math.sin(phase * math.pi * 2),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
