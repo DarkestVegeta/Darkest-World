@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/content_models.dart';
+import '../core/darkest_world_archive_telemetry.dart';
 import '../core/darkest_world_navigation_state.dart';
 
 /// Cinematic telemetry lens for archive navigation state.
@@ -25,6 +26,7 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final telemetry = DarkestWorldArchiveTelemetry.fromNavigation(state);
     return Container(
       height: compact ? 164 : 180,
       decoration: BoxDecoration(
@@ -37,8 +39,8 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
             child: CustomPaint(
               painter: _ArchiveSignalPainter(
                 phase,
-                state.continuityCount,
-                state.related.length,
+                telemetry.continuityCount,
+                telemetry.relatedCount,
               ),
             ),
           ),
@@ -49,7 +51,7 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
                 Expanded(
                   child: Row(
                     children: [
-                      _SignalCore(active: state.continuityCount > 0, phase: phase),
+                      _SignalCore(active: telemetry.hasContinuity, phase: phase),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -58,15 +60,15 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
                           children: [
                             const Text('ARCHIVE SIGNAL', style: TextStyle(fontSize: 7, letterSpacing: 2.5, color: Color(0x7F9AA6BE))),
                             const SizedBox(height: 5),
-                            Text(state.archiveSignal, style: const TextStyle(fontSize: 13, letterSpacing: 2.1, fontWeight: FontWeight.w300)),
+                            Text(telemetry.signal, style: const TextStyle(fontSize: 13, letterSpacing: 2.1, fontWeight: FontWeight.w300)),
                             const SizedBox(height: 5),
-                            Text('${state.source.toUpperCase()}  /  ${state.entryLabel}', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.6, color: Color(0x667F8AA2))),
+                            Text('${telemetry.source.toUpperCase()}  /  ${telemetry.entryPoint}', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.6, color: Color(0x667F8AA2))),
                             const SizedBox(height: 4),
-                            Text(state.continuitySummary, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.3, color: Color(0x557F8AA2))),
+                            Text(telemetry.continuityLabel, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.3, color: Color(0x557F8AA2))),
                           ],
                         ),
                       ),
-                      if (!compact) _SignalMetrics(state: state),
+                      if (!compact) _SignalMetrics(telemetry: telemetry),
                     ],
                   ),
                 ),
@@ -114,17 +116,17 @@ class _SignalCore extends StatelessWidget {
 }
 
 class _SignalMetrics extends StatelessWidget {
-  final DarkestWorldNavigationState state;
-  const _SignalMetrics({required this.state});
+  final DarkestWorldArchiveTelemetry telemetry;
+  const _SignalMetrics({required this.telemetry});
   @override
   Widget build(BuildContext context) => Row(children: [
-    _Metric(label: 'CHAIN', value: '${state.continuityCount}/2'),
+    _Metric(label: 'CHAIN', value: '${telemetry.continuityCount}/2'),
     const SizedBox(width: 18),
-    _Metric(label: 'RELATED', value: '${state.related.length}'),
+    _Metric(label: 'RELATED', value: '${telemetry.relatedCount}'),
     const SizedBox(width: 18),
-    _Metric(label: 'POSITION', value: state.navigationPosition),
+    _Metric(label: 'POSITION', value: telemetry.position),
     const SizedBox(width: 18),
-    _Metric(label: 'ORIGIN', value: state.hasOrigin ? 'LINKED' : 'LOCAL'),
+    _Metric(label: 'ORIGIN', value: telemetry.originLabel),
   ]);
 }
 
