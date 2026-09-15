@@ -8,12 +8,14 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
   final DarkestWorldNavigationState state;
   final bool compact;
   final double phase;
+  final ValueChanged<ContentItem>? onRelatedTap;
 
   const ArchiveSignalTelemetryLens({
     super.key,
     required this.state,
     this.compact = false,
     this.phase = 0,
+    this.onRelatedTap,
   });
 
   @override
@@ -95,7 +97,12 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
                   phase: phase,
                 ),
                 const SizedBox(height: 8),
-                _RelatedRail(state: state, compact: compact, phase: phase),
+                _RelatedRail(
+                  state: state,
+                  compact: compact,
+                  phase: phase,
+                  onTap: onRelatedTap,
+                ),
               ],
             ),
           ),
@@ -253,7 +260,8 @@ class _RelatedRail extends StatelessWidget {
   final DarkestWorldNavigationState state;
   final bool compact;
   final double phase;
-  const _RelatedRail({required this.state, required this.compact, required this.phase});
+  final ValueChanged<ContentItem>? onTap;
+  const _RelatedRail({required this.state, required this.compact, required this.phase, this.onTap});
 
   String _label(String value) {
     final text = value.trim().toUpperCase();
@@ -286,34 +294,42 @@ class _RelatedRail extends StatelessWidget {
         for (var i = 0; i < visible.length; i++) ...[
           if (i > 0) const SizedBox(width: 5),
           Expanded(
-            child: Container(
-              height: compact ? 22 : 25,
-              padding: const EdgeInsets.symmetric(horizontal: 7),
-              decoration: BoxDecoration(
-                color: const Color(0x0C7F70B0),
-                border: Border.all(color: Color.lerp(const Color(0x147F70B0), const Color(0x397F70B0), pulse)!),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 3,
-                    height: 3,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0x667F70B0),
-                      boxShadow: [BoxShadow(color: const Color(0x247F70B0), blurRadius: 4 + pulse * 3)],
-                    ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap == null ? null : () => onTap!(visible[i]),
+                splashColor: const Color(0x227F70B0),
+                highlightColor: const Color(0x147F70B0),
+                child: Container(
+                  height: compact ? 22 : 25,
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0x0C7F70B0),
+                    border: Border.all(color: Color.lerp(const Color(0x147F70B0), const Color(0x397F70B0), pulse)!),
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      _label(visible[i].title),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 5.2, letterSpacing: 1.0, color: Color(0x667F8AA2)),
-                    ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 3,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0x667F70B0),
+                          boxShadow: [BoxShadow(color: const Color(0x247F70B0), blurRadius: 4 + pulse * 3)],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _label(visible[i].title),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 5.2, letterSpacing: 1.0, color: Color(0x667F8AA2)),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
