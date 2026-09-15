@@ -27,6 +27,20 @@ class DarkestWorldNavigationState {
   bool get hasOrigin => originId != null && originId!.isNotEmpty;
   String get entryLabel => entryPoint.replaceAll('_', ' ').toUpperCase();
 
+  /// Number of adjacent archive links currently available to the detail chamber.
+  int get continuityCount => (previous != null ? 1 : 0) + (next != null ? 1 : 0);
+
+  /// Stable position descriptor for cinematic navigation telemetry.
+  String get navigationPosition {
+    if (previous == null && next == null) return 'SINGLE';
+    if (previous == null) return 'START';
+    if (next == null) return 'END';
+    return 'MIDDLE';
+  }
+
+  /// Compact signal payload used by archive/detail presentation layers.
+  String get archiveSignal => '${navigationPosition}_C${continuityCount}_R${related.length}';
+
   List<String> get relatedIds => related.map((item) => item.id).toList(growable: false);
 
   DarkestWorldNavigationState copyWith({
