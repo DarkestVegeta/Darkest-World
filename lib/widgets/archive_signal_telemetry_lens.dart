@@ -119,6 +119,8 @@ class _SignalMetrics extends StatelessWidget {
           _Metric(label: 'RELATED', value: '${state.related.length}'),
           const SizedBox(width: 18),
           _Metric(label: 'POSITION', value: state.navigationPosition),
+          const SizedBox(width: 18),
+          _Metric(label: 'ORIGIN', value: state.hasOrigin ? 'LINKED' : 'LOCAL'),
         ],
       );
 }
