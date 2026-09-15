@@ -19,7 +19,7 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: compact ? 92 : 108,
+      height: compact ? 122 : 138,
       decoration: BoxDecoration(
         color: const Color(0xB5050610),
         border: Border.all(color: const Color(0x397F70B0)),
@@ -40,45 +40,53 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
               horizontal: compact ? 12 : 18,
               vertical: 12,
             ),
-            child: Row(
+            child: Column(
               children: [
-                _SignalCore(active: state.continuityCount > 0),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Row(
                     children: [
-                      const Text(
-                        'ARCHIVE SIGNAL',
-                        style: TextStyle(
-                          fontSize: 7,
-                          letterSpacing: 2.5,
-                          color: Color(0x7F9AA6BE),
+                      _SignalCore(active: state.continuityCount > 0),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              'ARCHIVE SIGNAL',
+                              style: TextStyle(
+                                fontSize: 7,
+                                letterSpacing: 2.5,
+                                color: Color(0x7F9AA6BE),
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              state.archiveSignal,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                letterSpacing: 2.1,
+                                fontWeight: FontWeight.w300,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              '${state.source.toUpperCase()}  /  ${state.entryLabel}',
+                              style: const TextStyle(
+                                fontSize: 5.5,
+                                letterSpacing: 1.6,
+                                color: Color(0x667F8AA2),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        state.archiveSignal,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          letterSpacing: 2.1,
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        '${state.source.toUpperCase()}  /  ${state.entryLabel}',
-                        style: const TextStyle(
-                          fontSize: 5.5,
-                          letterSpacing: 1.6,
-                          color: Color(0x667F8AA2),
-                        ),
-                      ),
+                      if (!compact) _SignalMetrics(state: state),
                     ],
                   ),
                 ),
-                if (!compact) _SignalMetrics(state: state),
+                const SizedBox(height: 9),
+                _ContinuityRail(state: state, compact: compact),
               ],
             ),
           ),
@@ -146,6 +154,72 @@ class _Metric extends StatelessWidget {
       );
 }
 
+class _ContinuityRail extends StatelessWidget {
+  final DarkestWorldNavigationState state;
+  final bool compact;
+  const _ContinuityRail({required this.state, required this.compact});
+
+  String _label(String? value, String fallback) {
+    if (value == null || value.trim().isEmpty) return fallback;
+    final text = value.trim().toUpperCase();
+    return text.length > 24 ? '${text.substring(0, 21)}…' : text;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final slots = <String>[
+      _label(state.previous?.title, 'NO PREVIOUS'),
+      _label(state.current.title, 'CURRENT'),
+      _label(state.next?.title, 'NO NEXT'),
+    ];
+    return Row(
+      children: [
+        for (var i = 0; i < slots.length; i++) ...[
+          if (i > 0) const SizedBox(width: 5),
+          Expanded(
+            child: Container(
+              height: compact ? 22 : 25,
+              padding: const EdgeInsets.symmetric(horizontal: 7),
+              alignment: Alignment.centerLeft,
+              decoration: BoxDecoration(
+                color: i == 1 ? const Color(0x287F70B0) : const Color(0x0C7F70B0),
+                border: Border.all(
+                  color: i == 1 ? const Color(0x4C9A8AC4) : const Color(0x1D7F70B0),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    i == 0 ? 'P' : i == 1 ? 'C' : 'N',
+                    style: TextStyle(
+                      fontSize: 6,
+                      letterSpacing: 1.2,
+                      color: i == 1 ? const Color(0xAA9A8AC4) : const Color(0x557F8AA2),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      slots[i],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 5.5,
+                        letterSpacing: 1.1,
+                        color: i == 1 ? const Color(0xAA97A8BE) : const Color(0x667F8AA2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _ArchiveSignalPainter extends CustomPainter {
   final double phase;
   final int links;
@@ -154,8 +228,8 @@ class _ArchiveSignalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width * .18, size.height * .5);
-    final radius = math.min(size.height * .34, 30.0);
+    final center = Offset(size.width * .18, size.height * .38);
+    final radius = math.min(size.height * .27, 30.0);
     final sweep = phase * math.pi * 2;
 
     final ring = Paint()
