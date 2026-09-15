@@ -14,6 +14,7 @@ import 'widgets/darkest_world_world_scan.dart';
 import 'widgets/darkest_world_live_detail_chamber.dart';
 import 'widgets/darkest_world_relation_constellation.dart';
 import 'widgets/darkest_world_detail_telemetry.dart';
+import 'widgets/darkest_world_detail_orbit.dart';
 
 final GlobalKey<NavigatorState> darkestWorldNavigatorKey = GlobalKey<NavigatorState>();
 final DarkestWorldNavigationObserver darkestWorldNavigationObserver = DarkestWorldNavigationObserver();
@@ -42,6 +43,7 @@ class DarkestWorldApp extends StatelessWidget {
         const DarkestWorldLiveDetailChamber(),
         const DarkestWorldRelationConstellation(),
         const DarkestWorldDetailTelemetry(),
+        const DarkestWorldDetailOrbit(),
         const DarkestWorldContentNavigation(),
         DarkestWorldRouteHistory(navigatorKey:darkestWorldNavigatorKey,observer:darkestWorldNavigationObserver),
         DarkestWorldSystemHud(navigatorKey:darkestWorldNavigatorKey,observer:darkestWorldNavigationObserver),
