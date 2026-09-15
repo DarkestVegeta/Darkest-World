@@ -28,10 +28,10 @@ class DarkestWorldContentDetailObserver extends NavigatorObserver {
 
   void _sync() {
     final navigator = this.navigator;
-    final root = navigator?.overlay?.context;
-    if (root == null) return;
+    final overlay = navigator?.overlay;
+    if (overlay == null) return;
 
-    final detail = _findDetail(root);
+    final detail = _findDetail(overlay.context as Element);
     if (detail == null) return;
 
     final item = detail.item;
