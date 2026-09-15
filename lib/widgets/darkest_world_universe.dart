@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../core/galaxy_render_state.dart';
 import '../screens/galaxy_navigation_session.dart';
 
 enum GalaxyWorldKind { vegeta, game, identity, cinema, creation, music, family, archive, comingSoon }
