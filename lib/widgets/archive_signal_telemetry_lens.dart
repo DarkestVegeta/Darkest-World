@@ -28,7 +28,11 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
         children: [
           Positioned.fill(
             child: CustomPaint(
-              painter: _ArchiveSignalPainter(phase, state.continuityCount),
+              painter: _ArchiveSignalPainter(
+                phase,
+                state.continuityCount,
+                state.related.length,
+              ),
             ),
           ),
           Padding(
@@ -145,7 +149,8 @@ class _Metric extends StatelessWidget {
 class _ArchiveSignalPainter extends CustomPainter {
   final double phase;
   final int links;
-  const _ArchiveSignalPainter(this.phase, this.links);
+  final int related;
+  const _ArchiveSignalPainter(this.phase, this.links, this.related);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -180,9 +185,34 @@ class _ArchiveSignalPainter extends CustomPainter {
       );
       canvas.drawCircle(point, 2.1, Paint()..color = const Color(0x609A8AC4));
     }
+
+    final relatedCount = related.clamp(0, 6);
+    if (relatedCount > 0) {
+      final relatedPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = .7
+        ..color = const Color(0x187F70B0);
+      final relatedRadius = radius + 7;
+      canvas.drawCircle(center, relatedRadius, relatedPaint);
+
+      for (var i = 0; i < relatedCount; i++) {
+        final angle = sweep * .55 + (math.pi * 2 * i / relatedCount);
+        final point = Offset(
+          center.dx + math.cos(angle) * relatedRadius,
+          center.dy + math.sin(angle) * relatedRadius,
+        );
+        canvas.drawCircle(
+          point,
+          1.35,
+          Paint()..color = const Color(0x4A7F70B0),
+        );
+      }
+    }
   }
 
   @override
   bool shouldRepaint(covariant _ArchiveSignalPainter oldDelegate) =>
-      oldDelegate.phase != phase || oldDelegate.links != links;
+      oldDelegate.phase != phase ||
+      oldDelegate.links != links ||
+      oldDelegate.related != related;
 }
