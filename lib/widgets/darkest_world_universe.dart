@@ -27,6 +27,7 @@ class _Space extends CustomPainter {final double phase;const _Space(this.phase);
 class _GalaxyVeil extends CustomPainter {
   final double phase;
   const _GalaxyVeil(this.phase);
+
   static final Paint _veil = Paint();
   static final Paint _band = Paint()..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
   static final Paint _inner = Paint()..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
@@ -35,11 +36,7 @@ class _GalaxyVeil extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final short = math.min(size.width, size.height);
     final center = Offset(size.width * .5, size.height * .5);
-    final rect = Rect.fromCenter(
-      center: center,
-      width: size.width * .78,
-      height: short * .31,
-    );
+    final rect = Rect.fromCenter(center: center, width: size.width * .78, height: short * .31);
     final drift = math.sin(phase * math.pi * 2) * .035;
 
     canvas.save();
@@ -47,16 +44,11 @@ class _GalaxyVeil extends CustomPainter {
     canvas.rotate(-.16 + drift);
     canvas.translate(-center.dx, -center.dy);
 
-    _veil.shader = RadialGradient(
+    _veil.shader = const RadialGradient(
       center: Alignment.center,
       radius: 1.0,
-      colors: const [
-        Color(0x071E3850),
-        Color(0x0A6C638B),
-        Color(0x052B4962),
-        Colors.transparent,
-      ],
-      stops: const [.0, .34, .68, 1],
+      colors: [Color(0x071E3850), Color(0x0A6C638B), Color(0x052B4962), Colors.transparent],
+      stops: [.0, .34, .68, 1],
     ).createShader(rect);
     canvas.drawOval(rect, _veil);
 
@@ -64,11 +56,7 @@ class _GalaxyVeil extends CustomPainter {
     _band.color = const Color(0x1A81759E);
     canvas.drawArc(rect, phase * math.pi * 2, 2.15, false, _band);
 
-    final innerRect = Rect.fromCenter(
-      center: center,
-      width: size.width * .66,
-      height: short * .18,
-    );
+    final innerRect = Rect.fromCenter(center: center, width: size.width * .66, height: short * .18);
     _inner.strokeWidth = math.max(.55, short * .0011);
     _inner.color = const Color(0x126C8A9D);
     canvas.drawArc(innerRect, phase * math.pi * 2 + .9, 1.35, false, _inner);
