@@ -43,22 +43,17 @@ class _PlanetOrbitCache {
   static const int samples = 256;
   final int total;
   final double diameter;
-  final List<double> sampleX;
-  final List<double> sampleY;
+  // GO329: interleaved XY storage is generated in one pass, avoiding the duplicated
+  // angle/orbit/index arithmetic that the previous two independent generators did.
+  final List<double> sampleXY;
   _PlanetOrbitCache(this.total, this.diameter)
-      : sampleX = List.generate(total * samples, (index) {
-          final i = index ~/ samples;
-          final step = index % samples;
+      : sampleXY = List.generate(total * samples * 2, (index) {
+          final sample = index >> 1;
+          final i = sample ~/ samples;
+          final step = sample - i * samples;
           final angle = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + (step / samples) * math.pi * .24 * (i.isEven ? 1.0 : -1.0);
           final orbit = diameter * (.20 + (i % 4) * .075);
-          return math.cos(angle) * orbit;
-        }, growable: false),
-        sampleY = List.generate(total * samples, (index) {
-          final i = index ~/ samples;
-          final step = index % samples;
-          final angle = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + (step / samples) * math.pi * .24 * (i.isEven ? 1.0 : -1.0);
-          final orbit = diameter * (.20 + (i % 4) * .075);
-          return math.sin(angle) * orbit;
+          return (index & 1) == 0 ? math.cos(angle) * orbit : math.sin(angle) * orbit;
         }, growable: false);
 }
 
@@ -74,9 +69,11 @@ class _PlanetFlowDelegate extends FlowDelegate {
     final nextIndex = (sampleIndex + 1) % _orbitSamples;
     final fraction = samplePosition - sampleIndex;
     for (var i = 0; i < context.childCount; i++) {
-      final offset = i * _orbitSamples;
-      final x = orbitCache.sampleX[offset + sampleIndex] + (orbitCache.sampleX[offset + nextIndex] - orbitCache.sampleX[offset + sampleIndex]) * fraction;
-      final y = orbitCache.sampleY[offset + sampleIndex] + (orbitCache.sampleY[offset + nextIndex] - orbitCache.sampleY[offset + sampleIndex]) * fraction;
+      final offset = i * _orbitSamples * 2;
+      final current = offset + sampleIndex * 2;
+      final next = offset + nextIndex * 2;
+      final x = orbitCache.sampleXY[current] + (orbitCache.sampleXY[next] - orbitCache.sampleXY[current]) * fraction;
+      final y = orbitCache.sampleXY[current + 1] + (orbitCache.sampleXY[next + 1] - orbitCache.sampleXY[current + 1]) * fraction;
       final d = _sizes[i];
       context.paintChild(i, transform: Matrix4.translationValues(c + x - d / 2, c + y - d / 2, 0));
     }
