@@ -117,24 +117,26 @@ class _Sun extends StatelessWidget { const _Sun(); @override Widget build(BuildC
 class _WorldPanel extends StatelessWidget {
   final GalaxyWorld world; final int index; final VoidCallback close, open;
   const _WorldPanel({required this.world, required this.index, required this.close, required this.open});
-  @override Widget build(BuildContext c) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xF0070B11), border: Border.all(color: const Color(0x4B829DA8)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 40)]), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('WORLD ${(index + 1).toString().padLeft(2, '0')} / ATLAS NODE', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.8, color: Color(0x62FFFFFF))), const SizedBox(height: 5), Text(world.title, style: const TextStyle(fontSize: 17, letterSpacing: 2.8)), const SizedBox(height: 4), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 7.5, color: Color(0x8CC7D2D6), height: 1.35))])), TextButton(onPressed: close, child: const Text('×')), FilledButton(onPressed: open, child: const Text('ENTER WORLD'))]));
+  @override Widget build(BuildContext c) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xF0070B11), border: Border.all(color: const Color(0x4B829DA8)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 40)]), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('WORLD ${(index + 1).toString().padLeft(2, '0')} / ATLAS NODE', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.8, color: Color(0x62FFFFFF))), const SizedBox(height: 5), Text(world.title, style: const TextStyle(fontSize: 17, letterSpacing: 2.8)), const SizedBox(height: 4), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 7.5, color: Color(0x8CC7D2D6, ), height: 1.35))])), TextButton(onPressed: close, child: const Text('×')), FilledButton(onPressed: open, child: const Text('ENTER WORLD'))]));
 }
 
-class _SpaceStar { final double x, y, size; const _SpaceStar(this.x, this.y, this.size); }
+class _SpaceStar { final double x, y, size; final int phaseIndex; const _SpaceStar(this.x, this.y, this.size, this.phaseIndex); }
 class _Space extends CustomPainter {
   final double phase; const _Space(this.phase);
-  static final List<_SpaceStar> _stars = List.generate(560, (i) { final r = math.Random(912 + i * 13); return _SpaceStar(r.nextDouble(), r.nextDouble(), r.nextDouble()); });
+  static const int _twinkleSteps = 360;
+  static final List<int> _twinkleLut = List.generate(_twinkleSteps, (step) => ((math.sin(step * math.pi * 2 / _twinkleSteps) + 1) * 4).round().clamp(0, 8));
+  static final List<_SpaceStar> _stars = List.generate(560, (i) { final r = math.Random(912 + i * 13); return _SpaceStar(r.nextDouble(), r.nextDouble(), r.nextDouble(), (i * 57) % _twinkleSteps); });
   static final Paint _background = Paint();
   static final List<Paint> _starPaints = List.generate(9, (i) => Paint()..color = Colors.white.withValues(alpha: .018 + .075 * i / 8));
   @override void paint(Canvas x, Size s) {
     final r = Offset.zero & s;
     _background.shader = const RadialGradient(colors: [Color(0xFF0A141D), Color(0xFF02060B), Color(0xFF010207)]).createShader(r);
     x.drawRect(r, _background);
+    final phaseStep = (phase * _twinkleSteps).floor() % _twinkleSteps;
     for (var i = 0; i < _stars.length; i++) {
       final star = _stars[i];
       final p = Offset(star.x * s.width, star.y * s.height);
-      final twinkle = (.018 + .075 * ((math.sin(phase * math.pi * 2 + i) + 1) / 2)).clamp(.018, .093);
-      final paintIndex = ((twinkle - .018) / .075 * 8).round().clamp(0, 8);
+      final paintIndex = _twinkleLut[(phaseStep + star.phaseIndex) % _twinkleSteps];
       x.drawCircle(p, .18 + star.size * .62, _starPaints[paintIndex]);
     }
   }
