@@ -19,6 +19,7 @@ class _ArchiveStar { final double x,y,depth; const _ArchiveStar(this.x,this.y,th
 class _ArchiveAtmospherePainter extends CustomPainter {
   final double phase; const _ArchiveAtmospherePainter(this.phase);
   static final List<_ArchiveStar> _stars=List.generate(520,(i){final rng=math.Random(4207+i*17);return _ArchiveStar(rng.nextDouble(),rng.nextDouble(),rng.nextDouble());});
+  static final Paint _backgroundPaint=Paint();
   static final Paint _starPaint=Paint();
   static final Paint _hazePaint=Paint();
   static final Paint _ringPaint=Paint()..style=PaintingStyle.stroke;
@@ -32,7 +33,7 @@ class _ArchiveAtmospherePainter extends CustomPainter {
 
   @override void paint(Canvas c,Size s){
     final r=Offset.zero&s; final short=math.min(s.width,s.height); final center=Offset(s.width*.5,s.height*.46);
-    c.drawRect(r,Paint()..shader=RadialGradient(center:const Alignment(0,.05),radius:1.05,colors:[Colors.transparent,const Color(0x16040A18),const Color(0xA8010308)],stops:const[.34,.72,1]).createShader(r));
+    _backgroundPaint.shader=RadialGradient(center:const Alignment(0,.05),radius:1.05,colors:[Colors.transparent,const Color(0x16040A18),const Color(0xA8010308)],stops:const[.34,.72,1]).createShader(r); c.drawRect(r,_backgroundPaint);
     for(var i=0;i<_stars.length;i++){
       final star=_stars[i]; final depth=star.depth;
       final drift=math.sin(phase*math.pi*2*(.25+depth*.7)+i*.31)*(.7+depth*2.2);
