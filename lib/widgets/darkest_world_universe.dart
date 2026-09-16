@@ -13,13 +13,17 @@ class DarkestWorldUniverse extends StatefulWidget {
 class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with SingleTickerProviderStateMixin {
   late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 180))..repeat();
   late final _QuantizedAnimationNotifier starClock = _QuantizedAnimationNotifier(clock, 360);
+  _PlanetOrbitCache? _orbitCache;
   int? focused;
   @override void dispose() { starClock.dispose(); clock.dispose(); super.dispose(); }
   void tap(int i) { setState(() => focused = focused == i ? null : i); GalaxyNavigationSession.instance.selected = widget.worlds[i].kind.name; widget.onWorldTap?.call(widget.worlds[i]); }
   @override Widget build(BuildContext context) { final compact = MediaQuery.sizeOf(context).width < 820; return Scaffold(backgroundColor: const Color(0xFF010207), body: Stack(fit: StackFit.expand, children: [
     const CustomPaint(painter: _GalaxyBackground()), const CustomPaint(painter: _OrbitalRings()), const CustomPaint(painter: _GalaxyVeilBase()),
     CustomPaint(painter: _Space(clock, starClock)), CustomPaint(painter: _GalaxyVeilMotion(clock)), CustomPaint(painter: _OrbitalArc(clock)),
-    Center(child: LayoutBuilder(builder: (_, b) { final d = math.min(b.maxWidth * (compact ? .93 : .68), b.maxHeight * (compact ? .58 : .72)).toDouble(); return SizedBox.square(dimension: d, child: Flow(delegate: _PlanetFlowDelegate(phase: clock, total: widget.worlds.length, diameter: d, selectedIndex: focused), children: [
+    Center(child: LayoutBuilder(builder: (_, b) { final d = math.min(b.maxWidth * (compact ? .93 : .68), b.maxHeight * (compact ? .58 : .72)).toDouble();
+      final cache = _orbitCache;
+      final orbitCache = cache != null && cache.total == widget.worlds.length && cache.diameter == d ? cache : (_orbitCache = _PlanetOrbitCache(widget.worlds.length, d));
+      return SizedBox.square(dimension: d, child: Flow(delegate: _PlanetFlowDelegate(phase: clock, total: widget.worlds.length, diameter: d, selectedIndex: focused, orbitCache: orbitCache), children: [
       for (var i = 0; i < widget.worlds.length; i++) _PlanetNode(world: widget.worlds[i], index: i, diameter: d, selected: focused == i, phase: clock, onTap: () => tap(i), onOpen: () => widget.onWorldTap?.call(widget.worlds[i])),
     ])); })),
     const Center(child: _Sun()),
@@ -35,26 +39,38 @@ class _QuantizedAnimationNotifier extends ChangeNotifier {
   @override void dispose() { source.removeListener(_tick); super.dispose(); }
 }
 
+class _PlanetOrbitCache {
+  static const int samples = 256;
+  final int total;
+  final double diameter;
+  final List<double> orbits;
+  final List<double> baseAngles;
+  final List<double> directions;
+  final List<double> sampleX;
+  final List<double> sampleY;
+  _PlanetOrbitCache(this.total, this.diameter)
+      : orbits = List.generate(total, (i) => diameter * (.20 + (i % 4) * .075), growable: false),
+        baseAngles = List.generate(total, (i) => -math.pi / 2 + i * math.pi * 2 / math.max(1, total), growable: false),
+        directions = List.generate(total, (i) => i.isEven ? 1.0 : -1.0, growable: false),
+        sampleX = List.generate(total * samples, (index) {
+          final i = index ~/ samples;
+          final step = index % samples;
+          final a = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + (step / samples) * math.pi * .24 * (i.isEven ? 1.0 : -1.0);
+          return math.cos(a) * (diameter * (.20 + (i % 4) * .075));
+        }, growable: false),
+        sampleY = List.generate(total * samples, (index) {
+          final i = index ~/ samples;
+          final step = index % samples;
+          final a = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + (step / samples) * math.pi * .24 * (i.isEven ? 1.0 : -1.0);
+          return math.sin(a) * (diameter * (.20 + (i % 4) * .075));
+        }, growable: false);
+}
+
 class _PlanetFlowDelegate extends FlowDelegate {
-  static const int _orbitSamples = 256;
-  final Animation<double> phase; final double diameter; final int total; final int? selectedIndex;
-  late final List<double> _orbits = List.generate(total, (i) => diameter * (.20 + (i % 4) * .075), growable: false);
-  late final List<double> _baseAngles = List.generate(total, (i) => -math.pi / 2 + i * math.pi * 2 / math.max(1, total), growable: false);
-  late final List<double> _directions = List.generate(total, (i) => i.isEven ? 1.0 : -1.0, growable: false);
+  static const int _orbitSamples = _PlanetOrbitCache.samples;
+  final Animation<double> phase; final double diameter; final int total; final int? selectedIndex; final _PlanetOrbitCache orbitCache;
   late final List<double> _sizes = List.generate(total, (i) => (selectedIndex == i ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(), growable: false);
-  late final List<double> _sampleX = List.generate(total * _orbitSamples, (index) {
-    final i = index ~/ _orbitSamples;
-    final step = index % _orbitSamples;
-    final a = _baseAngles[i] + (step / _orbitSamples) * math.pi * .24 * _directions[i];
-    return math.cos(a) * _orbits[i];
-  }, growable: false);
-  late final List<double> _sampleY = List.generate(total * _orbitSamples, (index) {
-    final i = index ~/ _orbitSamples;
-    final step = index % _orbitSamples;
-    final a = _baseAngles[i] + (step / _orbitSamples) * math.pi * .24 * _directions[i];
-    return math.sin(a) * _orbits[i];
-  }, growable: false);
-  _PlanetFlowDelegate({required this.phase, required this.total, required this.diameter, required this.selectedIndex}) : super(repaint: phase);
+  _PlanetFlowDelegate({required this.phase, required this.total, required this.diameter, required this.selectedIndex, required this.orbitCache}) : super(repaint: phase);
   @override void paintChildren(FlowPaintingContext context) {
     final c = diameter / 2;
     final samplePosition = (phase.value * _orbitSamples) % _orbitSamples;
@@ -63,13 +79,13 @@ class _PlanetFlowDelegate extends FlowDelegate {
     final fraction = samplePosition - sampleIndex;
     for (var i = 0; i < context.childCount; i++) {
       final offset = i * _orbitSamples;
-      final x = _sampleX[offset + sampleIndex] + (_sampleX[offset + nextIndex] - _sampleX[offset + sampleIndex]) * fraction;
-      final y = _sampleY[offset + sampleIndex] + (_sampleY[offset + nextIndex] - _sampleY[offset + sampleIndex]) * fraction;
+      final x = orbitCache.sampleX[offset + sampleIndex] + (orbitCache.sampleX[offset + nextIndex] - orbitCache.sampleX[offset + sampleIndex]) * fraction;
+      final y = orbitCache.sampleY[offset + sampleIndex] + (orbitCache.sampleY[offset + nextIndex] - orbitCache.sampleY[offset + sampleIndex]) * fraction;
       final d = _sizes[i];
       context.paintChild(i, transform: Matrix4.translationValues(c + x - d / 2, c + y - d / 2, 0));
     }
   }
-  @override bool shouldRepaint(covariant _PlanetFlowDelegate old) => old.total != total || old.diameter != diameter || old.selectedIndex != selectedIndex;
+  @override bool shouldRepaint(covariant _PlanetFlowDelegate old) => old.total != total || old.diameter != diameter || old.selectedIndex != selectedIndex || !identical(old.orbitCache, orbitCache);
 }
 class _PlanetNode extends StatelessWidget {
   final GalaxyWorld world; final int index; final double diameter; final bool selected; final Animation<double> phase; final VoidCallback onTap, onOpen;
