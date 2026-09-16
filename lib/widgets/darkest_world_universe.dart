@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../screens/galaxy_navigation_session.dart';
 
@@ -44,32 +43,24 @@ class _PlanetOrbitCache {
   static const int samples = 256;
   final int total;
   final double diameter;
-  // GO329: interleaved XY storage is generated in one pass.
-  // GO331: Float32 storage halves the orbit-cache footprint while preserving the sampled path.
-  final Float32List sampleXY;
+  // GO329: interleaved XY storage is generated in one pass, avoiding the duplicated
+  // angle/orbit/index arithmetic that the previous two independent generators did.
+  final List<double> sampleXY;
   _PlanetOrbitCache(this.total, this.diameter)
-      : sampleXY = Float32List(total * samples * 2) {
-    final safeTotal = math.max(1, total);
-    for (var i = 0; i < total; i++) {
-      final orbit = diameter * (.20 + (i % 4) * .075);
-      final base = i * samples * 2;
-      final direction = i.isEven ? 1.0 : -1.0;
-      final baseAngle = -math.pi / 2 + i * math.pi * 2 / safeTotal;
-      for (var step = 0; step < samples; step++) {
-        final angle = baseAngle + (step / samples) * math.pi * .24 * direction;
-        final current = base + step * 2;
-        sampleXY[current] = math.cos(angle) * orbit;
-        sampleXY[current + 1] = math.sin(angle) * orbit;
-      }
-    }
-  }
+      : sampleXY = List.generate(total * samples * 2, (index) {
+          final sample = index >> 1;
+          final i = sample ~/ samples;
+          final step = sample - i * samples;
+          final angle = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + (step / samples) * math.pi * .24 * (i.isEven ? 1.0 : -1.0);
+          final orbit = diameter * (.20 + (i % 4) * .075);
+          return (index & 1) == 0 ? math.cos(angle) * orbit : math.sin(angle) * orbit;
+        }, growable: false);
 }
 
 class _PlanetFlowDelegate extends FlowDelegate {
   static const int _orbitSamples = _PlanetOrbitCache.samples;
   final Animation<double> phase; final double diameter; final int total; final int? selectedIndex; final _PlanetOrbitCache orbitCache;
   late final List<double> _sizes = List.generate(total, (i) => (selectedIndex == i ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(), growable: false);
-  late final List<Matrix4> _transforms = List.generate(total, (_) => Matrix4.identity(), growable: false);
   _PlanetFlowDelegate({required this.phase, required this.total, required this.diameter, required this.selectedIndex, required this.orbitCache}) : super(repaint: phase);
   @override void paintChildren(FlowPaintingContext context) {
     final c = diameter / 2;
@@ -84,8 +75,7 @@ class _PlanetFlowDelegate extends FlowDelegate {
       final x = orbitCache.sampleXY[current] + (orbitCache.sampleXY[next] - orbitCache.sampleXY[current]) * fraction;
       final y = orbitCache.sampleXY[current + 1] + (orbitCache.sampleXY[next + 1] - orbitCache.sampleXY[current + 1]) * fraction;
       final d = _sizes[i];
-      _transforms[i].setTranslationRaw(c + x - d / 2, c + y - d / 2, 0);
-      context.paintChild(i, transform: _transforms[i]);
+      context.paintChild(i, transform: Matrix4.translationValues(c + x - d / 2, c + y - d / 2, 0));
     }
   }
   @override bool shouldRepaint(covariant _PlanetFlowDelegate old) => old.total != total || old.diameter != diameter || old.selectedIndex != selectedIndex || !identical(old.orbitCache, orbitCache);
@@ -106,7 +96,7 @@ class _PlanetPainter extends CustomPainter {
 }
 class _PlanetSelectionPainter extends CustomPainter { final Animation<double> phase; _PlanetSelectionPainter(this.phase) : super(repaint: phase); static final Paint _selection = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = const Color(0xA0B7D0D8); static Size? _size; static Rect? _rect; static void _prepare(Size size) { if (_size == size && _rect != null) return; _size = size; final c = Offset(size.width / 2, size.height / 2); _rect = Rect.fromCircle(center: c, radius: size.width * .30 * 1.32); } @override void paint(Canvas x, Size s) { _prepare(s); x.drawArc(_rect!, phase.value * math.pi * 2, 1.4, false, _selection); } @override bool shouldRepaint(covariant _PlanetSelectionPainter o) => false; }
 class _Sun extends StatelessWidget { const _Sun(); @override Widget build(BuildContext c) => Container(width: 86, height: 86, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0xFFFFFFFF), Color(0xFFD7C49F), Color(0xFF695845), Color(0x00000000)], stops: [0, .18, .45, 1]), boxShadow: [BoxShadow(color: Color(0x665F7480), blurRadius: 48, spreadRadius: 12)])); }
-class _WorldPanel extends StatelessWidget { final GalaxyWorld world; final int index; final VoidCallback close, open; const _WorldPanel({required this.world, required this.index, required this.close, required this.open}); @override Widget build(BuildContext c) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xF0070B11), border: Border.all(color: const Color(0x4B829DA8)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 40)]), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('WORLD ${(index + 1).toString().padLeft(2, '0')} / ATLAS NODE', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.8, color: Color(0x62FFFFFF))), const SizedBox(height: 5), Text(world.title, style: const TextStyle(fontSize: 17, letterSpacing: 2.8)), const SizedBox(height: 4), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 7.5, color: Color(0x8CC7D2D6, height: 1.35))])), TextButton(onPressed: close, child: const Text('×')), FilledButton(onPressed: open, child: const Text('ENTER WORLD'))])); }
+class _WorldPanel extends StatelessWidget { final GalaxyWorld world; final int index; final VoidCallback close, open; const _WorldPanel({required this.world, required this.index, required this.close, required this.open}); @override Widget build(BuildContext c) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xF0070B11), border: Border.all(color: const Color(0x4B829DA8)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 40)]), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('WORLD ${(index + 1).toString().padLeft(2, '0')} / ATLAS NODE', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.8, color: Color(0x62FFFFFF))), const SizedBox(height: 5), Text(world.title, style: const TextStyle(fontSize: 17, letterSpacing: 2.8)), const SizedBox(height: 4), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 7.5, color: Color(0x8CC7D2D6), height: 1.35))])), TextButton(onPressed: close, child: const Text('×')), FilledButton(onPressed: open, child: const Text('ENTER WORLD'))])); }
 class _GalaxyBackground extends CustomPainter { const _GalaxyBackground(); static final Paint _background = Paint(); @override void paint(Canvas canvas, Size size) { _background.shader = const RadialGradient(colors: [Color(0xFF0A141D), Color(0xFF02060B), Color(0xFF010207)]).createShader(Offset.zero & size); canvas.drawRect(Offset.zero & size, _background); } @override bool shouldRepaint(covariant _GalaxyBackground oldDelegate) => false; }
 class _GalaxyVeilBase extends CustomPainter { const _GalaxyVeilBase(); static final Paint _veil = Paint(); static Size? _shaderSize; static Shader? _shader; @override void paint(Canvas canvas, Size size) { final short = math.min(size.width, size.height); final center = Offset(size.width * .5, size.height * .5); final rect = Rect.fromCenter(center: center, width: size.width * .78, height: short * .31); if (_shaderSize != size || _shader == null) { _shaderSize = size; _shader = const RadialGradient(center: Alignment.center, radius: 1.0, colors: [Color(0x071E3850), Color(0x0A6C638B), Color(0x052B4962), Colors.transparent], stops: [.0, .34, .68, 1]).createShader(rect); } canvas.save(); canvas.translate(center.dx, center.dy); canvas.rotate(-.16); canvas.translate(-center.dx, -center.dy); _veil.shader = _shader; canvas.drawOval(rect, _veil); canvas.restore(); } @override bool shouldRepaint(covariant _GalaxyVeilBase oldDelegate) => false; }
 class _SpaceStar { final double x, y, size; final int phaseIndex; const _SpaceStar(this.x, this.y, this.size, this.phaseIndex); }
