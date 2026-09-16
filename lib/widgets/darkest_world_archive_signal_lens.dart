@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import '../core/darkest_world_navigation_state.dart';
 
 /// Compact cinematic telemetry lens for archive/detail surfaces.
-///
-/// This widget consumes the shared navigation contract directly, so visual
-/// presentation never becomes a second navigation authority.
 class DarkestWorldArchiveSignalLens extends StatelessWidget {
   final DarkestWorldNavigationState state;
   final bool compact;
@@ -20,11 +17,6 @@ class DarkestWorldArchiveSignalLens extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final signal = state.archiveSignal;
-    final position = state.navigationPosition;
-    final continuity = state.continuityCount;
-    final related = state.related.length;
-
     return Container(
       height: compact ? 54 : 64,
       decoration: BoxDecoration(
@@ -34,8 +26,8 @@ class DarkestWorldArchiveSignalLens extends StatelessWidget {
       child: CustomPaint(
         painter: _ArchiveSignalLensPainter(
           phase: phase,
-          continuity: continuity,
-          related: related,
+          continuity: state.continuityCount,
+          related: state.related.length,
         ),
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 16),
@@ -50,34 +42,25 @@ class DarkestWorldArchiveSignalLens extends StatelessWidget {
                   children: [
                     Text(
                       compact ? 'ARCHIVE SIGNAL' : 'ARCHIVE SIGNAL / NAVIGATION TELEMETRY',
-                      style: const TextStyle(
-                        fontSize: 6.5,
-                        letterSpacing: 2.1,
-                        color: Color(0x788F82A9),
-                      ),
+                      style: const TextStyle(fontSize: 6.5, letterSpacing: 2.1, color: Color(0x788F82A9)),
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      signal,
+                      state.archiveSignal,
                       maxLines: 1,
                       overflow: TextOverflow.fade,
-                      style: const TextStyle(
-                        fontSize: 9,
-                        letterSpacing: 1.7,
-                        color: Color(0xD9E3E6F2),
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: const TextStyle(fontSize: 9, letterSpacing: 1.7, color: Color(0xD9E3E6F2), fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
               ),
               if (!compact) ...[
-                _Telemetry(label: 'POSITION', value: position),
+                _Telemetry(label: 'POSITION', value: state.navigationPosition),
                 const SizedBox(width: 18),
               ],
-              _Telemetry(label: 'LINKS', value: '$continuity'),
+              _Telemetry(label: 'LINKS', value: '${state.continuityCount}'),
               const SizedBox(width: 14),
-              _Telemetry(label: 'REL', value: '$related'),
+              _Telemetry(label: 'REL', value: '${state.related.length}'),
             ],
           ),
         ),
@@ -137,11 +120,7 @@ class _ArchiveSignalLensPainter extends CustomPainter {
   final int continuity;
   final int related;
 
-  const _ArchiveSignalLensPainter({
-    required this.phase,
-    required this.continuity,
-    required this.related,
-  });
+  const _ArchiveSignalLensPainter({required this.phase, required this.continuity, required this.related});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -149,9 +128,9 @@ class _ArchiveSignalLensPainter extends CustomPainter {
     final sweep = (phase * size.width * 1.35) % (size.width + 80) - 40;
     final paint = Paint()..strokeWidth = 1;
     paint.color = const Color(0x126F6595);
-    canvas.drawLine(0, y, size.width, y, paint);
+    canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     paint.color = const Color(0x287F70B0);
-    canvas.drawLine(sweep, 0, sweep + 22, size.height, paint);
+    canvas.drawLine(Offset(sweep, 0), Offset(sweep + 22, size.height), paint);
 
     final nodes = math.max(1, continuity + related);
     for (var i = 0; i < nodes && i < 8; i++) {
