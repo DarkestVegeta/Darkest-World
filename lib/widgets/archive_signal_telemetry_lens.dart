@@ -64,7 +64,11 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
                             const SizedBox(height: 5),
                             Text(telemetry.routeLabel.toUpperCase(), style: const TextStyle(fontSize: 5.5, letterSpacing: 1.6, color: Color(0x667F8AA2))),
                             const SizedBox(height: 4),
-                            Text(telemetry.continuityLabel, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.3, color: Color(0x557F8AA2))),
+                            Text(telemetry.continuityState, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.1, color: Color(0x557F8AA2))),
+                            if (!compact) ...[
+                              const SizedBox(height: 4),
+                              Text('ID ${telemetry.currentLabel}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 5, letterSpacing: 1.0, color: Color(0x447F8AA2))),
+                            ],
                           ],
                         ),
                       ),
