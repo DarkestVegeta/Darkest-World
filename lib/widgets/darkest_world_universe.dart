@@ -18,8 +18,8 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
     const CustomPaint(painter: _GalaxyBackground()), const CustomPaint(painter: _OrbitalRings()), const CustomPaint(painter: _GalaxyVeilBase()),
     AnimatedBuilder(animation: clock, builder: (_, __) => Stack(fit: StackFit.expand, children: [
       CustomPaint(painter: _Space(clock.value)), CustomPaint(painter: _GalaxyVeilMotion(clock.value)), CustomPaint(painter: _OrbitalArc(clock.value)),
-      Center(child: LayoutBuilder(builder: (_, b) { final d = math.min(b.maxWidth * (compact ? .93 : .68), b.maxHeight * (compact ? .58 : .72)).toDouble(); return SizedBox.square(dimension: d, child: Stack(children: [
-        for (var i = 0; i < widget.worlds.length; i++) _PlanetNode(world: widget.worlds[i], index: i, total: widget.worlds.length, diameter: d, phase: clock.value, selected: focused == i, onTap: () => tap(i), onOpen: () => widget.onWorldTap?.call(widget.worlds[i])),
+      Center(child: LayoutBuilder(builder: (_, b) { final d = math.min(b.maxWidth * (compact ? .93 : .68), b.maxHeight * (compact ? .58 : .72)).toDouble(); return SizedBox.square(dimension: d, child: Flow(delegate: _PlanetFlowDelegate(phase: clock.value, total: widget.worlds.length, diameter: d, selectedIndex: focused), children: [
+        for (var i = 0; i < widget.worlds.length; i++) _PlanetNode(world: widget.worlds[i], index: i, diameter: d, selected: focused == i, onTap: () => tap(i), onOpen: () => widget.onWorldTap?.call(widget.worlds[i])),
       ])); })),
     ])),
     const Center(child: _Sun()),
@@ -28,13 +28,19 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
   ])); }
 }
 
+class _PlanetFlowDelegate extends FlowDelegate {
+  final double phase, diameter; final int total; final int? selectedIndex;
+  const _PlanetFlowDelegate({required this.phase, required this.total, required this.diameter, required this.selectedIndex}) : super(repaint: null);
+  @override void paintChildren(FlowPaintingContext context) { final c = diameter / 2; for (var i = 0; i < context.childCount; i++) { final orbit = diameter * (.20 + (i % 4) * .075); final a = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + phase * math.pi * .12 * (i.isEven ? 1 : -1); final p = Offset(c + math.cos(a) * orbit, c + math.sin(a) * orbit); final d = (selectedIndex == i ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(); context.paintChild(i, transform: Matrix4.translationValues(p.dx - d / 2, p.dy - d / 2, 0)); } }
+  @override bool shouldRepaint(covariant _PlanetFlowDelegate old) => old.phase != phase || old.total != total || old.diameter != diameter || old.selectedIndex != selectedIndex;
+}
 class _PlanetNode extends StatelessWidget {
-  final GalaxyWorld world; final int index, total; final double diameter, phase; final bool selected; final VoidCallback onTap, onOpen;
-  const _PlanetNode({required this.world, required this.index, required this.total, required this.diameter, required this.phase, required this.selected, required this.onTap, required this.onOpen});
-  @override Widget build(BuildContext context) { final c = diameter / 2; final orbit = diameter * (.20 + (index % 4) * .075); final a = -math.pi / 2 + index * math.pi * 2 / math.max(1, total) + phase * math.pi * .12 * (index.isEven ? 1 : -1); final p = Offset(c + math.cos(a) * orbit, c + math.sin(a) * orbit); final d = (selected ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(); return Positioned(left: p.dx - d / 2, top: p.dy - d / 2, width: d, height: d + 30, child: RepaintBoundary(child: GestureDetector(onTap: onTap, onDoubleTap: onOpen, child: Stack(children: [
-    Positioned.fill(child: CustomPaint(painter: _PlanetPainter(index: index, selected: selected))), if (selected) Positioned.fill(child: CustomPaint(painter: _PlanetSelectionPainter(phase))),
+  final GalaxyWorld world; final int index; final double diameter; final bool selected; final VoidCallback onTap, onOpen;
+  const _PlanetNode({required this.world, required this.index, required this.diameter, required this.selected, required this.onTap, required this.onOpen});
+  @override Widget build(BuildContext context) { final d = (selected ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(); return SizedBox(width: d, height: d + 30, child: RepaintBoundary(child: GestureDetector(onTap: onTap, onDoubleTap: onOpen, child: Stack(children: [
+    Positioned(left: 0, top: 0, width: d, height: d, child: CustomPaint(painter: _PlanetPainter(index: index, selected: selected))), if (selected) Positioned(left: 0, top: 0, width: d, height: d, child: CustomPaint(painter: _PlanetSelectionPainter(0))),
     Positioned(left: 0, right: 0, top: d * .70, child: IgnorePointer(child: Text(world.title.toUpperCase(), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withValues(alpha: selected ? .95 : .62), fontSize: math.max(5.5, d * .065), letterSpacing: 1.3, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)))),
-  ])))); }
+  ]))); }
 }
 class _PlanetPainter extends CustomPainter {
   final int index; final bool selected; const _PlanetPainter({required this.index, required this.selected}); static const List<Color> _palette = [Color(0xFF8E7865), Color(0xFF647C82), Color(0xFF857E67), Color(0xFF75677F), Color(0xFF70877A), Color(0xFF7D7063)]; static final Paint _glow = Paint(); static final Paint _body = Paint(); static final Paint _detail = Paint()..style = PaintingStyle.stroke..strokeWidth = .45..color = const Color(0x558FA2A9); static final Paint _rim = Paint()..style = PaintingStyle.stroke;
