@@ -19,9 +19,10 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
     AnimatedBuilder(animation: clock, builder: (_, __) => Stack(fit: StackFit.expand, children: [
       CustomPaint(painter: _Space(clock.value)), CustomPaint(painter: _GalaxyVeil(clock.value)), const CustomPaint(painter: _OrbitalRings()), CustomPaint(painter: _OrbitalArc(clock.value)),
       Center(child: LayoutBuilder(builder: (_, b) { final d = math.min(b.maxWidth * (compact ? .93 : .68), b.maxHeight * (compact ? .58 : .72)).toDouble(); return SizedBox.square(dimension: d, child: Stack(children: [
-        for (var i = 0; i < widget.worlds.length; i++) _PlanetNode(world: widget.worlds[i], index: i, total: widget.worlds.length, diameter: d, phase: clock.value, selected: focused == i, onTap: () => tap(i), onOpen: () => widget.onWorldTap?.call(widget.worlds[i])), const Center(child: _Sun()),
+        for (var i = 0; i < widget.worlds.length; i++) _PlanetNode(world: widget.worlds[i], index: i, total: widget.worlds.length, diameter: d, phase: clock.value, selected: focused == i, onTap: () => tap(i), onOpen: () => widget.onWorldTap?.call(widget.worlds[i])),
       ])); })),
     ])),
+    const Center(child: _Sun()),
     SafeArea(child: Padding(padding: EdgeInsets.all(compact ? 14 : 34), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text('DARKESTWORLD', style: TextStyle(fontSize: 19, letterSpacing: 6.4, fontWeight: FontWeight.w500)), SizedBox(height: 6), Text('THE WORLDS  /  CINEMATIC ATLAS', style: TextStyle(fontSize: 6.5, letterSpacing: 2.8, color: Color(0x66C0CFD5))), Spacer()]))),
     if (focused != null) Positioned(left: compact ? 14 : 34, right: compact ? 14 : 34, bottom: compact ? 48 : 60, child: _WorldPanel(world: widget.worlds[focused!], index: focused!, close: () => setState(() => focused = null), open: () => widget.onWorldTap?.call(widget.worlds[focused!]))),
   ])); }
