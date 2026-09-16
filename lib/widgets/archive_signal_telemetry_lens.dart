@@ -31,14 +31,17 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
               _SignalCore(active: telemetry.hasContinuity, phase: phase, intensity: telemetry.signalIntensity),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Text('ARCHIVE SIGNAL', style: TextStyle(fontSize: 7, letterSpacing: 2.5, color: Color(0x7F9AA6BE))),
+                Row(children: [
+                  const Text('ARCHIVE SIGNAL', style: TextStyle(fontSize: 7, letterSpacing: 2.5, color: Color(0x7F9AA6BE))),
+                  if (!compact) ...[const SizedBox(width: 8), Container(width: 3, height: 3, decoration: BoxDecoration(shape: BoxShape.circle, color: Color(0x667F70B0))), const SizedBox(width: 5), Text(telemetry.signalTitle, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.5, color: Color(0x667F8AA2)))],
+                ]),
                 const SizedBox(height: 5),
                 Text(telemetry.signal, style: const TextStyle(fontSize: 13, letterSpacing: 2.1, fontWeight: FontWeight.w300)),
                 const SizedBox(height: 5),
                 Text(telemetry.routeLabel.toUpperCase(), style: const TextStyle(fontSize: 5.5, letterSpacing: 1.6, color: Color(0x667F8AA2))),
                 const SizedBox(height: 4),
                 Text(telemetry.continuityState, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.1, color: Color(0x557F8AA2))),
-                if (!compact) ...[const SizedBox(height: 4), Text('ID ${telemetry.currentLabel}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 5, letterSpacing: 1.0, color: Color(0x447F8AA2)))],
+                if (!compact) ...[const SizedBox(height: 4), Text(telemetry.signalSummary.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 5, letterSpacing: 1.0, color: Color(0x447F8AA2)))],
               ])),
               if (!compact) _SignalMetrics(telemetry: telemetry),
             ])),
@@ -122,9 +125,9 @@ class _ArchiveSignalPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width * .18, size.height * .31);
     final radius = math.min(size.height * .21, 30.0);
-    final sweep = phase * math.pi * 2;
     final ring = Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = Color.lerp(const Color(0x227F70B0), const Color(0x4A9A8AC4), intensity)!;
     canvas.drawCircle(center, radius, ring); canvas.drawCircle(center, radius * .62, ring);
+    final sweep = phase * math.pi * 2;
     final sweepPaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = Color.lerp(const Color(0x3C9A8AC4), const Color(0x6C9A8AC4), intensity)!;
     canvas.drawArc(Rect.fromCircle(center: center, radius: radius), sweep, math.pi * .42, false, sweepPaint);
     for (var i = 0; i < links.clamp(0, 2); i++) { final angle = sweep + math.pi * (i == 0 ? .72 : 1.28); final point = Offset(center.dx + math.cos(angle) * radius, center.dy + math.sin(angle) * radius); canvas.drawCircle(point, 2.1 + intensity * .7, Paint()..color = const Color(0x609A8AC4)); }
