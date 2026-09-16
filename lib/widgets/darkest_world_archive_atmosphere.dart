@@ -46,11 +46,14 @@ class _ArchiveAtmospherePainter extends CustomPainter {
   late Shader _backgroundShader,_hazeShader,_coreGlowShader,_coreShader;
   late List<Rect> _ringRects;
   late List<Offset> _frameStarts,_frameEnds;
+  late Float32List _starBaseXY;
   static double _sin(double cycles){final position=cycles*_lutSize;final whole=position.floor();final base=whole&_lutMask;final fraction=position-whole;final a=_sinLut[base];return a+(_sinLut[base+1]-a)*fraction;}
   void _ensureGeometry(Size s){
     if(_geometryReady&&_cachedSize==s)return;
     _cachedSize=s;_short=math.min(s.width,s.height);final center=Offset(s.width*.5,s.height*.46);
     _fullRect=Offset.zero&s;_hazeRect=Rect.fromCenter(center:Offset(center.dx,center.dy+_short*.06),width:s.width*.92,height:_short*.30);_arcRect=Rect.fromCenter(center:center,width:_short*.76,height:_short*.235);_core=_short*.13;_coreGlowRect=Rect.fromCircle(center:center,radius:_core*2.8);_coreRect=Rect.fromCircle(center:center,radius:_core*.62);
+    _starBaseXY=Float32List(_stars.length*2);
+    for(var i=0;i<_stars.length;i++){final star=_stars[i];final base=i*2;_starBaseXY[base]=star.x*s.width;_starBaseXY[base+1]=star.y*s.height;}
     _ringRects=List.generate(5,(i){final rr=_short*(.27+i*.072);return Rect.fromCenter(center:center,width:rr*2.25,height:rr*.60);});const arm=34.0;
     _frameStarts=[const Offset(18,arm),const Offset(18,18),Offset(s.width-18,arm),Offset(s.width-18,18),Offset(18,s.height-arm),Offset(18,s.height-18),Offset(s.width-18,s.height-arm),Offset(s.width-18,s.height-18)];
     _frameEnds=[const Offset(18,18),const Offset(arm,18),Offset(s.width-18,18),Offset(s.width-arm,18),Offset(18,s.height-18),Offset(arm,s.height-18),Offset(s.width-18,s.height-18),Offset(s.width-arm,s.height-18)];
@@ -58,7 +61,7 @@ class _ArchiveAtmospherePainter extends CustomPainter {
   }
   @override void paint(Canvas c,Size s){
     _ensureGeometry(s);final center=Offset(s.width*.5,s.height*.46);final phaseCycles=phase.value;final phaseAngle=phaseCycles*math.pi*2;_backgroundPaint.shader=_backgroundShader;c.drawRect(_fullRect,_backgroundPaint);
-    for(var i=0;i<_stars.length;i++){final star=_stars[i];final drift=_sin(phaseCycles*star.driftFrequency+star.driftPhaseCycles)*star.driftScale;final twinkle=.45+.55*_sin(phaseCycles*star.twinkleFrequency+star.twinklePhaseCycles);_starPaint.color=Colors.white.withValues(alpha:(star.alpha*twinkle).clamp(.25,1));c.drawCircle(Offset(star.x*s.width+drift,star.y*s.height),star.radius,_starPaint);}
+    for(var i=0;i<_stars.length;i++){final star=_stars[i];final base=i*2;final drift=_sin(phaseCycles*star.driftFrequency+star.driftPhaseCycles)*star.driftScale;final twinkle=.45+.55*_sin(phaseCycles*star.twinkleFrequency+star.twinklePhaseCycles);_starPaint.color=Colors.white.withValues(alpha:(star.alpha*twinkle).clamp(.25,1));c.drawCircle(Offset(_starBaseXY[base]+drift,_starBaseXY[base+1]),star.radius,_starPaint);}
     _hazePaint.shader=_hazeShader;c.drawOval(_hazeRect,_hazePaint);
     for(var i=0;i<5;i++){final rot=_sin(phaseCycles+i/(math.pi*2))*.025;c.save();c.translate(center.dx,center.dy);c.rotate(rot);c.translate(-center.dx,-center.dy);_ringPaint.strokeWidth=.42+i*.08;_ringPaint.color=const Color(0x167D8FA8);c.drawOval(_ringRects[i],_ringPaint);c.restore();}
     _arcPaint.strokeWidth=1.15;_arcPaint.color=const Color(0x4D8D7CB4);c.drawArc(_arcRect,phaseAngle,1.12,false,_arcPaint);_secondaryArcPaint.strokeWidth=.55;_secondaryArcPaint.color=const Color(0x2E9DB1C1);c.drawArc(_arcRect,phaseAngle+math.pi,.42,false,_secondaryArcPaint);
