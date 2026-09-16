@@ -67,6 +67,20 @@ class DarkestWorldArchiveTelemetry {
   String get continuityState => '$continuityMode / ${continuityLabel.replaceAll(' / ', ' · ')}';
   String get signalSummary => '$signal · $relatedLabel · $originLabel';
 
+  /// Stable normalized signal used by visual layers for bounded intensity.
+  double get signalIntensity {
+    final continuity = continuityCount.clamp(0, 2) / 2.0;
+    final related = relatedCount.clamp(0, 6) / 6.0;
+    final origin = linkedOrigin ? .2 : 0.0;
+    return (0.25 + continuity * .45 + related * .25 + origin).clamp(0.0, 1.0);
+  }
+
+  String get signalBand {
+    if (signalIntensity >= .8) return 'HIGH';
+    if (signalIntensity >= .5) return 'ACTIVE';
+    return 'LOW';
+  }
+
   String get continuityLabel {
     switch (continuityCount) {
       case 2:
