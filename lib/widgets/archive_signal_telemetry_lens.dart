@@ -120,7 +120,7 @@ class _SignalMetrics extends StatelessWidget {
   const _SignalMetrics({required this.telemetry});
   @override
   Widget build(BuildContext context) => Row(children: [
-    _Metric(label: 'CHAIN', value: '${telemetry.continuityCount}/2'),
+    _Metric(label: 'CHAIN', value: telemetry.chainLabel),
     const SizedBox(width: 18),
     _Metric(label: 'RELATED', value: '${telemetry.relatedCount}'),
     const SizedBox(width: 18),
