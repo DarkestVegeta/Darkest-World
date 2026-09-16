@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../screens/galaxy_navigation_session.dart';
 
@@ -43,24 +44,32 @@ class _PlanetOrbitCache {
   static const int samples = 256;
   final int total;
   final double diameter;
-  // GO329: interleaved XY storage is generated in one pass, avoiding the duplicated
-  // angle/orbit/index arithmetic that the previous two independent generators did.
-  final List<double> sampleXY;
+  // GO329: interleaved XY storage is generated in one pass.
+  // GO331: Float32 storage halves the orbit-cache footprint while preserving the sampled path.
+  final Float32List sampleXY;
   _PlanetOrbitCache(this.total, this.diameter)
-      : sampleXY = List.generate(total * samples * 2, (index) {
-          final sample = index >> 1;
-          final i = sample ~/ samples;
-          final step = sample - i * samples;
-          final angle = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + (step / samples) * math.pi * .24 * (i.isEven ? 1.0 : -1.0);
-          final orbit = diameter * (.20 + (i % 4) * .075);
-          return (index & 1) == 0 ? math.cos(angle) * orbit : math.sin(angle) * orbit;
-        }, growable: false);
+      : sampleXY = Float32List(total * samples * 2) {
+    final safeTotal = math.max(1, total);
+    for (var i = 0; i < total; i++) {
+      final orbit = diameter * (.20 + (i % 4) * .075);
+      final base = i * samples * 2;
+      final direction = i.isEven ? 1.0 : -1.0;
+      final baseAngle = -math.pi / 2 + i * math.pi * 2 / safeTotal;
+      for (var step = 0; step < samples; step++) {
+        final angle = baseAngle + (step / samples) * math.pi * .24 * direction;
+        final current = base + step * 2;
+        sampleXY[current] = math.cos(angle) * orbit;
+        sampleXY[current + 1] = math.sin(angle) * orbit;
+      }
+    }
+  }
 }
 
 class _PlanetFlowDelegate extends FlowDelegate {
   static const int _orbitSamples = _PlanetOrbitCache.samples;
   final Animation<double> phase; final double diameter; final int total; final int? selectedIndex; final _PlanetOrbitCache orbitCache;
   late final List<double> _sizes = List.generate(total, (i) => (selectedIndex == i ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(), growable: false);
+  late final List<Matrix4> _transforms = List.generate(total, (_) => Matrix4.identity(), growable: false);
   _PlanetFlowDelegate({required this.phase, required this.total, required this.diameter, required this.selectedIndex, required this.orbitCache}) : super(repaint: phase);
   @override void paintChildren(FlowPaintingContext context) {
     final c = diameter / 2;
@@ -75,7 +84,8 @@ class _PlanetFlowDelegate extends FlowDelegate {
       final x = orbitCache.sampleXY[current] + (orbitCache.sampleXY[next] - orbitCache.sampleXY[current]) * fraction;
       final y = orbitCache.sampleXY[current + 1] + (orbitCache.sampleXY[next + 1] - orbitCache.sampleXY[current + 1]) * fraction;
       final d = _sizes[i];
-      context.paintChild(i, transform: Matrix4.translationValues(c + x - d / 2, c + y - d / 2, 0));
+      _transforms[i].setTranslationRaw(c + x - d / 2, c + y - d / 2, 0);
+      context.paintChild(i, transform: _transforms[i]);
     }
   }
   @override bool shouldRepaint(covariant _PlanetFlowDelegate old) => old.total != total || old.diameter != diameter || old.selectedIndex != selectedIndex || !identical(old.orbitCache, orbitCache);
