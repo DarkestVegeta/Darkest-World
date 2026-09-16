@@ -54,8 +54,9 @@ class _ConstellationPainter extends CustomPainter{
   static final Paint _halo=Paint();
   static final Paint _nodeFill=Paint();
   static final Paint _nodeStroke=Paint()..style=PaintingStyle.stroke;
+  static const int _haloSteps=128;
   late Size _cachedSize; late Offset _center,_left,_right,_top;
-  late List<Rect> _rings; late List<Offset> _related; late List<Shader> _nodeShaders; late Shader _backgroundShader; late int _relatedCount;
+  late List<Rect> _rings; late List<Offset> _related; late List<Shader> _nodeShaders; late List<Shader> _haloShaders; late Shader _backgroundShader; late int _relatedCount;
   bool _geometryReady=false; bool _previousActive=false,_nextActive=false;
   const _ConstellationPainter({required this.nav,required this.phase,required this.compact}):super(repaint:phase);
   void _ensureGeometry(Size s){
@@ -67,13 +68,16 @@ class _ConstellationPainter extends CustomPainter{
     _related=List<Offset>.generate(count,(i){final a=-math.pi*.82+i*(math.pi*1.64/5);return Offset(_center.dx+math.cos(a)*s.width*.33,_center.dy+math.sin(a)*s.height*.36);},growable:false);
     _backgroundShader=const RadialGradient(center:Alignment.center,radius:1.1,colors:[Color(0xC80B0B18),Color(0x6203040A),Color(0x00000000)]).createShader(Offset.zero&s);
     final positions=[(_left,12,previousActive),(_center,20,true),(_right,12,nextActive),if(!compact&&nav.related.isNotEmpty)(_top,9,true)];
-    _nodeShaders=[for(final n in positions)_nodeShader(n.$1,n.$2,n.$3),for(final p in _related)_nodeShader(p,5,true)]; _geometryReady=true;
+    _nodeShaders=[for(final n in positions)_nodeShader(n.$1,n.$2,n.$3),for(final p in _related)_nodeShader(p,5,true)];
+    _haloShaders=List<Shader>.generate(_haloSteps,(i){final pulse=i/(_haloSteps-1);return _haloShader(pulse);},growable:false);
+    _geometryReady=true;
   }
   Shader _nodeShader(Offset p,double radius,bool active)=>RadialGradient(colors:[active?const Color(0xC06D6388):const Color(0x555A6574),const Color(0x08000000)]).createShader(Rect.fromCircle(center:p,radius:radius*2.2));
+  Shader _haloShader(double pulse)=>RadialGradient(colors:[Color.fromRGBO(125,112,165,.20+.08*pulse),const Color(0x00000000)]).createShader(Rect.fromCircle(center:_center,radius:40+18*pulse));
   @override void paint(Canvas c,Size s){
     _ensureGeometry(s);final r=Offset.zero&s;_background.shader=_backgroundShader;c.drawRect(r,_background);
     c.drawLine(_left,_center,_line);c.drawLine(_center,_right,_line);if(!compact&&nav.related.isNotEmpty)c.drawLine(_center,_top,_line);for(final ring in _rings)c.drawOval(ring,_line);
-    final pulse=.5+.5*math.sin(phase.value*math.pi*2);_halo.shader=RadialGradient(colors:[Color.fromRGBO(125,112,165,.20+.08*pulse),const Color(0x00000000)]).createShader(Rect.fromCircle(center:_center,radius:40+18*pulse));c.drawCircle(_center,40+18*pulse,_halo);
+    final pulse=.5+.5*math.sin(phase.value*math.pi*2);final haloIndex=(pulse*(_haloSteps-1)).round();_halo.shader=_haloShaders[haloIndex];c.drawCircle(_center,40+18*pulse,_halo);
     var n=0;_node(c,_left,12,_previousActive,_nodeShaders[n++]);_node(c,_center,20,true,_nodeShaders[n++]);_node(c,_right,12,_nextActive,_nodeShaders[n++]);if(!compact&&nav.related.isNotEmpty)_node(c,_top,9,true,_nodeShaders[n++]);
     for(final p in _related){_node(c,p,5,true,_nodeShaders[n++]);c.drawLine(_center,p,_line);}
   }
