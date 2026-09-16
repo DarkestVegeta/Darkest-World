@@ -1,6 +1,4 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../core/chat_scope.dart';
 import '../core/content_models.dart';
 import '../core/content_repository.dart';
@@ -16,36 +14,16 @@ class ContentDetailPage extends StatefulWidget {
 }
 
 class _ContentDetailPageState extends State<ContentDetailPage> with SingleTickerProviderStateMixin {
-  final _repository = ContentRepository();
-  late final AnimationController _clock = AnimationController(vsync: this, duration: const Duration(seconds: 70))..repeat();
-  List<ContentItem> _related = const [];
-  TypedFranchiseNavigation? _navigation;
-  bool _relatedLoading = true;
-  bool _navigationLoading = true;
-  String? _relatedError;
-  String? _navigationError;
+  final repository = ContentRepository();
+  late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 70))..repeat();
+  List<ContentItem> related = const [];
+  TypedFranchiseNavigation? navigation;
+  bool relatedLoading = true;
+  bool navigationLoading = true;
 
-  String get _title => widget.item.title;
-  String get _type => widget.item.type.name;
-  String get _franchise => widget.item.franchise ?? '';
-  String get _description => widget.item.description ?? '';
-  bool get _isExternal => widget.item.externalSource != null && widget.item.externalId != null;
+  bool get external => widget.item.externalSource != null && widget.item.externalId != null;
 
-  DarkestWorldNavigationState? get _archiveNavigationState {
-    final navigation = _navigation;
-    if (navigation == null) return null;
-    return DarkestWorldNavigationState(
-      previous: navigation.previous,
-      current: widget.item,
-      next: navigation.next,
-      related: _related,
-      source: 'content_detail',
-      entryPoint: 'detail',
-      originId: widget.item.id,
-    );
-  }
-
-  String? get _artUrl {
+  String? get artUrl {
     for (final key in ['transparent_artbox_url', 'artbox_url', 'public_url', 'image_url', 'artwork_url', 'cover_url']) {
       final value = widget.item.metadata[key];
       if (value is String && value.trim().isNotEmpty) return value.trim();
@@ -53,325 +31,182 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
     return null;
   }
 
-  Map<String, String> get _intel {
-    final source = widget.item.metadata;
-    final result = <String, String>{};
-    void add(String label, List<String> keys) {
-      for (final key in keys) {
-        final value = source[key];
-        if (value != null && '$value'.trim().isNotEmpty) {
-          result[label] = '$value'.trim();
-          return;
-        }
-      }
-    }
-    add('PLATFORM', ['platform', 'platform_name', 'console']);
-    add('REGION', ['region', 'regions']);
-    add('LANGUAGE', ['language', 'languages']);
-    add('DEVELOPER', ['developer', 'developers']);
-    add('PUBLISHER', ['publisher', 'publishers']);
-    add('GENRE', ['genre', 'genres']);
-    add('PLAYTIME', ['playtime', 'estimated_playtime']);
-    add('RATING', ['rating', 'age_rating']);
-    return result;
+  DarkestWorldNavigationState? get archiveState {
+    final nav = navigation;
+    if (nav == null) return null;
+    return DarkestWorldNavigationState(
+      previous: nav.previous,
+      current: widget.item,
+      next: nav.next,
+      related: related,
+      source: 'content_detail',
+      entryPoint: 'detail',
+      originId: widget.item.id,
+    );
   }
 
-  String? get _longplayUrl {
-    for (final key in ['longplay_url', 'longplay', 'youtube_url', 'youtube']) {
-      final value = widget.item.metadata[key];
-      if (value is String && value.trim().isNotEmpty) return value.trim();
-    }
-    return null;
-  }
-
-  @override void initState() {
+  @override
+  void initState() {
     super.initState();
-    if (_isExternal) {
-      _relatedLoading = false;
-      _navigationLoading = false;
+    if (external) {
+      relatedLoading = false;
+      navigationLoading = false;
     } else {
       _loadRelated();
       _loadNavigation();
     }
   }
-  @override void dispose() { _clock.dispose(); super.dispose(); }
+
+  @override
+  void dispose() {
+    clock.dispose();
+    super.dispose();
+  }
 
   Future<void> _loadRelated() async {
     try {
-      final result = await _repository.getRelatedContentItems(widget.item.id);
+      final result = await repository.getRelatedContentItems(widget.item.id);
       if (!mounted) return;
-      setState(() { _related = result; _relatedLoading = false; });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() { _relatedLoading = false; _relatedError = e.toString(); });
+      setState(() { related = result; relatedLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() => relatedLoading = false);
     }
   }
 
   Future<void> _loadNavigation() async {
     try {
-      final result = await _repository.getTypedFranchiseNavigation(widget.item);
+      final result = await repository.getTypedFranchiseNavigation(widget.item);
       if (!mounted) return;
-      setState(() { _navigation = result; _navigationLoading = false; });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() { _navigationLoading = false; _navigationError = e.toString(); });
+      setState(() { navigation = result; navigationLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() => navigationLoading = false);
     }
   }
 
-  ChatContext? get _chatContext {
-    if (_isExternal) return null;
-    ChatScope? scope;
-    if (_type == 'game') scope = ChatScope.games;
-    if (_type == 'movie') scope = ChatScope.movies;
-    if (_type == 'series') scope = ChatScope.series;
-    if (scope == null) return null;
-    return ChatContext(scope: scope, contentId: widget.item.id, contentTitle: _title);
+  void _open(ContentItem item) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)));
+
+  ChatContext? get chatContext {
+    if (external) return null;
+    final scope = switch (widget.item.type) {
+      ContentType.game => ChatScope.games,
+      ContentType.movie => ChatScope.movies,
+      ContentType.series => ChatScope.series,
+      ContentType.unknown => null,
+    };
+    return scope == null ? null : ChatContext(scope: scope, contentId: widget.item.id, contentTitle: widget.item.title);
   }
 
-  void _open(ContentItem item) => Navigator.push(context, MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)));
-  void _copyValue(String value) {
-    Clipboard.setData(ClipboardData(text: value));
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ARCHIVE VALUE COPIED')));
-  }
-
-  @override Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 850;
-    final archiveNavigationState = _archiveNavigationState;
+    final state = archiveState;
+    final year = widget.item.releaseYear?.toString() ?? '${widget.item.metadata['year'] ?? 'ARCHIVE'}';
     return Scaffold(
       backgroundColor: const Color(0xFF020208),
       body: AnimatedBuilder(
-        animation: _clock,
-        builder: (_, __) => Stack(children: [
-          Positioned.fill(child: CustomPaint(painter: _DetailSpacePainter(_clock.value))),
-          SafeArea(child: ListView(padding: EdgeInsets.fromLTRB(compact ? 14 : 42, 14, compact ? 14 : 42, 55), children: [
-            _Header(title: _title, onBack: () => Navigator.pop(context)),
-            const SizedBox(height: 22),
-            _GameWorldHero(item: widget.item, artUrl: _artUrl, compact: compact, phase: _clock.value),
-            const SizedBox(height: 22),
-            _MetaStrip(item: widget.item, type: _type, franchise: _franchise),
-            if (_description.isNotEmpty) ...[const SizedBox(height: 22), _Description(text: _description)],
-            const SizedBox(height: 28),
-            _SectionTitle(label: 'ARTBOX SYSTEM', detail: 'TRANSPARENT 3D ARCHIVE OBJECT'),
-            const SizedBox(height: 11),
-            _ArtboxInfo(compact: compact, hasArt: _artUrl != null),
-            if (_intel.isNotEmpty) ...[
-              const SizedBox(height: 28),
-              _SectionTitle(label: 'ARCHIVE INTEL', detail: 'STRUCTURED WORLD DATA'),
-              const SizedBox(height: 11),
-              _IntelGrid(values: _intel, compact: compact),
+        animation: clock,
+        builder: (_, __) => ListView(
+          padding: EdgeInsets.fromLTRB(compact ? 12 : 34, 14, compact ? 12 : 34, 50),
+          children: [
+            Row(children: [
+              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_ios_new, size: 15)),
+              Expanded(child: Text(widget.item.title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, letterSpacing: 2.2))),
+              Text(year, style: const TextStyle(fontSize: 7, letterSpacing: 1.3, color: Color(0x667F8AA2))),
+            ]),
+            const SizedBox(height: 18),
+            Container(
+              height: compact ? 500 : 560,
+              decoration: BoxDecoration(color: const Color(0xD6070711), border: Border.all(color: const Color(0x507F70B0)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 35)]),
+              child: compact
+                  ? Column(children: [Expanded(child: DarkestWorldArtbox(imageUrl: artUrl, title: widget.item.title, phase: clock.value, compact: true)), _HeroInfo(item: widget.item, compact: true)])
+                  : Row(children: [Expanded(flex: 7, child: DarkestWorldArtbox(imageUrl: artUrl, title: widget.item.title, phase: clock.value)), Expanded(flex: 5, child: _HeroInfo(item: widget.item, compact: false))]),
+            ),
+            const SizedBox(height: 24),
+            _Panel(title: 'ARCHIVE INTEL', child: Wrap(spacing: 8, runSpacing: 8, children: [
+              _Chip('TYPE', widget.item.type.name.toUpperCase()),
+              if (widget.item.franchise?.isNotEmpty ?? false) _Chip('FRANCHISE', widget.item.franchise!.toUpperCase()),
+              _Chip('RELEASE', year),
+              _Chip('ARTBOX', artUrl == null ? 'PENDING' : 'READY'),
+            ])),
+            if (widget.item.description?.isNotEmpty ?? false) ...[
+              const SizedBox(height: 18),
+              _Panel(title: 'DESCRIPTION', child: Text(widget.item.description!, style: const TextStyle(fontSize: 10, height: 1.5, color: Color(0xAAFFFFFF)))),
             ],
-            const SizedBox(height: 28),
-            _SectionTitle(label: 'MEDIA CHAMBER', detail: 'LONGPLAY / REFERENCE SIGNAL'),
-            const SizedBox(height: 11),
-            _MediaChamber(url: _longplayUrl, compact: compact, copy: _copyValue),
-            if (archiveNavigationState != null) ...[
-              const SizedBox(height: 28),
-              _SectionTitle(label: 'ARCHIVE SIGNAL', detail: 'LIVE NAVIGATION TELEMETRY'),
-              const SizedBox(height: 11),
-              ArchiveSignalTelemetryLens(
-                state: archiveNavigationState,
-                phase: _clock.value,
-                compact: compact,
-                onPreviousTap: _navigation?.previous == null ? null : _open,
-                onNextTap: _navigation?.next == null ? null : _open,
-                onRelatedTap: _open,
-              ),
+            if (state != null) ...[
+              const SizedBox(height: 24),
+              _Panel(title: 'ARCHIVE SIGNAL', child: ArchiveSignalTelemetryLens(state: state, phase: clock.value, compact: compact, onPreviousTap: navigation?.previous == null ? null : _open, onNextTap: navigation?.next == null ? null : _open, onRelatedTap: _open)),
             ],
-            const SizedBox(height: 28),
-            _SectionTitle(label: 'NAVIGATION', detail: 'PREVIOUS  |  CURRENT  |  NEXT'),
-            const SizedBox(height: 11),
-            if (_navigationLoading) const _LoadingPanel()
-            else if (_navigationError != null) const _MessagePanel(text: 'FRANCHISE NAVIGATION UNAVAILABLE')
-            else if (_navigation == null) const _MessagePanel(text: 'NO FRANCHISE ORDER AVAILABLE')
-            else _NavigationRow(navigation: _navigation!, compact: compact, open: _open),
-            const SizedBox(height: 28),
-            _SectionTitle(label: 'RELATED', detail: 'CONNECTED WORLDS'),
-            const SizedBox(height: 11),
-            if (_relatedLoading) const _LoadingPanel()
-            else if (_relatedError != null) const _MessagePanel(text: 'RELATED CONTENT UNAVAILABLE')
-            else if (_related.isEmpty) const _MessagePanel(text: 'NO RELATED WORLDS YET')
-            else _RelatedGrid(items: _related, compact: compact, open: _open),
-            if (_isExternal) ...[const SizedBox(height: 24), const _MessagePanel(text: 'LIVE EXTERNAL RESULT — NOT STORED IN THE DARKESTWORLD DATABASE')],
-          ])),
-        ]),
+            const SizedBox(height: 24),
+            _Panel(
+              title: 'NAVIGATION',
+              child: navigationLoading
+                  ? const LinearProgressIndicator()
+                  : navigation == null
+                      ? const Text('NO FRANCHISE ORDER AVAILABLE')
+                      : Row(children: [
+                          Expanded(child: _NavButton(label: 'PREVIOUS', item: navigation!.previous, onTap: navigation!.previous == null ? null : () => _open(navigation!.previous!))),
+                          const SizedBox(width: 8),
+                          Expanded(child: _NavButton(label: 'CURRENT', item: widget.item, onTap: null, active: true)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _NavButton(label: 'NEXT', item: navigation!.next, onTap: navigation!.next == null ? null : () => _open(navigation!.next!))),
+                        ]),
+            ),
+            const SizedBox(height: 24),
+            _Panel(
+              title: 'RELATED',
+              child: relatedLoading
+                  ? const LinearProgressIndicator()
+                  : related.isEmpty
+                      ? const Text('NO RELATED WORLDS YET')
+                      : Wrap(spacing: 8, runSpacing: 8, children: [for (final item in related.take(12)) ActionChip(label: Text(item.title), onPressed: () => _open(item))]),
+            ),
+          ],
+        ),
       ),
-      floatingActionButton: _chatContext == null ? null : Chatbox(contextData: _chatContext!),
+      floatingActionButton: chatContext == null ? null : Chatbox(contextData: chatContext!),
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  final String title; final VoidCallback onBack;
-  const _Header({required this.title, required this.onBack});
-  @override Widget build(BuildContext context) => Row(children: [
-    IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back_ios_new, size: 15, color: Color(0xBBFFFFFF))),
-    const SizedBox(width: 7),
-    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('DARKESTWORLD / GAME WORLD', style: TextStyle(fontSize: 7, letterSpacing: 2.6, color: Color(0x668F82A9))),
-      const SizedBox(height: 5),
-      Text(title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, letterSpacing: 2.2)),
-    ])),
-  ]);
+class _HeroInfo extends StatelessWidget {
+  final ContentItem item;
+  final bool compact;
+  const _HeroInfo({required this.item, required this.compact});
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsets.all(compact ? 16 : 28),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('CURRENT GAME WORLD', style: TextStyle(fontSize: 7, letterSpacing: 2.6, color: Color(0x778F82A9))),
+          const SizedBox(height: 12),
+          Text(item.title.toUpperCase(), maxLines: compact ? 2 : 4, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: compact ? 20 : 29, fontWeight: FontWeight.w300, height: 1.03, letterSpacing: 1.8)),
+          const SizedBox(height: 16),
+          Text(item.type.name.toUpperCase(), style: const TextStyle(fontSize: 7, letterSpacing: 1.8, color: Color(0x8897A8BE))),
+        ]),
+      );
 }
 
-class _GameWorldHero extends StatelessWidget {
-  final ContentItem item; final String? artUrl; final bool compact; final double phase;
-  const _GameWorldHero({required this.item, required this.artUrl, required this.compact, required this.phase});
-  @override Widget build(BuildContext context) {
-    final h = compact ? 520.0 : 560.0;
-    return Container(height: h, decoration: BoxDecoration(color: const Color(0xD6070711), border: Border.all(color: const Color(0x507F70B0)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 35)]), child: compact
-      ? Column(children: [Expanded(child: _ArtStage(url: artUrl, title: item.title, phase: phase, compact: true)), _HeroText(item: item, compact: true)])
-      : Row(children: [Expanded(flex: 7, child: _ArtStage(url: artUrl, title: item.title, phase: phase, compact: false)), Expanded(flex: 5, child: _HeroText(item: item, compact: false))]));
-  }
+class _Panel extends StatelessWidget {
+  final String title;
+  final Widget child;
+  const _Panel({required this.title, required this.child});
+  @override
+  Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0x99070810), border: Border.all(color: const Color(0x287F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 7, letterSpacing: 2.1, color: Color(0x778F8AA2))), const SizedBox(height: 12), child]));
 }
 
-class _ArtStage extends StatelessWidget {
-  final String? url; final String title; final double phase; final bool compact;
-  const _ArtStage({required this.url, required this.title, required this.phase, required this.compact});
-  @override Widget build(BuildContext context) => Stack(children: [
-    Positioned.fill(child: CustomPaint(painter: _ArtStagePainter(phase))),
-    Positioned.fill(child: Padding(padding: EdgeInsets.all(compact ? 14 : 24), child: DarkestWorldArtbox(imageUrl: url, title: title, phase: phase, compact: compact))),
-    Positioned(left: 16, top: 14, child: _StageLabel(text: 'ARCHIVE OBJECT')),
-    Positioned(right: 16, top: 14, child: _StageLabel(text: '01 / 01')),
-    Positioned(left: 16, bottom: 14, child: _StageLabel(text: url == null ? 'ARTBOX SOURCE PENDING' : 'TRANSPARENT ART READY')),
-    Positioned(right: 16, bottom: 14, child: _StageLabel(text: 'CURRENT')),
-  ]);
+class _Chip extends StatelessWidget {
+  final String label;
+  final String value;
+  const _Chip(this.label, this.value);
+  @override
+  Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: const Color(0x0C7F70B0), border: Border.all(color: const Color(0x247F70B0))), child: Text('$label  $value', style: const TextStyle(fontSize: 6.5, letterSpacing: 1.0)));
 }
 
-class _ArtStagePainter extends CustomPainter {
-  final double phase; const _ArtStagePainter(this.phase);
-  @override void paint(Canvas c, Size s) {
-    final rect = Offset.zero & s;
-    c.drawRect(rect, Paint()..shader = const RadialGradient(center: Alignment(0, -.08), radius: 1.05, colors: [Color(0xFF302342), Color(0xFF0B0A15), Color(0xFF020207)]).createShader(rect));
-    final floor = Rect.fromLTWH(0, s.height * .69, s.width, s.height * .31);
-    c.drawRect(floor, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x22000000), Color(0xAA000000)]).createShader(floor));
-    final scan = (phase * s.height * 1.3) % (s.height + 80) - 40;
-    c.drawRect(Rect.fromLTWH(0, scan, s.width, 1), Paint()..color = const Color(0x147F70B0));
-    for (var i = 0; i < 12; i++) {
-      final x = (i + 1) * s.width / 13;
-      c.drawLine(Offset(x, s.height * .72), Offset(x, s.height), Paint()..color = const Color(0x0AFFFFFF));
-    }
-  }
-  @override bool shouldRepaint(covariant _ArtStagePainter old) => old.phase != phase;
-}
-
-class _HeroText extends StatelessWidget {
-  final ContentItem item; final bool compact;
-  const _HeroText({required this.item, required this.compact});
-  @override Widget build(BuildContext context) => Padding(padding: EdgeInsets.all(compact ? 16 : 30), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-    const Text('CURRENT GAME WORLD', style: TextStyle(fontSize: 7, letterSpacing: 3, color: Color(0x7897A8BE))),
-    const SizedBox(height: 12),
-    Text(item.title.toUpperCase(), maxLines: compact ? 2 : 4, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: compact ? 20 : 30, height: 1.02, letterSpacing: 2.2, fontWeight: FontWeight.w300)),
-    const SizedBox(height: 15),
-    const Text('CINEMATIC ARTBOX ARCHIVE', style: TextStyle(fontSize: 7, letterSpacing: 2, color: Color(0x55FFFFFF))),
-    const SizedBox(height: 22),
-    Row(children: [const Icon(Icons.inventory_2_outlined, size: 13, color: Color(0x778F82A9)), const SizedBox(width: 7), Text(item.type.name.toUpperCase(), style: const TextStyle(fontSize: 7, letterSpacing: 1.8, color: Color(0x8897A8BE)))])
-  ]));
-}
-
-class _StageLabel extends StatelessWidget {
-  final String text; const _StageLabel({required this.text});
-  @override Widget build(BuildContext context) => DecoratedBox(decoration: const BoxDecoration(color: Color(0xCC05060D)), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), child: Text(text, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.8, color: Color(0x667F8AA2)))));
-}
-
-class _ArtboxInfo extends StatelessWidget {
-  final bool compact; final bool hasArt;
-  const _ArtboxInfo({required this.compact, required this.hasArt});
-  @override Widget build(BuildContext context) => Container(padding: EdgeInsets.all(compact ? 14 : 18), decoration: BoxDecoration(color: const Color(0x88080911), border: Border.all(color: const Color(0x327F70B0))), child: Row(children: [
-    Icon(hasArt ? Icons.check_circle_outline : Icons.hourglass_empty, size: 18, color: hasArt ? const Color(0xAA9A8AC4) : const Color(0x557F70B0)),
-    const SizedBox(width: 12),
-    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(hasArt ? 'TRANSPARENT ARTBOX PIPELINE ACTIVE' : 'ARTBOX SOURCE AWAITING ASSET', style: const TextStyle(fontSize: 8, letterSpacing: 1.5)),
-      const SizedBox(height: 5),
-      Text(hasArt ? 'FULL CASE PRESERVED / TRANSPARENT PRESENTATION READY' : 'NO VERIFIED ART ASSET FOUND IN THE CURRENT METADATA', style: const TextStyle(fontSize: 6.5, letterSpacing: 1.1, color: Color(0x667F8AA2))),
-    ])),
-  ]));
-}
-
-class _MetaStrip extends StatelessWidget {
-  final ContentItem item; final String type; final String franchise;
-  const _MetaStrip({required this.item, required this.type, required this.franchise});
-  @override Widget build(BuildContext context) => Wrap(spacing: 8, runSpacing: 8, children: [
-    _MetaChip(label: 'TYPE', value: type.toUpperCase()),
-    if (franchise.isNotEmpty) _MetaChip(label: 'FRANCHISE', value: franchise.toUpperCase()),
-    if (item.releaseYear != null) _MetaChip(label: 'YEAR', value: '${item.releaseYear}'),
-  ]);
-}
-
-class _MetaChip extends StatelessWidget {
-  final String label; final String value;
-  const _MetaChip({required this.label, required this.value});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: const Color(0x160F1020), border: Border.all(color: const Color(0x287F70B0))), child: RichText(text: TextSpan(children: [TextSpan(text: '$label  ', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.5, color: Color(0x557F8AA2))), TextSpan(text: value, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.1, color: Color(0x8897A8BE)))]));
-}
-
-class _Description extends StatelessWidget {
-  final String text; const _Description({required this.text});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0x0BFFFFFF), border: Border.all(color: const Color(0x1D7F70B0))), child: Text(text, style: const TextStyle(fontSize: 8, height: 1.6, color: Color(0x8897A8BE))));
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String label; final String detail;
-  const _SectionTitle({required this.label, required this.detail});
-  @override Widget build(BuildContext context) => Row(children: [Expanded(child: Text(label, style: const TextStyle(fontSize: 8, letterSpacing: 2.3))), Text(detail, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.2, color: Color(0x447F8AA2)))]);
-}
-
-class _IntelGrid extends StatelessWidget {
-  final Map<String, String> values; final bool compact;
-  const _IntelGrid({required this.values, required this.compact});
-  @override Widget build(BuildContext context) => GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: compact ? 2 : 4, childAspectRatio: compact ? 2.5 : 3.4, crossAxisSpacing: 8, mainAxisSpacing: 8, children: values.entries.map((e) => Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0x0AFFFFFF), border: Border.all(color: const Color(0x1D7F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(e.key, style: const TextStyle(fontSize: 5, letterSpacing: 1.5, color: Color(0x557F8AA2))), const SizedBox(height: 4), Text(e.value, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, color: Color(0x8897A8BE)))]))).toList());
-}
-
-class _MediaChamber extends StatelessWidget {
-  final String? url; final bool compact; final ValueChanged<String> copy;
-  const _MediaChamber({required this.url, required this.compact, required this.copy});
-  @override Widget build(BuildContext context) => Container(padding: EdgeInsets.all(compact ? 14 : 18), decoration: BoxDecoration(color: const Color(0x0AFFFFFF), border: Border.all(color: const Color(0x247F70B0))), child: Row(children: [Icon(url == null ? Icons.pause_circle_outline : Icons.play_circle_outline, size: 18, color: const Color(0x779A8AC4)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(url == null ? 'REFERENCE SIGNAL PENDING' : 'LONGPLAY REFERENCE AVAILABLE', style: const TextStyle(fontSize: 7.5, letterSpacing: 1.4)), const SizedBox(height: 5), Text(url ?? 'NO LONGPLAY URL VERIFIED IN CURRENT CONTENT METADATA', style: const TextStyle(fontSize: 6.2, color: Color(0x557F8AA2)), maxLines: 2, overflow: TextOverflow.ellipsis)]),), if (url != null) IconButton(onPressed: () => copy(url!), icon: const Icon(Icons.copy, size: 13, color: Color(0x668F82A9))) ]));
-}
-
-class _NavigationRow extends StatelessWidget {
-  final TypedFranchiseNavigation navigation; final bool compact; final ValueChanged<ContentItem> open;
-  const _NavigationRow({required this.navigation, required this.compact, required this.open});
-  @override Widget build(BuildContext context) => Row(children: [
-    Expanded(child: _NavCard(label: 'PREVIOUS', item: navigation.previous, compact: compact, open: open)),
-    const SizedBox(width: 8),
-    Expanded(child: _NavCard(label: 'CURRENT', item: navigation.current, compact: compact, open: open, active: true)),
-    const SizedBox(width: 8),
-    Expanded(child: _NavCard(label: 'NEXT', item: navigation.next, compact: compact, open: open)),
-  ]);
-}
-
-class _NavCard extends StatelessWidget {
-  final String label; final ContentItem? item; final bool compact; final ValueChanged<ContentItem> open; final bool active;
-  const _NavCard({required this.label, required this.item, required this.compact, required this.open, this.active = false});
-  @override Widget build(BuildContext context) => Material(color: Colors.transparent, child: InkWell(onTap: item == null ? null : () => open(item!), child: Container(height: compact ? 72 : 82, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: active ? const Color(0x287F70B0) : const Color(0x0AFFFFFF), border: Border.all(color: active ? const Color(0x4C9A8AC4) : const Color(0x1D7F70B0))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(label, style: const TextStyle(fontSize: 5, letterSpacing: 1.5, color: Color(0x557F8AA2))), const SizedBox(height: 6), Text(item?.title ?? '—', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 7, color: Color(0x8897A8BE)))]))));
-}
-
-class _RelatedGrid extends StatelessWidget {
-  final List<ContentItem> items; final bool compact; final ValueChanged<ContentItem> open;
-  const _RelatedGrid({required this.items, required this.compact, required this.open});
-  @override Widget build(BuildContext context) => GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: compact ? 1 : 3, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: compact ? 5.2 : 3.2), itemCount: items.length, itemBuilder: (_, i) => Material(color: Colors.transparent, child: InkWell(onTap: () => open(items[i]), child: Container(padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: const Color(0x0AFFFFFF), border: Border.all(color: const Color(0x1D7F70B0))), child: Row(children: [const Icon(Icons.link, size: 12, color: Color(0x667F70B0)), const SizedBox(width: 8), Expanded(child: Text(items[i].title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, color: Color(0x8897A8BE))))]))));
-}
-
-class _LoadingPanel extends StatelessWidget { const _LoadingPanel(); @override Widget build(BuildContext context) => Container(height: 70, alignment: Alignment.center, decoration: BoxDecoration(color: const Color(0x08FFFFFF), border: Border.all(color: const Color(0x157F70B0))), child: const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.2)));
-}
-
-class _MessagePanel extends StatelessWidget {
-  final String text; const _MessagePanel({required this.text});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0x08FFFFFF), border: Border.all(color: const Color(0x157F70B0))), child: Text(text, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.2, color: Color(0x557F8AA2))));
-}
-
-class _DetailSpacePainter extends CustomPainter {
-  final double phase; const _DetailSpacePainter(this.phase);
-  @override void paint(Canvas c, Size s) {
-    final rect = Offset.zero & s;
-    c.drawRect(rect, Paint()..shader = const RadialGradient(center: Alignment(0, -.2), radius: 1.1, colors: [Color(0xFF171426), Color(0xFF070710), Color(0xFF020207)]).createShader(rect));
-    final sweep = phase * math.pi * 2;
-    for (var i = 0; i < 55; i++) {
-      final x = ((i * 83) % 997) / 997 * s.width;
-      final y = ((i * 47) % 991) / 991 * s.height;
-      final r = 0.4 + ((i % 3) * .25);
-      c.drawCircle(Offset(x, y), r, Paint()..color = const Color(0x18A89BD0));
-    }
-    c.drawArc(Rect.fromLTWH(-s.width * .15, -s.width * .15, s.width * 1.3, s.width * 1.3), sweep, math.pi * .35, false, Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0x127F70B0));
-  }
-  @override bool shouldRepaint(covariant _DetailSpacePainter old) => old.phase != phase;
+class _NavButton extends StatelessWidget {
+  final String label;
+  final ContentItem? item;
+  final VoidCallback? onTap;
+  final bool active;
+  const _NavButton({required this.label, required this.item, required this.onTap, this.active = false});
+  @override
+  Widget build(BuildContext context) => OutlinedButton(onPressed: onTap, child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Column(children: [Text(label, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.4)), const SizedBox(height: 4), Text(item?.title ?? '—', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: active ? 8 : 7))])));
 }
