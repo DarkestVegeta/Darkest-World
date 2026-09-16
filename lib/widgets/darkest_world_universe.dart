@@ -118,8 +118,20 @@ class _SpaceStar { final double x, y, size; const _SpaceStar(this.x, this.y, thi
 class _Space extends CustomPainter {
   final double phase; const _Space(this.phase);
   static final List<_SpaceStar> _stars = List.generate(560, (i) { final r = math.Random(912 + i * 13); return _SpaceStar(r.nextDouble(), r.nextDouble(), r.nextDouble()); });
-  static final Paint _background = Paint(); static final Paint _star = Paint();
-  @override void paint(Canvas x, Size s) { final r = Offset.zero & s; _background.shader = const RadialGradient(colors: [Color(0xFF0A141D), Color(0xFF02060B), Color(0xFF010207)]).createShader(r); x.drawRect(r, _background); for (var i = 0; i < _stars.length; i++) { final star = _stars[i]; final p = Offset(star.x * s.width, star.y * s.height); _star.color = Colors.white.withValues(alpha: .018 + .075 * ((math.sin(phase * math.pi * 2 + i) + 1) / 2)); x.drawCircle(p, .18 + star.size * .62, _star); } }
+  static final Paint _background = Paint();
+  static final List<Paint> _starPaints = List.generate(9, (i) => Paint()..color = Colors.white.withValues(alpha: .018 + .075 * i / 8));
+  @override void paint(Canvas x, Size s) {
+    final r = Offset.zero & s;
+    _background.shader = const RadialGradient(colors: [Color(0xFF0A141D), Color(0xFF02060B), Color(0xFF010207)]).createShader(r);
+    x.drawRect(r, _background);
+    for (var i = 0; i < _stars.length; i++) {
+      final star = _stars[i];
+      final p = Offset(star.x * s.width, star.y * s.height);
+      final twinkle = (.018 + .075 * ((math.sin(phase * math.pi * 2 + i) + 1) / 2)).clamp(.018, .093);
+      final paintIndex = ((twinkle - .018) / .075 * 8).round().clamp(0, 8);
+      x.drawCircle(p, .18 + star.size * .62, _starPaints[paintIndex]);
+    }
+  }
   @override bool shouldRepaint(covariant _Space o) => o.phase != phase;
 }
 
