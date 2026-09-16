@@ -58,7 +58,7 @@ class _ConstellationPainter extends CustomPainter{
   late Size _cachedSize; late Offset _center,_left,_right,_top;
   late List<Rect> _rings; late List<Offset> _related; late List<Shader> _nodeShaders; late List<Shader> _haloShaders; late Shader _backgroundShader; late int _relatedCount;
   bool _geometryReady=false; bool _previousActive=false,_nextActive=false;
-  const _ConstellationPainter({required this.nav,required this.phase,required this.compact}):super(repaint:phase);
+  _ConstellationPainter({required this.nav,required this.phase,required this.compact}):super(repaint:phase);
   void _ensureGeometry(Size s){
     final previousActive=nav.previous!=null; final nextActive=nav.next!=null; final count=math.min(nav.related.length,6);
     if(_geometryReady&&_cachedSize==s&&_previousActive==previousActive&&_nextActive==nextActive&&_relatedCount==count)return;
@@ -67,8 +67,8 @@ class _ConstellationPainter extends CustomPainter{
     _rings=List<Rect>.generate(5,(i){final rr=22+i*23.0;return Rect.fromCenter(center:_center,width:rr*2.7,height:rr*.7);},growable:false);
     _related=List<Offset>.generate(count,(i){final a=-math.pi*.82+i*(math.pi*1.64/5);return Offset(_center.dx+math.cos(a)*s.width*.33,_center.dy+math.sin(a)*s.height*.36);},growable:false);
     _backgroundShader=const RadialGradient(center:Alignment.center,radius:1.1,colors:[Color(0xC80B0B18),Color(0x6203040A),Color(0x00000000)]).createShader(Offset.zero&s);
-    final positions=[(_left,12,previousActive),(_center,20,true),(_right,12,nextActive),if(!compact&&nav.related.isNotEmpty)(_top,9,true)];
-    _nodeShaders=[for(final n in positions)_nodeShader(n.$1,n.$2,n.$3),for(final p in _related)_nodeShader(p,5,true)];
+    final positions=[(_left,12.0,previousActive),(_center,20.0,true),(_right,12.0,nextActive),if(!compact&&nav.related.isNotEmpty)(_top,9.0,true)];
+    _nodeShaders=[for(final n in positions)_nodeShader(n.$1,n.$2,n.$3),for(final p in _related)_nodeShader(p,5.0,true)];
     _haloShaders=List<Shader>.generate(_haloSteps,(i){final pulse=i/(_haloSteps-1);return _haloShader(pulse);},growable:false);
     _geometryReady=true;
   }
