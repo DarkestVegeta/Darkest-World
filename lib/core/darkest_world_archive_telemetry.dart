@@ -63,6 +63,9 @@ class DarkestWorldArchiveTelemetry {
   String get continuityMode => position == 'SINGLE' ? 'ISOLATED' : 'SEQUENCED';
   String get relatedLabel => relatedCount == 0 ? 'NONE' : '${visibleRelatedCount}${relatedOverflowCount > 0 ? '+' : ''} ACTIVE';
   String get routeLabel => '$source / $entryPoint';
+  String get currentLabel => currentId.trim().isEmpty ? 'UNIDENTIFIED' : currentId;
+  String get continuityState => '$continuityMode / ${continuityLabel.replaceAll(' / ', ' · ')}';
+  String get signalSummary => '$signal · $relatedLabel · $originLabel';
 
   String get continuityLabel {
     switch (continuityCount) {
