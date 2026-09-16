@@ -49,8 +49,9 @@ class _ArchiveAtmospherePainter extends CustomPainter {
 
   static double _sin(double cycles){
     final position=cycles*_lutSize;
-    final base=position.floor()&_lutMask;
-    final fraction=position-base;
+    final whole=position.floor();
+    final base=whole&_lutMask;
+    final fraction=position-whole;
     final a=_sinLut[base];
     return a+(_sinLut[base+1]-a)*fraction;
   }
