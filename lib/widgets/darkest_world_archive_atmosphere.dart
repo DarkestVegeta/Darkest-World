@@ -11,13 +11,13 @@ class DarkestWorldArchiveAtmosphere extends StatefulWidget {
 class _DarkestWorldArchiveAtmosphereState extends State<DarkestWorldArchiveAtmosphere> with SingleTickerProviderStateMixin {
   late final AnimationController _clock=AnimationController(vsync:this,duration:const Duration(seconds:150))..repeat();
   @override void dispose(){_clock.dispose();super.dispose();}
-  @override Widget build(BuildContext context)=>IgnorePointer(child:AnimatedBuilder(animation:_clock,builder:(_,__)=>CustomPaint(painter:_ArchiveAtmospherePainter(_clock.value),size:Size.infinite)));
+  @override Widget build(BuildContext context)=>IgnorePointer(child:CustomPaint(painter:_ArchiveAtmospherePainter(_clock),size:Size.infinite));
 }
 
 class _ArchiveStar { final double x,y,depth; const _ArchiveStar(this.x,this.y,this.depth); }
 
 class _ArchiveAtmospherePainter extends CustomPainter {
-  final double phase; const _ArchiveAtmospherePainter(this.phase);
+  final Animation<double> phase; const _ArchiveAtmospherePainter(this.phase):super(repaint:phase);
   static final List<_ArchiveStar> _stars=List.generate(520,(i){final rng=math.Random(4207+i*17);return _ArchiveStar(rng.nextDouble(),rng.nextDouble(),rng.nextDouble());});
   static final Paint _backgroundPaint=Paint();
   static final Paint _starPaint=Paint();
@@ -30,32 +30,50 @@ class _ArchiveAtmospherePainter extends CustomPainter {
   static final Paint _scanPaint=Paint()..color=const Color(0x0A92A7C2);
   static final Paint _scanBandPaint=Paint();
   static final Paint _framePaint=Paint()..style=PaintingStyle.stroke..strokeWidth=1..color=const Color(0x0C9BA9BC);
+  Size _cachedSize=Size.zero; bool _geometryReady=false;
+  late Rect _fullRect,_hazeRect,_coreGlowRect,_coreRect,_arcRect;
+  late double _short,_core;
+  late Shader _backgroundShader,_hazeShader,_coreGlowShader,_coreShader;
+
+  void _ensureGeometry(Size s){
+    if(_geometryReady&&_cachedSize==s)return;
+    _cachedSize=s;_short=math.min(s.width,s.height);
+    final center=Offset(s.width*.5,s.height*.46);
+    _fullRect=Offset.zero&s;
+    _hazeRect=Rect.fromCenter(center:Offset(center.dx,center.dy+_short*.06),width:s.width*.92,height:_short*.30);
+    _arcRect=Rect.fromCenter(center:center,width:_short*.76,height:_short*.235);
+    _core=_short*.13;
+    _coreGlowRect=Rect.fromCircle(center:center,radius:_core*2.8);
+    _coreRect=Rect.fromCircle(center:center,radius:_core*.62);
+    _backgroundShader=RadialGradient(center:const Alignment(0,.05),radius:1.05,colors:[Colors.transparent,const Color(0x16040A18),const Color(0xA8010308)],stops:const[.34,.72,1]).createShader(_fullRect);
+    _hazeShader=RadialGradient(colors:[const Color(0x1B8D78AA),const Color(0x0A526B89),Colors.transparent]).createShader(_hazeRect);
+    _coreGlowShader=RadialGradient(colors:[const Color(0x1E7D70A0),const Color(0x091D2D42),Colors.transparent]).createShader(_coreGlowRect);
+    _coreShader=RadialGradient(colors:[const Color(0x4B8E86AE),const Color(0x0A8C7EA0),Colors.transparent]).createShader(_coreRect);
+    _geometryReady=true;
+  }
 
   @override void paint(Canvas c,Size s){
-    final r=Offset.zero&s; final short=math.min(s.width,s.height); final center=Offset(s.width*.5,s.height*.46);
-    _backgroundPaint.shader=RadialGradient(center:const Alignment(0,.05),radius:1.05,colors:[Colors.transparent,const Color(0x16040A18),const Color(0xA8010308)],stops:const[.34,.72,1]).createShader(r); c.drawRect(r,_backgroundPaint);
+    _ensureGeometry(s);final center=Offset(s.width*.5,s.height*.46);final value=phase.value;final tau=math.pi*2;
+    _backgroundPaint.shader=_backgroundShader;c.drawRect(_fullRect,_backgroundPaint);
     for(var i=0;i<_stars.length;i++){
       final star=_stars[i]; final depth=star.depth;
-      final drift=math.sin(phase*math.pi*2*(.25+depth*.7)+i*.31)*(.7+depth*2.2);
-      final twinkle=.45+.55*math.sin(phase*math.pi*2*(.5+depth*1.4)+i*.77);
+      final drift=math.sin(value*tau*(.25+depth*.7)+i*.31)*(.7+depth*2.2);
+      final twinkle=.45+.55*math.sin(value*tau*(.5+depth*1.4)+i*.77);
       _starPaint.color=Colors.white.withValues(alpha:(.018+depth*.12)*twinkle.clamp(.25,1));
       c.drawCircle(Offset(star.x*s.width+drift,star.y*s.height),.18+depth*1.05,_starPaint);
     }
-    final hazeRect=Rect.fromCenter(center:Offset(center.dx,center.dy+short*.06),width:s.width*.92,height:short*.30);
-    _hazePaint.shader=RadialGradient(colors:[const Color(0x1B8D78AA),const Color(0x0A526B89),Colors.transparent]).createShader(hazeRect); c.drawOval(hazeRect,_hazePaint);
+    _hazePaint.shader=_hazeShader;c.drawOval(_hazeRect,_hazePaint);
     for(var i=0;i<5;i++){
-      final rr=short*(.27+i*.072); final rot=math.sin(phase*math.pi*2+i)*.025;
+      final rr=_short*(.27+i*.072); final rot=math.sin(value*tau+i)*.025;
       c.save(); c.translate(center.dx,center.dy); c.rotate(rot); c.translate(-center.dx,-center.dy);
       _ringPaint.strokeWidth=.42+i*.08; _ringPaint.color=const Color(0x167D8FA8);
       c.drawOval(Rect.fromCenter(center:center,width:rr*2.25,height:rr*.60),_ringPaint); c.restore();
     }
-    final arcRect=Rect.fromCenter(center:center,width:short*.76,height:short*.235);
-    _arcPaint.strokeWidth=1.15; _arcPaint.color=const Color(0x4D8D7CB4); c.drawArc(arcRect,phase*math.pi*2,1.12,false,_arcPaint);
-    _secondaryArcPaint.strokeWidth=.55; _secondaryArcPaint.color=const Color(0x2E9DB1C1); c.drawArc(arcRect,phase*math.pi*2+math.pi,.42,false,_secondaryArcPaint);
-    final core=short*.13;
-    _coreGlowPaint.shader=RadialGradient(colors:[const Color(0x1E7D70A0),const Color(0x091D2D42),Colors.transparent]).createShader(Rect.fromCircle(center:center,radius:core*2.8)); c.drawCircle(center,core*2.8,_coreGlowPaint);
-    _corePaint.shader=RadialGradient(colors:[const Color(0x4B8E86AE),const Color(0x0A8C7EA0),Colors.transparent]).createShader(Rect.fromCircle(center:center,radius:core*.62)); c.drawCircle(center,core*.62,_corePaint);
-    final scan=(phase*s.height*1.25)%s.height; c.drawRect(Rect.fromLTWH(0,scan,s.width,1.1),_scanPaint);
+    _arcPaint.strokeWidth=1.15; _arcPaint.color=const Color(0x4D8D7CB4); c.drawArc(_arcRect,value*tau,1.12,false,_arcPaint);
+    _secondaryArcPaint.strokeWidth=.55; _secondaryArcPaint.color=const Color(0x2E9DB1C1); c.drawArc(_arcRect,value*tau+math.pi,.42,false,_secondaryArcPaint);
+    _coreGlowPaint.shader=_coreGlowShader;c.drawCircle(center,_core*2.8,_coreGlowPaint);
+    _corePaint.shader=_coreShader;c.drawCircle(center,_core*.62,_corePaint);
+    final scan=(value*s.height*1.25)%s.height; c.drawRect(Rect.fromLTWH(0,scan,s.width,1.1),_scanPaint);
     final scanBand=Rect.fromLTWH(0,scan-7,s.width,15); _scanBandPaint.shader=LinearGradient(colors:[Colors.transparent,const Color(0x052C5B7A),Colors.transparent]).createShader(scanBand); c.drawRect(scanBand,_scanBandPaint);
     const arm=34.0;
     c.drawLine(const Offset(18,arm),const Offset(18,18),_framePaint); c.drawLine(const Offset(18,18),const Offset(arm,18),_framePaint);
@@ -63,5 +81,5 @@ class _ArchiveAtmospherePainter extends CustomPainter {
     c.drawLine(Offset(18,s.height-arm),Offset(18,s.height-18),_framePaint); c.drawLine(Offset(18,s.height-18),Offset(arm,s.height-18),_framePaint);
     c.drawLine(Offset(s.width-18,s.height-arm),Offset(s.width-18,s.height-18),_framePaint); c.drawLine(Offset(s.width-18,s.height-18),Offset(s.width-arm,s.height-18),_framePaint);
   }
-  @override bool shouldRepaint(covariant _ArchiveAtmospherePainter old)=>old.phase!=phase;
+  @override bool shouldRepaint(covariant _ArchiveAtmospherePainter old)=>false;
 }
