@@ -42,7 +42,7 @@ void main() {
 
   test('signal intensity crosses the documented LOW and ACTIVE bands', () {
     final low = _telemetry();
-    final active = _telemetry(next: _item('next'));
+    final active = _telemetry(next: _item('next'), relatedCount: 1);
     final high = _telemetry(
       previous: _item('previous'),
       next: _item('next'),
