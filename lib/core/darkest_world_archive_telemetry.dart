@@ -81,6 +81,12 @@ class DarkestWorldArchiveTelemetry {
     return 'LOW';
   }
 
+  /// Compact presentation mode used by archive surfaces to keep the signal
+  /// readable without duplicating layout decisions in each widget.
+  String get presentationMode =>
+      continuityCount == 0 && relatedCount == 0 ? 'CORE' :
+      continuityCount == 2 && relatedCount > 0 ? 'FULL' : 'CONNECTED';
+
   String get continuityLabel {
     switch (continuityCount) {
       case 2:
