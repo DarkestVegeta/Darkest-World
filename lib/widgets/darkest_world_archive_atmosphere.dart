@@ -16,8 +16,8 @@ class _DarkestWorldArchiveAtmosphereState extends State<DarkestWorldArchiveAtmos
 }
 
 class _ArchiveStar {
-  final double x,y,driftFrequency,driftPhase,driftScale,twinkleFrequency,twinklePhase,radius,alpha;
-  const _ArchiveStar(this.x,this.y,this.driftFrequency,this.driftPhase,this.driftScale,this.twinkleFrequency,this.twinklePhase,this.radius,this.alpha);
+  final double x,y,driftFrequency,driftPhaseCycles,driftScale,twinkleFrequency,twinklePhaseCycles,radius,alpha;
+  const _ArchiveStar(this.x,this.y,this.driftFrequency,this.driftPhaseCycles,this.driftScale,this.twinkleFrequency,this.twinklePhaseCycles,this.radius,this.alpha);
 }
 
 class _ArchiveAtmospherePainter extends CustomPainter {
@@ -27,7 +27,7 @@ class _ArchiveAtmospherePainter extends CustomPainter {
   static final Float32List _sinLut=Float32List.fromList(List.generate(_lutSize+1,(i)=>math.sin(i*math.pi*2/_lutSize)));
   static final List<_ArchiveStar> _stars=List.generate(520,(i){
     final rng=math.Random(4207+i*17); final depth=rng.nextDouble();
-    return _ArchiveStar(rng.nextDouble(),rng.nextDouble(),.25+depth*.7,i*.31,.7+depth*2.2,.5+depth*1.4,i*.77,.18+depth*1.05,.018+depth*.12);
+    return _ArchiveStar(rng.nextDouble(),rng.nextDouble(),.25+depth*.7,i*.31/(math.pi*2),.7+depth*2.2,.5+depth*1.4,i*.77/(math.pi*2),.18+depth*1.05,.018+depth*.12);
   });
   static final Paint _backgroundPaint=Paint();
   static final Paint _starPaint=Paint();
@@ -58,7 +58,7 @@ class _ArchiveAtmospherePainter extends CustomPainter {
   }
   @override void paint(Canvas c,Size s){
     _ensureGeometry(s);final center=Offset(s.width*.5,s.height*.46);final phaseCycles=phase.value;final phaseAngle=phaseCycles*math.pi*2;_backgroundPaint.shader=_backgroundShader;c.drawRect(_fullRect,_backgroundPaint);
-    for(var i=0;i<_stars.length;i++){final star=_stars[i];final drift=_sin(phaseCycles*star.driftFrequency+star.driftPhase/(math.pi*2))*star.driftScale;final twinkle=.45+.55*_sin(phaseCycles*star.twinkleFrequency+star.twinklePhase/(math.pi*2));_starPaint.color=Colors.white.withValues(alpha:(star.alpha*twinkle).clamp(.25,1));c.drawCircle(Offset(star.x*s.width+drift,star.y*s.height),star.radius,_starPaint);}
+    for(var i=0;i<_stars.length;i++){final star=_stars[i];final drift=_sin(phaseCycles*star.driftFrequency+star.driftPhaseCycles)*star.driftScale;final twinkle=.45+.55*_sin(phaseCycles*star.twinkleFrequency+star.twinklePhaseCycles);_starPaint.color=Colors.white.withValues(alpha:(star.alpha*twinkle).clamp(.25,1));c.drawCircle(Offset(star.x*s.width+drift,star.y*s.height),star.radius,_starPaint);}
     _hazePaint.shader=_hazeShader;c.drawOval(_hazeRect,_hazePaint);
     for(var i=0;i<5;i++){final rot=_sin(phaseCycles+i/(math.pi*2))*.025;c.save();c.translate(center.dx,center.dy);c.rotate(rot);c.translate(-center.dx,-center.dy);_ringPaint.strokeWidth=.42+i*.08;_ringPaint.color=const Color(0x167D8FA8);c.drawOval(_ringRects[i],_ringPaint);c.restore();}
     _arcPaint.strokeWidth=1.15;_arcPaint.color=const Color(0x4D8D7CB4);c.drawArc(_arcRect,phaseAngle,1.12,false,_arcPaint);_secondaryArcPaint.strokeWidth=.55;_secondaryArcPaint.color=const Color(0x2E9DB1C1);c.drawArc(_arcRect,phaseAngle+math.pi,.42,false,_secondaryArcPaint);
