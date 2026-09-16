@@ -65,6 +65,7 @@ class _PlanetOrbitCache {
 
 class _PlanetFlowDelegate extends FlowDelegate {
   static const int _orbitSamples = _PlanetOrbitCache.samples;
+  static const int _orbitMask = _orbitSamples - 1;
   final Animation<double> phase; final double diameter; final int total; final int? selectedIndex; final _PlanetOrbitCache orbitCache;
   late final Float32List _halfSizes = Float32List(total);
   late final Uint32List _sampleBases = Uint32List(total);
@@ -78,16 +79,22 @@ class _PlanetFlowDelegate extends FlowDelegate {
   }
   @override void paintChildren(FlowPaintingContext context) {
     final c = diameter / 2;
-    final samplePosition = (phase.value * _orbitSamples) % _orbitSamples;
-    final sampleIndex = samplePosition.floor();
-    final nextIndex = (sampleIndex + 1) % _orbitSamples;
-    final fraction = samplePosition - sampleIndex;
+    final samplePosition = phase.value * _orbitSamples;
+    final sampleFloor = samplePosition.floor();
+    final sampleIndex = sampleFloor & _orbitMask;
+    final nextIndex = (sampleIndex + 1) & _orbitMask;
+    final fraction = samplePosition - sampleFloor;
+    final xy = orbitCache.sampleXY;
     for (var i = 0; i < context.childCount; i++) {
       final offset = _sampleBases[i];
       final current = offset + sampleIndex * 2;
       final next = offset + nextIndex * 2;
-      final x = orbitCache.sampleXY[current] + (orbitCache.sampleXY[next] - orbitCache.sampleXY[current]) * fraction;
-      final y = orbitCache.sampleXY[current + 1] + (orbitCache.sampleXY[next + 1] - orbitCache.sampleXY[current + 1]) * fraction;
+      final currentX = xy[current];
+      final nextX = xy[next];
+      final currentY = xy[current + 1];
+      final nextY = xy[next + 1];
+      final x = currentX + (nextX - currentX) * fraction;
+      final y = currentY + (nextY - currentY) * fraction;
       _transforms[i].setTranslationRaw(c + x - _halfSizes[i], c + y - _halfSizes[i], 0);
       context.paintChild(i, transform: _transforms[i]);
     }
