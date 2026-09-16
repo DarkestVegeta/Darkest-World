@@ -52,13 +52,12 @@ class DarkestWorldArchiveTelemetry {
   bool get canGoPrevious => previousId != null && previousId!.isNotEmpty;
   bool get canGoNext => nextId != null && nextId!.isNotEmpty;
 
-  /// Presentation limits shared by archive rails so compact and wide surfaces
-  /// use the same relational semantics without re-counting the source list.
-  int get relatedVisibleLimit => relatedCount > 0 ? 5 : 0;
-  int get relatedVisibleCompactLimit => relatedCount > 0 ? 3 : 0;
-  int get relatedOverflow => relatedCount > relatedVisibleLimit
-      ? relatedCount - relatedVisibleLimit
-      : 0;
+  int get relatedVisibleLimit => 5;
+  int get compactRelatedVisibleLimit => 3;
+  int get visibleRelatedCount => relatedCount.clamp(0, relatedVisibleLimit);
+  int get compactVisibleRelatedCount => relatedCount.clamp(0, compactRelatedVisibleLimit);
+  int get relatedOverflowCount => (relatedCount - relatedVisibleLimit).clamp(0, relatedCount);
+  int get compactRelatedOverflowCount => (relatedCount - compactRelatedVisibleLimit).clamp(0, relatedCount);
 
   String get continuityLabel {
     switch (continuityCount) {
