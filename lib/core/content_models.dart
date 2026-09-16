@@ -45,6 +45,8 @@ class ContentItem {
     required this.metadata,
   });
 
+  int? get releaseYear => releaseDate?.year;
+
   factory ContentItem.fromRow(Map<String, dynamic> row) {
     final id = '${row['id'] ?? ''}'.trim();
     final title = '${row['title'] ?? ''}'.trim();
