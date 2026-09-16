@@ -43,26 +43,22 @@ class _PlanetOrbitCache {
   static const int samples = 256;
   final int total;
   final double diameter;
-  final List<double> orbits;
-  final List<double> baseAngles;
-  final List<double> directions;
   final List<double> sampleX;
   final List<double> sampleY;
   _PlanetOrbitCache(this.total, this.diameter)
-      : orbits = List.generate(total, (i) => diameter * (.20 + (i % 4) * .075), growable: false),
-        baseAngles = List.generate(total, (i) => -math.pi / 2 + i * math.pi * 2 / math.max(1, total), growable: false),
-        directions = List.generate(total, (i) => i.isEven ? 1.0 : -1.0, growable: false),
-        sampleX = List.generate(total * samples, (index) {
+      : sampleX = List.generate(total * samples, (index) {
           final i = index ~/ samples;
           final step = index % samples;
-          final a = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + (step / samples) * math.pi * .24 * (i.isEven ? 1.0 : -1.0);
-          return math.cos(a) * (diameter * (.20 + (i % 4) * .075));
+          final angle = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + (step / samples) * math.pi * .24 * (i.isEven ? 1.0 : -1.0);
+          final orbit = diameter * (.20 + (i % 4) * .075);
+          return math.cos(angle) * orbit;
         }, growable: false),
         sampleY = List.generate(total * samples, (index) {
           final i = index ~/ samples;
           final step = index % samples;
-          final a = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + (step / samples) * math.pi * .24 * (i.isEven ? 1.0 : -1.0);
-          return math.sin(a) * (diameter * (.20 + (i % 4) * .075));
+          final angle = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + (step / samples) * math.pi * .24 * (i.isEven ? 1.0 : -1.0);
+          final orbit = diameter * (.20 + (i % 4) * .075);
+          return math.sin(angle) * orbit;
         }, growable: false);
 }
 
