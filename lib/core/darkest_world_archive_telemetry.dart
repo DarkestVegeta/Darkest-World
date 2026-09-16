@@ -10,6 +10,9 @@ class DarkestWorldArchiveTelemetry {
   final bool linkedOrigin;
   final String source;
   final String entryPoint;
+  final String currentId;
+  final String? previousId;
+  final String? nextId;
 
   const DarkestWorldArchiveTelemetry({
     required this.signal,
@@ -19,6 +22,9 @@ class DarkestWorldArchiveTelemetry {
     required this.linkedOrigin,
     required this.source,
     required this.entryPoint,
+    required this.currentId,
+    required this.previousId,
+    required this.nextId,
   });
 
   factory DarkestWorldArchiveTelemetry.fromNavigation(
@@ -32,11 +38,16 @@ class DarkestWorldArchiveTelemetry {
       linkedOrigin: state.hasOrigin,
       source: state.source,
       entryPoint: state.entryLabel,
+      currentId: state.currentId,
+      previousId: state.previousId,
+      nextId: state.nextId,
     );
   }
 
   bool get hasContinuity => continuityCount > 0;
   bool get hasRelated => relatedCount > 0;
+  bool get canGoPrevious => previousId != null && previousId!.isNotEmpty;
+  bool get canGoNext => nextId != null && nextId!.isNotEmpty;
 
   String get continuityLabel {
     switch (continuityCount) {
