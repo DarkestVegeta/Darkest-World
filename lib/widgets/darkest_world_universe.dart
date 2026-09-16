@@ -44,8 +44,6 @@ class _PlanetOrbitCache {
   static const int samples = 256;
   final int total;
   final double diameter;
-  // GO329: interleaved XY storage is generated in one pass.
-  // GO331: Float32 storage halves the orbit-cache footprint while preserving the sampled path.
   final Float32List sampleXY;
   _PlanetOrbitCache(this.total, this.diameter)
       : sampleXY = Float32List(total * samples * 2) {
@@ -68,11 +66,16 @@ class _PlanetOrbitCache {
 class _PlanetFlowDelegate extends FlowDelegate {
   static const int _orbitSamples = _PlanetOrbitCache.samples;
   final Animation<double> phase; final double diameter; final int total; final int? selectedIndex; final _PlanetOrbitCache orbitCache;
-  late final List<double> _sizes = List.generate(total, (i) => (selectedIndex == i ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(), growable: false);
-  late final List<double> _halfSizes = List.generate(total, (i) => _sizes[i] / 2, growable: false);
-  late final List<int> _sampleBases = List.generate(total, (i) => i * _orbitSamples * 2, growable: false);
+  late final Float32List _halfSizes = Float32List(total);
+  late final Uint32List _sampleBases = Uint32List(total);
   late final List<Matrix4> _transforms = List.generate(total, (_) => Matrix4.identity(), growable: false);
-  _PlanetFlowDelegate({required this.phase, required this.total, required this.diameter, required this.selectedIndex, required this.orbitCache}) : super(repaint: phase);
+  _PlanetFlowDelegate({required this.phase, required this.total, required this.diameter, required this.selectedIndex, required this.orbitCache}) : super(repaint: phase) {
+    for (var i = 0; i < total; i++) {
+      final size = (selectedIndex == i ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble();
+      _halfSizes[i] = size / 2;
+      _sampleBases[i] = i * _orbitSamples * 2;
+    }
+  }
   @override void paintChildren(FlowPaintingContext context) {
     final c = diameter / 2;
     final samplePosition = (phase.value * _orbitSamples) % _orbitSamples;
