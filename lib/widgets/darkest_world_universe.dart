@@ -28,8 +28,11 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
 
 class _PlanetFlowDelegate extends FlowDelegate {
   final Animation<double> phase; final double diameter; final int total; final int? selectedIndex;
+  late final List<double> _orbits = List.generate(total, (i) => diameter * (.20 + (i % 4) * .075), growable: false);
+  late final List<double> _baseAngles = List.generate(total, (i) => -math.pi / 2 + i * math.pi * 2 / math.max(1, total), growable: false);
+  late final List<double> _directions = List.generate(total, (i) => i.isEven ? 1.0 : -1.0, growable: false);
   _PlanetFlowDelegate({required this.phase, required this.total, required this.diameter, required this.selectedIndex}) : super(repaint: phase);
-  @override void paintChildren(FlowPaintingContext context) { final c = diameter / 2; final value = phase.value; for (var i = 0; i < context.childCount; i++) { final orbit = diameter * (.20 + (i % 4) * .075); final a = -math.pi / 2 + i * math.pi * 2 / math.max(1, total) + value * math.pi * .12 * (i.isEven ? 1 : -1); final p = Offset(c + math.cos(a) * orbit, c + math.sin(a) * orbit); final d = (selectedIndex == i ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(); context.paintChild(i, transform: Matrix4.translationValues(p.dx - d / 2, p.dy - d / 2, 0)); } }
+  @override void paintChildren(FlowPaintingContext context) { final c = diameter / 2; final value = phase.value * math.pi * .12; for (var i = 0; i < context.childCount; i++) { final a = _baseAngles[i] + value * _directions[i]; final orbit = _orbits[i]; final p = Offset(c + math.cos(a) * orbit, c + math.sin(a) * orbit); final d = (selectedIndex == i ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(); context.paintChild(i, transform: Matrix4.translationValues(p.dx - d / 2, p.dy - d / 2, 0)); } }
   @override bool shouldRepaint(covariant _PlanetFlowDelegate old) => old.total != total || old.diameter != diameter || old.selectedIndex != selectedIndex;
 }
 class _PlanetNode extends StatelessWidget {
