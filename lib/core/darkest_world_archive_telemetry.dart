@@ -1,7 +1,7 @@
 import 'darkest_world_navigation_state.dart';
 
 /// Immutable telemetry snapshot shared by archive presentation surfaces.
-/// This keeps visual widgets from deriving navigation semantics independently.
+/// Visual widgets consume these semantics instead of deriving navigation state.
 class DarkestWorldArchiveTelemetry {
   final String signal;
   final String position;
@@ -52,8 +52,9 @@ class DarkestWorldArchiveTelemetry {
   bool get canGoPrevious => previousId != null && previousId!.isNotEmpty;
   bool get canGoNext => nextId != null && nextId!.isNotEmpty;
 
-  int get relatedVisibleLimit => 5;
-  int get compactRelatedVisibleLimit => 3;
+  static const int relatedVisibleLimit = 5;
+  static const int compactRelatedVisibleLimit = 3;
+
   int get visibleRelatedCount => relatedCount.clamp(0, relatedVisibleLimit);
   int get compactVisibleRelatedCount => relatedCount.clamp(0, compactRelatedVisibleLimit);
   int get relatedOverflowCount => (relatedCount - relatedVisibleLimit).clamp(0, relatedCount);
@@ -61,14 +62,19 @@ class DarkestWorldArchiveTelemetry {
 
   String get chainLabel => '$continuityCount/2';
   String get continuityMode => position == 'SINGLE' ? 'ISOLATED' : 'SEQUENCED';
-  String get relatedLabel => relatedCount == 0 ? 'NONE' : '${visibleRelatedCount}${relatedOverflowCount > 0 ? '+' : ''} ACTIVE';
+  String get relatedLabel => relatedCount == 0
+      ? 'NONE'
+      : '${visibleRelatedCount}${relatedOverflowCount > 0 ? '+' : ''} ACTIVE';
   String get routeLabel => '$source / $entryPoint';
   String get currentLabel => currentId.trim().isEmpty ? 'UNIDENTIFIED' : currentId;
   String get continuityState => '$continuityMode / ${continuityLabel.replaceAll(' / ', ' · ')}';
   String get signalSummary => '$signal · $relatedLabel · $originLabel';
-  String get signalTitle => signalBand == 'HIGH' ? 'ARCHIVE SIGNAL PEAK' : signalBand == 'ACTIVE' ? 'ARCHIVE SIGNAL ACTIVE' : 'ARCHIVE SIGNAL CORE';
+  String get signalTitle => switch (signalBand) {
+        'HIGH' => 'ARCHIVE SIGNAL PEAK',
+        'ACTIVE' => 'ARCHIVE SIGNAL ACTIVE',
+        _ => 'ARCHIVE SIGNAL CORE',
+      };
 
-  /// Stable normalized signal used by visual layers for bounded intensity.
   double get signalIntensity {
     final continuity = continuityCount.clamp(0, 2) / 2.0;
     final related = relatedCount.clamp(0, 6) / 6.0;
@@ -82,22 +88,26 @@ class DarkestWorldArchiveTelemetry {
     return 'LOW';
   }
 
-  /// Compact presentation mode used by archive surfaces to keep the signal
-  /// readable without duplicating layout decisions in each widget.
-  String get presentationMode =>
-      continuityCount == 0 && relatedCount == 0 ? 'CORE' :
-      continuityCount == 2 && relatedCount > 0 ? 'FULL' : 'CONNECTED';
+  String get presentationMode => continuityCount == 0 && relatedCount == 0
+      ? 'CORE'
+      : continuityCount == 2 && relatedCount > 0
+          ? 'FULL'
+          : 'CONNECTED';
 
-  String get continuityLabel {
-    switch (continuityCount) {
-      case 2:
-        return 'PREVIOUS / CURRENT / NEXT';
-      case 1:
-        return position == 'START' ? 'CURRENT / NEXT' : 'PREVIOUS / CURRENT';
-      default:
-        return 'CURRENT ONLY';
-    }
-  }
+  String get continuityLabel => switch (continuityCount) {
+        2 => 'PREVIOUS / CURRENT / NEXT',
+        1 => position == 'START' ? 'CURRENT / NEXT' : 'PREVIOUS / CURRENT',
+        _ => 'CURRENT ONLY',
+      };
 
   String get originLabel => linkedOrigin ? 'LINKED' : 'LOCAL';
+
+  /// Stable action labels shared by compact and desktop continuity rails.
+  String get previousActionLabel => canGoPrevious ? 'PREVIOUS' : 'NO PREVIOUS';
+  String get currentActionLabel => currentLabel.trim().isEmpty ? 'CURRENT' : currentLabel;
+  String get nextActionLabel => canGoNext ? 'NEXT' : 'NO NEXT';
+
+  /// Stable related overflow text for visual surfaces.
+  String get relatedOverflowLabel => relatedOverflowCount > 0 ? '+$relatedOverflowCount' : '';
+  String get compactRelatedOverflowLabel => compactRelatedOverflowCount > 0 ? '+$compactRelatedOverflowCount' : '';
 }
