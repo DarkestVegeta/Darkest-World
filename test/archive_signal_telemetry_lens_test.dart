@@ -50,16 +50,16 @@ void main() {
 
     expect(find.text('ARCHIVE SIGNAL PEAK'), findsOneWidget);
     expect(find.text('MIDDLE_C2_R2'), findsOneWidget);
-    expect(find.text('PREVIOUS GAME'), findsOneWidget);
+    expect(find.text('PREVIOUS'), findsOneWidget);
     expect(find.text('CURRENT'), findsOneWidget);
-    expect(find.text('NEXT GAME'), findsOneWidget);
+    expect(find.text('NEXT'), findsOneWidget);
     expect(find.text('RELATED ONE'), findsOneWidget);
     expect(find.text('RELATED TWO'), findsOneWidget);
 
-    await tester.tap(find.text('PREVIOUS GAME'));
+    await tester.tap(find.text('PREVIOUS'));
     expect(tappedPrevious?.id, 'prev');
 
-    await tester.tap(find.text('NEXT GAME'));
+    await tester.tap(find.text('NEXT'));
     expect(tappedNext?.id, 'next');
 
     await tester.tap(find.text('RELATED ONE'));
