@@ -5,16 +5,35 @@ import 'package:flutter/material.dart';
 /// atmospheric bands and moving light without masking interactive content.
 class DarkestWorldCinematicOptics extends StatefulWidget {
   const DarkestWorldCinematicOptics({super.key});
+
   @override
-  State<DarkestWorldCinematicOptics> createState() => _DarkestWorldCinematicOpticsState();
+  State<DarkestWorldCinematicOptics> createState() =>
+      _DarkestWorldCinematicOpticsState();
 }
 
-class _DarkestWorldCinematicOpticsState extends State<DarkestWorldCinematicOptics>
+class _DarkestWorldCinematicOpticsState
+    extends State<DarkestWorldCinematicOptics>
     with SingleTickerProviderStateMixin {
   late final AnimationController _clock = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 96),
   )..repeat();
+
+  late final List<_DustParticle> _dust = _buildDust();
+
+  List<_DustParticle> _buildDust() {
+    final rng = math.Random(90317);
+    return List<_DustParticle>.generate(620, (i) {
+      final depth = rng.nextDouble();
+      return _DustParticle(
+        depth: depth,
+        x: rng.nextDouble(),
+        y: rng.nextDouble(),
+        phase: i * .41,
+        twinklePhase: i * .83,
+      );
+    }, growable: false);
+  }
 
   @override
   void dispose() {
@@ -28,7 +47,7 @@ class _DarkestWorldCinematicOpticsState extends State<DarkestWorldCinematicOptic
       child: AnimatedBuilder(
         animation: _clock,
         builder: (_, __) => CustomPaint(
-          painter: _CinematicOpticsPainter(_clock.value),
+          painter: _CinematicOpticsPainter(_clock.value, _dust),
           size: Size.infinite,
         ),
       ),
@@ -36,9 +55,27 @@ class _DarkestWorldCinematicOpticsState extends State<DarkestWorldCinematicOptic
   }
 }
 
+class _DustParticle {
+  final double depth;
+  final double x;
+  final double y;
+  final double phase;
+  final double twinklePhase;
+
+  const _DustParticle({
+    required this.depth,
+    required this.x,
+    required this.y,
+    required this.phase,
+    required this.twinklePhase,
+  });
+}
+
 class _CinematicOpticsPainter extends CustomPainter {
   final double phase;
-  const _CinematicOpticsPainter(this.phase);
+  final List<_DustParticle> dust;
+
+  const _CinematicOpticsPainter(this.phase, this.dust);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -46,8 +83,6 @@ class _CinematicOpticsPainter extends CustomPainter {
     final short = math.min(size.width, size.height);
     final center = Offset(size.width * .5, size.height * .48);
 
-    // Deep photographic falloff keeps the layer cinematic instead of looking
-    // like a UI filter.
     canvas.drawRect(
       rect,
       Paint()
@@ -64,9 +99,9 @@ class _CinematicOpticsPainter extends CustomPainter {
         ).createShader(rect),
     );
 
-    // Broad atmospheric light bands add depth behind existing worlds.
     for (var i = 0; i < 4; i++) {
-      final drift = math.sin(phase * math.pi * 2 + i * 1.7) * size.width * .08;
+      final drift =
+          math.sin(phase * math.pi * 2 + i * 1.7) * size.width * .08;
       final band = Rect.fromCenter(
         center: Offset(center.dx + drift, size.height * (.19 + i * .22)),
         width: size.width * (1.05 + i * .12),
@@ -84,25 +119,28 @@ class _CinematicOpticsPainter extends CustomPainter {
       );
     }
 
-    // Deterministic depth dust. Far points stay tiny; near points drift more.
-    final rng = math.Random(90317);
-    for (var i = 0; i < 620; i++) {
-      final depth = rng.nextDouble();
-      final baseX = rng.nextDouble() * size.width;
-      final baseY = rng.nextDouble() * size.height;
-      final drift = math.sin(phase * math.pi * 2 * (.18 + depth * .72) + i * .41) *
-          (depth * 2.8 + .3);
-      final twinkle = .45 + .55 * math.sin(phase * math.pi * 2 * (.35 + depth) + i * .83);
-      final radius = .12 + depth * 1.15;
-      final alpha = (.012 + depth * .075) * twinkle.clamp(.25, 1.0);
+    for (final particle in dust) {
+      final drift = math.sin(
+            phase * math.pi * 2 * (.18 + particle.depth * .72) +
+                particle.phase,
+          ) *
+          (particle.depth * 2.8 + .3);
+      final twinkle = .45 +
+          .55 *
+              math.sin(
+                phase * math.pi * 2 * (.35 + particle.depth) +
+                    particle.twinklePhase,
+              );
+      final radius = .12 + particle.depth * 1.15;
+      final alpha =
+          (.012 + particle.depth * .075) * twinkle.clamp(.25, 1.0);
       canvas.drawCircle(
-        Offset(baseX + drift, baseY),
+        Offset(particle.x * size.width + drift, particle.y * size.height),
         radius,
         Paint()..color = Colors.white.withValues(alpha: alpha),
       );
     }
 
-    // Slow anamorphic-style light sweep. It is intentionally very faint.
     final sweepX = -size.width * .30 + (size.width * 1.60 * phase);
     final sweep = Rect.fromLTWH(sweepX, 0, size.width * .18, size.height);
     canvas.drawRect(
@@ -111,11 +149,14 @@ class _CinematicOpticsPainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
-          colors: const [Colors.transparent, Color(0x061C2A45), Colors.transparent],
+          colors: const [
+            Colors.transparent,
+            Color(0x061C2A45),
+            Colors.transparent,
+          ],
         ).createShader(sweep),
     );
 
-    // Central optical bloom is only visible when the scene beneath is dark.
     final pulse = .72 + .28 * math.sin(phase * math.pi * 2);
     final bloomRadius = short * (.18 + pulse * .018);
     final bloom = Rect.fromCircle(center: center, radius: bloomRadius);
@@ -133,24 +174,31 @@ class _CinematicOpticsPainter extends CustomPainter {
         ).createShader(bloom),
     );
 
-    // Fine corner registration marks make the whole site feel like one visual
-    // instrument while remaining far below the HUD contrast.
     final mark = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = .7
       ..color = const Color(0x149AA7BA);
     const inset = 22.0;
     const arm = 42.0;
-    canvas.drawLine(const Offset(inset, inset), const Offset(inset + arm, inset), mark);
-    canvas.drawLine(const Offset(inset, inset), const Offset(inset, inset + 18), mark);
-    canvas.drawLine(Offset(size.width - inset, inset), Offset(size.width - inset - arm, inset), mark);
-    canvas.drawLine(Offset(size.width - inset, inset), Offset(size.width - inset, inset + 18), mark);
-    canvas.drawLine(Offset(inset, size.height - inset), Offset(inset + arm, size.height - inset), mark);
-    canvas.drawLine(Offset(inset, size.height - inset), Offset(inset, size.height - inset - 18), mark);
-    canvas.drawLine(Offset(size.width - inset, size.height - inset), Offset(size.width - inset - arm, size.height - inset), mark);
-    canvas.drawLine(Offset(size.width - inset, size.height - inset), Offset(size.width - inset, size.height - inset - 18), mark);
+    canvas.drawLine(
+        const Offset(inset, inset), const Offset(inset + arm, inset), mark);
+    canvas.drawLine(
+        const Offset(inset, inset), const Offset(inset, inset + 18), mark);
+    canvas.drawLine(Offset(size.width - inset, inset),
+        Offset(size.width - inset - arm, inset), mark);
+    canvas.drawLine(Offset(size.width - inset, inset),
+        Offset(size.width - inset, inset + 18), mark);
+    canvas.drawLine(Offset(inset, size.height - inset),
+        Offset(inset + arm, size.height - inset), mark);
+    canvas.drawLine(Offset(inset, size.height - inset),
+        Offset(inset, size.height - inset - 18), mark);
+    canvas.drawLine(Offset(size.width - inset, size.height - inset),
+        Offset(size.width - inset - arm, size.height - inset), mark);
+    canvas.drawLine(Offset(size.width - inset, size.height - inset),
+        Offset(size.width - inset, size.height - inset - 18), mark);
   }
 
   @override
-  bool shouldRepaint(covariant _CinematicOpticsPainter oldDelegate) => oldDelegate.phase != phase;
+  bool shouldRepaint(covariant _CinematicOpticsPainter oldDelegate) =>
+      oldDelegate.phase != phase || !identical(oldDelegate.dust, dust);
 }
