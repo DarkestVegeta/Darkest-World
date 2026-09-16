@@ -162,15 +162,16 @@ class _ContinuityRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final telemetry = DarkestWorldArchiveTelemetry.fromNavigation(state);
     final slots = <String>[
       _label(state.previous?.title, 'NO PREVIOUS'),
       _label(state.current.title, 'CURRENT'),
       _label(state.next?.title, 'NO NEXT'),
     ];
     final actions = <ValueChanged<ContentItem>?>[
-      state.previous == null ? null : onPreviousTap,
+      telemetry.canGoPrevious ? onPreviousTap : null,
       null,
-      state.next == null ? null : onNextTap,
+      telemetry.canGoNext ? onNextTap : null,
     ];
     final items = <ContentItem?>[state.previous, state.current, state.next];
 
@@ -196,7 +197,7 @@ class _ContinuityRail extends StatelessWidget {
                   Text(i == 0 ? 'P' : i == 1 ? 'C' : 'N', style: TextStyle(fontSize: 6, letterSpacing: 1.2, color: i == 1 ? const Color(0xAA9A8AC4) : const Color(0x557F8AA2))),
                   const SizedBox(width: 6),
                   Expanded(child: Text(slots[i], maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 5.5, letterSpacing: 1.1, color: i == 1 ? const Color(0xAA97A8BE) : const Color(0x667F8AA2)))),
-                  if (i == 1 && state.continuityCount > 0)
+                  if (i == 1 && telemetry.hasContinuity)
                     Container(width: 4, height: 4, decoration: BoxDecoration(shape: BoxShape.circle, color: Color.lerp(const Color(0x557F70B0), const Color(0xAA9A8AC4), .5 + .5 * math.sin(phase * math.pi * 2)))),
                 ]),
               ),
@@ -223,7 +224,8 @@ class _RelatedRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.related.isEmpty) {
+    final telemetry = DarkestWorldArchiveTelemetry.fromNavigation(state);
+    if (!telemetry.hasRelated) {
       return Container(
         height: compact ? 22 : 25,
         alignment: Alignment.centerLeft,
