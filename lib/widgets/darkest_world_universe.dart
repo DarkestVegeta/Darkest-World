@@ -61,6 +61,7 @@ class _PlanetFlowDelegate extends FlowDelegate {
   static const int _orbitSamples = _PlanetOrbitCache.samples;
   final Animation<double> phase; final double diameter; final int total; final int? selectedIndex; final _PlanetOrbitCache orbitCache;
   late final List<double> _sizes = List.generate(total, (i) => (selectedIndex == i ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(), growable: false);
+  late final List<Matrix4> _transforms = List.generate(total, (_) => Matrix4.identity(), growable: false);
   _PlanetFlowDelegate({required this.phase, required this.total, required this.diameter, required this.selectedIndex, required this.orbitCache}) : super(repaint: phase);
   @override void paintChildren(FlowPaintingContext context) {
     final c = diameter / 2;
@@ -75,7 +76,8 @@ class _PlanetFlowDelegate extends FlowDelegate {
       final x = orbitCache.sampleXY[current] + (orbitCache.sampleXY[next] - orbitCache.sampleXY[current]) * fraction;
       final y = orbitCache.sampleXY[current + 1] + (orbitCache.sampleXY[next + 1] - orbitCache.sampleXY[current + 1]) * fraction;
       final d = _sizes[i];
-      context.paintChild(i, transform: Matrix4.translationValues(c + x - d / 2, c + y - d / 2, 0));
+      _transforms[i].setTranslationRaw(c + x - d / 2, c + y - d / 2, 0);
+      context.paintChild(i, transform: _transforms[i]);
     }
   }
   @override bool shouldRepaint(covariant _PlanetFlowDelegate old) => old.total != total || old.diameter != diameter || old.selectedIndex != selectedIndex || !identical(old.orbitCache, orbitCache);
