@@ -235,7 +235,9 @@ class _RelatedRail extends StatelessWidget {
       );
     }
 
-    final visible = state.related.take(compact ? 3 : 5).toList(growable: false);
+    final visibleCount = compact ? telemetry.compactVisibleRelatedCount : telemetry.visibleRelatedCount;
+    final overflowCount = compact ? telemetry.compactRelatedOverflowCount : telemetry.relatedOverflowCount;
+    final visible = state.related.take(visibleCount).toList(growable: false);
     final pulse = .5 + .5 * math.sin(phase * math.pi * 2);
     return Row(children: [
       for (var i = 0; i < visible.length; i++) ...[
@@ -261,9 +263,9 @@ class _RelatedRail extends StatelessWidget {
           ),
         ),
       ],
-      if (state.related.length > visible.length) ...[
+      if (overflowCount > 0) ...[
         const SizedBox(width: 5),
-        Text('+${state.related.length - visible.length}', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.1, color: Color(0x557F8AA2))),
+        Text('+$overflowCount', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.1, color: Color(0x557F8AA2))),
       ],
     ]);
   }
