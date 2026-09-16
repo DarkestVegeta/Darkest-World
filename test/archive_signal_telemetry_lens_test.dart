@@ -48,10 +48,10 @@ void main() {
       ),
     );
 
-    expect(find.text('ARCHIVE SIGNAL ACTIVE'), findsOneWidget);
+    expect(find.text('ARCHIVE SIGNAL PEAK'), findsOneWidget);
     expect(find.text('MIDDLE_C2_R2'), findsOneWidget);
     expect(find.text('PREVIOUS GAME'), findsOneWidget);
-    expect(find.text('CURRENT GAME'), findsOneWidget);
+    expect(find.text('CURRENT'), findsOneWidget);
     expect(find.text('NEXT GAME'), findsOneWidget);
     expect(find.text('RELATED ONE'), findsOneWidget);
     expect(find.text('RELATED TWO'), findsOneWidget);
@@ -84,7 +84,7 @@ void main() {
     );
 
     expect(find.text('SINGLE_C0_R0'), findsOneWidget);
-    expect(find.text('SOLO GAME'), findsOneWidget);
+    expect(find.text('SOLO'), findsOneWidget);
     expect(find.text('NO PREVIOUS'), findsOneWidget);
     expect(find.text('NO NEXT'), findsOneWidget);
     expect(find.text('NO RELATED SIGNALS'), findsOneWidget);
