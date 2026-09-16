@@ -44,9 +44,9 @@ class _ArchiveAtmospherePainter extends CustomPainter {
   static const List<double> _ringPhaseOffsets=[0,.1591549431,.3183098862,.4774648293,.6366197724];
   Size _cachedSize=Size.zero; bool _geometryReady=false;
   late Offset _center;
-  late Rect _fullRect,_hazeRect,_coreGlowRect,_coreRect,_arcRect;
+  late Rect _fullRect,_hazeRect,_coreGlowRect,_coreRect,_arcRect,_scanBandRect;
   late double _short,_core;
-  late Shader _backgroundShader,_hazeShader,_coreGlowShader,_coreShader;
+  late Shader _backgroundShader,_hazeShader,_coreGlowShader,_coreShader,_scanBandShader;
   late List<Rect> _ringRects;
   late List<Offset> _frameStarts,_frameEnds;
   late Float32List _starBaseXY;
@@ -55,6 +55,8 @@ class _ArchiveAtmospherePainter extends CustomPainter {
     if(_geometryReady&&_cachedSize==s)return;
     _cachedSize=s;_short=math.min(s.width,s.height);_center=Offset(s.width*.5,s.height*.46);
     _fullRect=Offset.zero&s;_hazeRect=Rect.fromCenter(center:Offset(_center.dx,_center.dy+_short*.06),width:s.width*.92,height:_short*.30);_arcRect=Rect.fromCenter(center:_center,width:_short*.76,height:_short*.235);_core=_short*.13;_coreGlowRect=Rect.fromCircle(center:_center,radius:_core*2.8);_coreRect=Rect.fromCircle(center:_center,radius:_core*.62);
+    _scanBandRect=Rect.fromLTWH(0,0,s.width,15);
+    _scanBandShader=LinearGradient(colors:[Colors.transparent,const Color(0x052C5B7A),Colors.transparent]).createShader(_scanBandRect);
     _starBaseXY=Float32List(_stars.length*2);
     for(var i=0;i<_stars.length;i++){final star=_stars[i];final base=i*2;_starBaseXY[base]=star.x*s.width;_starBaseXY[base+1]=star.y*s.height;}
     _ringRects=List.generate(5,(i){final rr=_short*(.27+i*.072);return Rect.fromCenter(center:_center,width:rr*2.25,height:rr*.60);});const arm=34.0;
@@ -69,7 +71,9 @@ class _ArchiveAtmospherePainter extends CustomPainter {
     for(var i=0;i<5;i++){final rot=_sin(phaseCycles+_ringPhaseOffsets[i])*.025;c.save();c.translate(_center.dx,_center.dy);c.rotate(rot);c.translate(-_center.dx,-_center.dy);_ringPaint.strokeWidth=_ringStrokeWidths[i];_ringPaint.color=const Color(0x167D8FA8);c.drawOval(_ringRects[i],_ringPaint);c.restore();}
     _arcPaint.strokeWidth=1.15;_arcPaint.color=const Color(0x4D8D7CB4);c.drawArc(_arcRect,phaseAngle,1.12,false,_arcPaint);_secondaryArcPaint.strokeWidth=.55;_secondaryArcPaint.color=const Color(0x2E9DB1C1);c.drawArc(_arcRect,phaseAngle+math.pi,.42,false,_secondaryArcPaint);
     _coreGlowPaint.shader=_coreGlowShader;c.drawCircle(_center,_core*2.8,_coreGlowPaint);_corePaint.shader=_coreShader;c.drawCircle(_center,_core*.62,_corePaint);
-    final scan=(phaseCycles*s.height*1.25)%s.height;c.drawRect(Rect.fromLTWH(0,scan,s.width,1.1),_scanPaint);final scanBand=Rect.fromLTWH(0,scan-7,s.width,15);_scanBandPaint.shader=LinearGradient(colors:[Colors.transparent,const Color(0x052C5B7A),Colors.transparent]).createShader(scanBand);c.drawRect(scanBand,_scanBandPaint);for(var i=0;i<_frameStarts.length;i++){c.drawLine(_frameStarts[i],_frameEnds[i],_framePaint);}
+    final scan=(phaseCycles*s.height*1.25)%s.height;c.drawRect(Rect.fromLTWH(0,scan,s.width,1.1),_scanPaint);
+    c.save();c.translate(0,scan-7);_scanBandPaint.shader=_scanBandShader;c.drawRect(_scanBandRect,_scanBandPaint);c.restore();
+    for(var i=0;i<_frameStarts.length;i++){c.drawLine(_frameStarts[i],_frameEnds[i],_framePaint);}
   }
   @override bool shouldRepaint(covariant _ArchiveAtmospherePainter old)=>false;
 }
