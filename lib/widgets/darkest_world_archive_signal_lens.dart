@@ -17,8 +17,10 @@ class DarkestWorldArchiveSignalLens extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final dense = compact || width < 600;
     return Container(
-      height: compact ? 54 : 64,
+      height: dense ? 54 : 64,
       decoration: BoxDecoration(
         color: const Color(0xB8050610),
         border: Border.all(color: const Color(0x397F70B0)),
@@ -30,18 +32,20 @@ class DarkestWorldArchiveSignalLens extends StatelessWidget {
           related: state.related.length,
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 16),
+          padding: EdgeInsets.symmetric(horizontal: dense ? 10 : 16),
           child: Row(
             children: [
               _SignalCore(phase: phase),
-              SizedBox(width: compact ? 9 : 13),
+              SizedBox(width: dense ? 9 : 13),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      compact ? 'ARCHIVE SIGNAL' : 'ARCHIVE SIGNAL / NAVIGATION TELEMETRY',
+                      dense ? 'ARCHIVE SIGNAL' : 'ARCHIVE SIGNAL / NAVIGATION TELEMETRY',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 6.5, letterSpacing: 2.1, color: Color(0x788F82A9)),
                     ),
                     const SizedBox(height: 5),
@@ -54,13 +58,13 @@ class DarkestWorldArchiveSignalLens extends StatelessWidget {
                   ],
                 ),
               ),
-              if (!compact) ...[
+              if (!dense) ...[
                 _Telemetry(label: 'POSITION', value: state.navigationPosition),
                 const SizedBox(width: 18),
               ],
               _Telemetry(label: 'LINKS', value: '${state.continuityCount}'),
-              const SizedBox(width: 14),
-              _Telemetry(label: 'REL', value: '${state.related.length}'),
+              if (!dense) const SizedBox(width: 14),
+              if (!dense || width >= 440) _Telemetry(label: 'REL', value: '${state.related.length}'),
             ],
           ),
         ),
