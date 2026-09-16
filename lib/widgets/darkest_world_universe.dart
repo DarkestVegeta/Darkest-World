@@ -69,6 +69,8 @@ class _PlanetFlowDelegate extends FlowDelegate {
   static const int _orbitSamples = _PlanetOrbitCache.samples;
   final Animation<double> phase; final double diameter; final int total; final int? selectedIndex; final _PlanetOrbitCache orbitCache;
   late final List<double> _sizes = List.generate(total, (i) => (selectedIndex == i ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble(), growable: false);
+  late final List<double> _halfSizes = List.generate(total, (i) => _sizes[i] / 2, growable: false);
+  late final List<int> _sampleBases = List.generate(total, (i) => i * _orbitSamples * 2, growable: false);
   late final List<Matrix4> _transforms = List.generate(total, (_) => Matrix4.identity(), growable: false);
   _PlanetFlowDelegate({required this.phase, required this.total, required this.diameter, required this.selectedIndex, required this.orbitCache}) : super(repaint: phase);
   @override void paintChildren(FlowPaintingContext context) {
@@ -78,13 +80,12 @@ class _PlanetFlowDelegate extends FlowDelegate {
     final nextIndex = (sampleIndex + 1) % _orbitSamples;
     final fraction = samplePosition - sampleIndex;
     for (var i = 0; i < context.childCount; i++) {
-      final offset = i * _orbitSamples * 2;
+      final offset = _sampleBases[i];
       final current = offset + sampleIndex * 2;
       final next = offset + nextIndex * 2;
       final x = orbitCache.sampleXY[current] + (orbitCache.sampleXY[next] - orbitCache.sampleXY[current]) * fraction;
       final y = orbitCache.sampleXY[current + 1] + (orbitCache.sampleXY[next + 1] - orbitCache.sampleXY[current + 1]) * fraction;
-      final d = _sizes[i];
-      _transforms[i].setTranslationRaw(c + x - d / 2, c + y - d / 2, 0);
+      _transforms[i].setTranslationRaw(c + x - _halfSizes[i], c + y - _halfSizes[i], 0);
       context.paintChild(i, transform: _transforms[i]);
     }
   }
