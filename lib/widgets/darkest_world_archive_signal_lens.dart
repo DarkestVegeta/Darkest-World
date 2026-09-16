@@ -106,13 +106,23 @@ class _SignalCorePainter extends CustomPainter {
   final double phase;
   const _SignalCorePainter(this.phase);
 
+  static final Paint _outerPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1
+    ..color = const Color(0x357F70B0);
+  static final Paint _corePaint = Paint()..color = const Color(0xB38F82A9);
+  static final Paint _pulsePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = .7
+    ..color = const Color(0x3C9DA8D0);
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
     final pulse = .62 + .18 * math.sin(phase * math.pi * 2);
-    canvas.drawCircle(center, 8, Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0x357F70B0));
-    canvas.drawCircle(center, 3.2, Paint()..color = const Color(0xB38F82A9));
-    canvas.drawCircle(center, 5.5 * pulse, Paint()..style = PaintingStyle.stroke..strokeWidth = .7..color = const Color(0x3C9DA8D0));
+    canvas.drawCircle(center, 8, _outerPaint);
+    canvas.drawCircle(center, 3.2, _corePaint);
+    canvas.drawCircle(center, 5.5 * pulse, _pulsePaint);
   }
 
   @override
@@ -126,21 +136,24 @@ class _ArchiveSignalLensPainter extends CustomPainter {
 
   const _ArchiveSignalLensPainter({required this.phase, required this.continuity, required this.related});
 
+  static final Paint _linePaint = Paint()..strokeWidth = 1;
+  static final Paint _nodePaint = Paint()..color = const Color(0x3D8F82A9);
+
   @override
   void paint(Canvas canvas, Size size) {
     final y = size.height * .5;
     final sweep = (phase * size.width * 1.35) % (size.width + 80) - 40;
-    final paint = Paint()..strokeWidth = 1;
-    paint.color = const Color(0x126F6595);
-    canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    paint.color = const Color(0x287F70B0);
-    canvas.drawLine(Offset(sweep, 0), Offset(sweep + 22, size.height), paint);
+    _linePaint.color = const Color(0x126F6595);
+    canvas.drawLine(Offset(0, y), Offset(size.width, y), _linePaint);
+    _linePaint.color = const Color(0x287F70B0);
+    canvas.drawLine(Offset(sweep, 0), Offset(sweep + 22, size.height), _linePaint);
 
     final nodes = math.max(1, continuity + related);
     for (var i = 0; i < nodes && i < 8; i++) {
       final x = 28.0 + (i * (size.width - 56)) / math.max(1, nodes - 1);
       final radius = i < continuity ? 1.8 : 1.15;
-      canvas.drawCircle(Offset(x, y), radius, Paint()..color = const Color(0x3D8F82A9));
+      _nodePaint.strokeWidth = radius;
+      canvas.drawCircle(Offset(x, y), radius, _nodePaint);
     }
   }
 
