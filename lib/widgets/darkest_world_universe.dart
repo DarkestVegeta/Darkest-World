@@ -16,8 +16,9 @@ class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with Single
   void tap(int i) { setState(() => focused = focused == i ? null : i); GalaxyNavigationSession.instance.selected = widget.worlds[i].kind.name; widget.onWorldTap?.call(widget.worlds[i]); }
   @override Widget build(BuildContext context) { final compact = MediaQuery.sizeOf(context).width < 820; return Scaffold(backgroundColor: const Color(0xFF010207), body: Stack(fit: StackFit.expand, children: [
     const CustomPaint(painter: _GalaxyBackground()),
+    const CustomPaint(painter: _OrbitalRings()),
     AnimatedBuilder(animation: clock, builder: (_, __) => Stack(fit: StackFit.expand, children: [
-      CustomPaint(painter: _Space(clock.value)), CustomPaint(painter: _GalaxyVeil(clock.value)), const CustomPaint(painter: _OrbitalRings()), CustomPaint(painter: _OrbitalArc(clock.value)),
+      CustomPaint(painter: _Space(clock.value)), CustomPaint(painter: _GalaxyVeil(clock.value)), CustomPaint(painter: _OrbitalArc(clock.value)),
       Center(child: LayoutBuilder(builder: (_, b) { final d = math.min(b.maxWidth * (compact ? .93 : .68), b.maxHeight * (compact ? .58 : .72)).toDouble(); return SizedBox.square(dimension: d, child: Stack(children: [
         for (var i = 0; i < widget.worlds.length; i++) _PlanetNode(world: widget.worlds[i], index: i, total: widget.worlds.length, diameter: d, phase: clock.value, selected: focused == i, onTap: () => tap(i), onOpen: () => widget.onWorldTap?.call(widget.worlds[i])),
       ])); })),
