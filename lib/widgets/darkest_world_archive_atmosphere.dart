@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 /// Site-wide cinematic finishing layer. Procedural only: depth stars, haze,
@@ -21,6 +22,9 @@ class _ArchiveStar {
 
 class _ArchiveAtmospherePainter extends CustomPainter {
   final Animation<double> phase; const _ArchiveAtmospherePainter(this.phase):super(repaint:phase);
+  static const int _lutSize=1024;
+  static const int _lutMask=_lutSize-1;
+  static final Float32List _sinLut=Float32List.fromList(List.generate(_lutSize+1,(i)=>math.sin(i*math.pi*2/_lutSize)));
   static final List<_ArchiveStar> _stars=List.generate(520,(i){
     final rng=math.Random(4207+i*17); final depth=rng.nextDouble();
     return _ArchiveStar(rng.nextDouble(),rng.nextDouble(),.25+depth*.7,i*.31,.7+depth*2.2,.5+depth*1.4,i*.77,.18+depth*1.05,.018+depth*.12);
@@ -42,6 +46,14 @@ class _ArchiveAtmospherePainter extends CustomPainter {
   late Shader _backgroundShader,_hazeShader,_coreGlowShader,_coreShader;
   late List<Rect> _ringRects;
   late List<Offset> _frameStarts,_frameEnds;
+
+  static double _sin(double cycles){
+    final position=cycles*_lutSize;
+    final base=position.floor()&_lutMask;
+    final fraction=position-base;
+    final a=_sinLut[base];
+    return a+(_sinLut[base+1]-a)*fraction;
+  }
 
   void _ensureGeometry(Size s){
     if(_geometryReady&&_cachedSize==s)return;
@@ -65,18 +77,18 @@ class _ArchiveAtmospherePainter extends CustomPainter {
   }
 
   @override void paint(Canvas c,Size s){
-    _ensureGeometry(s);final center=Offset(s.width*.5,s.height*.46);final phaseAngle=phase.value*math.pi*2;
+    _ensureGeometry(s);final center=Offset(s.width*.5,s.height*.46);final phaseCycles=phase.value;final phaseAngle=phaseCycles*math.pi*2;
     _backgroundPaint.shader=_backgroundShader;c.drawRect(_fullRect,_backgroundPaint);
     for(var i=0;i<_stars.length;i++){
       final star=_stars[i];
-      final drift=math.sin(phaseAngle*star.driftFrequency+star.driftPhase)*star.driftScale;
-      final twinkle=.45+.55*math.sin(phaseAngle*star.twinkleFrequency+star.twinklePhase);
+      final drift=_sin(phaseCycles*star.driftFrequency+star.driftPhase/(math.pi*2))*star.driftScale;
+      final twinkle=.45+.55*_sin(phaseCycles*star.twinkleFrequency+star.twinklePhase/(math.pi*2));
       _starPaint.color=Colors.white.withValues(alpha:(star.alpha*twinkle).clamp(.25,1));
       c.drawCircle(Offset(star.x*s.width+drift,star.y*s.height),star.radius,_starPaint);
     }
     _hazePaint.shader=_hazeShader;c.drawOval(_hazeRect,_hazePaint);
     for(var i=0;i<5;i++){
-      final rot=math.sin(phaseAngle+i)*.025;
+      final rot=_sin(phaseCycles+i/(math.pi*2))*.025;
       c.save(); c.translate(center.dx,center.dy); c.rotate(rot); c.translate(-center.dx,-center.dy);
       _ringPaint.strokeWidth=.42+i*.08; _ringPaint.color=const Color(0x167D8FA8);
       c.drawOval(_ringRects[i],_ringPaint); c.restore();
@@ -85,7 +97,7 @@ class _ArchiveAtmospherePainter extends CustomPainter {
     _secondaryArcPaint.strokeWidth=.55; _secondaryArcPaint.color=const Color(0x2E9DB1C1); c.drawArc(_arcRect,phaseAngle+math.pi,.42,false,_secondaryArcPaint);
     _coreGlowPaint.shader=_coreGlowShader;c.drawCircle(center,_core*2.8,_coreGlowPaint);
     _corePaint.shader=_coreShader;c.drawCircle(center,_core*.62,_corePaint);
-    final scan=(phase.value*s.height*1.25)%s.height; c.drawRect(Rect.fromLTWH(0,scan,s.width,1.1),_scanPaint);
+    final scan=(phaseCycles*s.height*1.25)%s.height; c.drawRect(Rect.fromLTWH(0,scan,s.width,1.1),_scanPaint);
     final scanBand=Rect.fromLTWH(0,scan-7,s.width,15); _scanBandPaint.shader=LinearGradient(colors:[Colors.transparent,const Color(0x052C5B7A),Colors.transparent]).createShader(scanBand); c.drawRect(scanBand,_scanBandPaint);
     for(var i=0;i<_frameStarts.length;i++){c.drawLine(_frameStarts[i],_frameEnds[i],_framePaint);}
   }
