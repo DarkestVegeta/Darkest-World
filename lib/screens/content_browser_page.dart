@@ -1,6 +1,4 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../core/content_models.dart';
 import '../core/content_repository.dart';
 import '../core/darkest_world_navigation_state.dart';
@@ -16,51 +14,21 @@ class ContentBrowserPage extends StatefulWidget {
   @override State<ContentBrowserPage> createState() => _ContentBrowserPageState();
 }
 
-class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTickerProviderStateMixin {
+class _ContentBrowserPageState extends State<ContentBrowserPage> {
   final repository = ContentRepository();
   final navigation = GalaxyNavigationSession.instance;
   final items = <ContentItem>[];
-  late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 96))..repeat();
   bool loading = true;
   String query = '';
   int selected = 0;
 
   bool get snes => widget.contentType == 'game' && (widget.platformIds.contains(19) || widget.title.toUpperCase().contains('SNES'));
-  List<ContentItem> get visible => items.where((item) => query.isEmpty || item.title.toLowerCase().contains(query.toLowerCase())).toList();
+  List<ContentItem> get visible => items.where((item) => item.title.toLowerCase().contains(query.toLowerCase())).toList(growable: false);
 
   @override
-  void initState() { super.initState(); _load(); }
-
-  @override
-  void dispose() { clock.dispose(); super.dispose(); }
-
-  void _publish() {
-    if (visible.isEmpty) { navigation.clearContentNavigation(); return; }
-    selected = selected.clamp(0, visible.length - 1);
-    navigation.publishContentNavigation(DarkestWorldNavigationState(
-      previous: selected > 0 ? visible[selected - 1] : null,
-      current: visible[selected],
-      next: selected + 1 < visible.length ? visible[selected + 1] : null,
-      related: const [],
-      source: 'archive',
-      entryPoint: 'archive_browser',
-    ));
-  }
-
-  void _select(int index) {
-    if (visible.isEmpty) return;
-    setState(() => selected = index.clamp(0, visible.length - 1));
-    _publish();
-  }
-
-  void _open(ContentItem item) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)));
-
-  KeyEventResult _key(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent || visible.isEmpty) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) { _select(selected - 1); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.arrowRight) { _select(selected + 1); return KeyEventResult.handled; }
-    if (event.logicalKey == LogicalKeyboardKey.enter) { _open(visible[selected]); return KeyEventResult.handled; }
-    return KeyEventResult.ignored;
+  void initState() {
+    super.initState();
+    _load();
   }
 
   Future<void> _load() async {
@@ -73,7 +41,13 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTick
         result = await repository.getContentItemsPage(type: widget.contentType, page: 0);
       }
       if (!mounted) return;
-      setState(() { items.addAll(result); loading = false; });
+      setState(() {
+        items
+          ..clear()
+          ..addAll(result);
+        loading = false;
+        selected = 0;
+      });
       _publish();
     } catch (_) {
       if (mounted) setState(() => loading = false);
@@ -92,289 +66,110 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTick
     });
   }
 
+  void _publish() {
+    final list = visible;
+    if (list.isEmpty) {
+      navigation.clearContentNavigation();
+      return;
+    }
+    selected = selected.clamp(0, list.length - 1);
+    navigation.publishContentNavigation(DarkestWorldNavigationState(
+      previous: selected > 0 ? list[selected - 1] : null,
+      current: list[selected],
+      next: selected + 1 < list.length ? list[selected + 1] : null,
+      related: const [],
+      source: 'archive',
+      entryPoint: 'archive_browser',
+    ));
+  }
+
+  void _select(int index) {
+    if (visible.isEmpty) return;
+    setState(() => selected = index.clamp(0, visible.length - 1));
+    _publish();
+  }
+
+  void _open(ContentItem item) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)));
+
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 900;
-    return Focus(
-      autofocus: true,
-      onKeyEvent: _key,
-      child: Scaffold(
-        backgroundColor: const Color(0xFF010207),
-        body: AnimatedBuilder(
-          animation: clock,
-          builder: (_, __) => Stack(children: [
-            Positioned.fill(child: CustomPaint(painter: _VaultPainter(clock.value))),
-            SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(compact ? 12 : 28, compact ? 10 : 22, compact ? 12 : 28, 12),
-                child: Column(children: [
-                  _Header(title: widget.title, compact: compact, onBack: () => Navigator.pop(context), onSearch: (value) {
-                    setState(() { query = value; selected = 0; });
-                    _publish();
-                  }),
-                  const SizedBox(height: 14),
-                  Expanded(
-                    child: loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : visible.isEmpty
-                            ? const Center(child: Text('GEEN CONTENT', style: TextStyle(letterSpacing: 3)))
-                            : ListView(children: [
-                                _VaultHero(items: visible, selected: selected, compact: compact, onSelect: _select, onOpen: _open),
-                                const SizedBox(height: 18),
-                                _ArchiveTelemetry(count: visible.length, selected: selected, query: query),
-                                const SizedBox(height: 12),
-                                _VaultGrid(items: visible, selected: selected, compact: compact, onSelect: _select, onOpen: _open),
-                                const SizedBox(height: 24),
-                              ],
+    final compact = MediaQuery.sizeOf(context).width < 850;
+    final list = visible;
+    return Scaffold(
+      backgroundColor: const Color(0xFF020208),
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(compact ? 12 : 28),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_ios_new, size: 15)),
+                  Expanded(child: Text(widget.title.toUpperCase(), style: const TextStyle(fontSize: 13, letterSpacing: 2.4))),
+                  SizedBox(
+                    width: compact ? 150 : 280,
+                    height: 36,
+                    child: TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          query = value;
+                          selected = 0;
+                        });
+                        _publish();
+                      },
+                      decoration: const InputDecoration(hintText: 'SEARCH ARCHIVE', prefixIcon: Icon(Icons.search, size: 15), filled: true, fillColor: Color(0x660A0B14)),
+                    ),
                   ),
-                ]),
+                ],
               ),
-            ),
-          ]),
+              const SizedBox(height: 18),
+              Expanded(
+                child: loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : list.isEmpty
+                        ? const Center(child: Text('GEEN CONTENT', style: TextStyle(letterSpacing: 3)))
+                        : GridView.builder(
+                            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: compact ? 180 : 230,
+                              mainAxisExtent: compact ? 250 : 300,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                            ),
+                            itemCount: list.length,
+                            itemBuilder: (_, index) {
+                              final item = list[index];
+                              final active = index == selected;
+                              final url = '${item.metadata['public_url'] ?? item.metadata['image_url'] ?? ''}';
+                              return InkWell(
+                                onTap: () => _select(index),
+                                onDoubleTap: () => _open(item),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 220),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: active ? const Color(0xE50B0A16) : const Color(0xB9070810),
+                                    border: Border.all(color: active ? const Color(0x8F8A78B5) : const Color(0x247F70B0)),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Expanded(
+                                        child: url.isEmpty
+                                            ? Center(child: Text(item.title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, letterSpacing: 1.2)))
+                                            : Image.network(url, fit: BoxFit.contain, filterQuality: FilterQuality.high, errorBuilder: (_, __, ___) => Center(child: Text(item.title, textAlign: TextAlign.center))),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(item.title.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(fontSize: active ? 9 : 7, letterSpacing: 1.2)),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
-
-class _Header extends StatelessWidget {
-  final String title;
-  final bool compact;
-  final VoidCallback onBack;
-  final ValueChanged<String> onSearch;
-  const _Header({required this.title, required this.compact, required this.onBack, required this.onSearch});
-  @override
-  Widget build(BuildContext context) => Row(children: [
-        IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back_ios_new, size: 15)),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title.toUpperCase(), style: const TextStyle(fontSize: 12, letterSpacing: 2.8)),
-          const SizedBox(height: 3),
-          const Text('DARK CORE / PHYSICAL MEDIA VAULT / COLLECTION DECK', style: TextStyle(fontSize: 6.5, letterSpacing: 1.8, color: Color(0x65FFFFFF))),
-        ])),
-        SizedBox(width: compact ? 145 : 280, height: 34, child: TextField(
-          onChanged: onSearch,
-          style: const TextStyle(fontSize: 10),
-          decoration: const InputDecoration(hintText: 'SEARCH ARCHIVE', prefixIcon: Icon(Icons.search, size: 14), filled: true, fillColor: Color(0x700A0B14)),
-        )),
-      ]);
-}
-
-class _VaultHero extends StatelessWidget {
-  final List<ContentItem> items;
-  final int selected;
-  final bool compact;
-  final ValueChanged<int> onSelect;
-  final ValueChanged<ContentItem> onOpen;
-  const _VaultHero({required this.items, required this.selected, required this.compact, required this.onSelect, required this.onOpen});
-  @override
-  Widget build(BuildContext context) {
-    final current = items[selected];
-    final previous = selected > 0 ? items[selected - 1] : null;
-    final next = selected + 1 < items.length ? items[selected + 1] : null;
-    return Column(children: [
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (!compact) Expanded(child: _ShelfCase(item: previous, label: 'PREVIOUS', onTap: previous == null ? null : () => onSelect(selected - 1))),
-        if (!compact) const SizedBox(width: 10),
-        Expanded(flex: compact ? 1 : 2, child: _FocusCase(item: current, compact: compact, onOpen: () => onOpen(current))),
-        if (!compact) const SizedBox(width: 10),
-        if (!compact) Expanded(child: _ShelfCase(item: next, label: 'NEXT', onTap: next == null ? null : () => onSelect(selected + 1))),
-      ]),
-      if (compact) Padding(padding: const EdgeInsets.only(top: 8), child: Row(children: [
-        Expanded(child: _MiniNav(label: 'PREVIOUS', enabled: previous != null, onTap: previous == null ? null : () => onSelect(selected - 1))),
-        const SizedBox(width: 8),
-        Expanded(child: _MiniNav(label: 'NEXT', enabled: next != null, onTap: next == null ? null : () => onSelect(selected + 1))),
-      ])),
-    ]);
-  }
-}
-
-class _FocusCase extends StatelessWidget {
-  final ContentItem item;
-  final bool compact;
-  final VoidCallback onOpen;
-  const _FocusCase({required this.item, required this.compact, required this.onOpen});
-  @override
-  Widget build(BuildContext context) {
-    final url = '${item.metadata['public_url'] ?? item.metadata['image_url'] ?? ''}';
-    final year = item.releaseDate?.year.toString() ?? '${item.metadata['year'] ?? 'ARCHIVE'}';
-    return GestureDetector(
-      onTap: onOpen,
-      child: Container(
-        height: compact ? 330 : 430,
-        decoration: BoxDecoration(color: const Color(0xE8050810), border: Border.all(color: const Color(0x7C8D79B8)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 42, offset: Offset(0, 18))]),
-        child: Stack(children: [
-          Positioned.fill(child: CustomPaint(painter: const _CaseBackdrop(selected: true))),
-          Center(child: _PhysicalArtwork(url: url, title: item.title, large: true)),
-          Positioned(top: 12, left: 14, right: 14, child: Row(children: [
-            const Text('CURRENT / FOCUS', style: TextStyle(fontSize: 6.5, letterSpacing: 2.2, color: Color(0x8898A8BE))),
-            const Spacer(),
-            Text(year, style: const TextStyle(fontSize: 7, letterSpacing: 1.2, color: Color(0x667F70B0))),
-          ])),
-          Positioned(left: 14, right: 14, bottom: 14, child: Container(padding: const EdgeInsets.all(10), color: const Color(0xD805060B), child: Row(children: [
-            Expanded(child: Text(item.title.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: compact ? 14 : 19, letterSpacing: 1.8))),
-            const SizedBox(width: 10),
-            FilledButton(onPressed: onOpen, child: const Text('OPEN WORLD')),
-          ]))),
-        ]),
-      ),
-    );
-  }
-}
-
-class _ShelfCase extends StatelessWidget {
-  final ContentItem? item;
-  final String label;
-  final VoidCallback? onTap;
-  const _ShelfCase({required this.item, required this.label, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    final url = item == null ? '' : '${item!.metadata['public_url'] ?? item!.metadata['image_url'] ?? ''}';
-    return GestureDetector(onTap: onTap, child: Opacity(opacity: item == null ? .18 : .72, child: Container(
-      height: 430,
-      decoration: BoxDecoration(color: const Color(0xA9070A12), border: Border.all(color: const Color(0x2B8A78B5))),
-      child: Stack(children: [
-        Positioned.fill(child: CustomPaint(painter: const _CaseBackdrop(selected: false))),
-        Center(child: _PhysicalArtwork(url: url, title: item?.title ?? '—')),
-        Positioned(left: 10, right: 10, top: 12, child: Text('$label / ${item?.title ?? '—'}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 6.5, letterSpacing: 1.2))),
-      ]),
-    )));
-  }
-}
-
-class _MiniNav extends StatelessWidget {
-  final String label; final bool enabled; final VoidCallback? onTap;
-  const _MiniNav({required this.label, required this.enabled, required this.onTap});
-  @override Widget build(BuildContext context) => OutlinedButton(onPressed: onTap, child: Text(label, style: TextStyle(fontSize: 7, letterSpacing: 1.5, color: enabled ? null : Colors.white24)));
-}
-
-class _ArchiveTelemetry extends StatelessWidget {
-  final int count; final int selected; final String query;
-  const _ArchiveTelemetry({required this.count, required this.selected, required this.query});
-  @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9), decoration: BoxDecoration(color: const Color(0xB7050710), border: Border.all(color: const Color(0x245E7184))), child: Row(children: [
-        const Text('VAULT TELEMETRY', style: TextStyle(fontSize: 6.5, letterSpacing: 2, color: Color(0x7797A8BE))),
-        const Spacer(),
-        _Metric('ASSETS', '$count'),
-        _Metric('FOCUS', '${selected + 1}/$count'),
-        _Metric('FILTER', query.isEmpty ? 'ALL' : 'SEARCH'),
-        const _Metric('STATE', 'STABLE'),
-      ]));
-}
-
-class _Metric extends StatelessWidget {
-  final String label; final String value;
-  const _Metric(this.label, this.value);
-  @override Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(left: 18), child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        Text(label, style: const TextStyle(fontSize: 5.5, color: Color(0x557F90A4), letterSpacing: 1.3)),
-        const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontSize: 7.5, letterSpacing: 1.2)),
-      ]));
-}
-
-class _VaultGrid extends StatelessWidget {
-  final List<ContentItem> items; final int selected; final bool compact; final ValueChanged<int> onSelect; final ValueChanged<ContentItem> onOpen;
-  const _VaultGrid({required this.items, required this.selected, required this.compact, required this.onSelect, required this.onOpen});
-  @override
-  Widget build(BuildContext context) => GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 220, mainAxisExtent: compact ? 260 : 286, crossAxisSpacing: 12, mainAxisSpacing: 12),
-        itemBuilder: (_, index) {
-          final item = items[index];
-          final active = index == selected;
-          final url = '${item.metadata['public_url'] ?? item.metadata['image_url'] ?? ''}';
-          return GestureDetector(
-            onTap: () => onSelect(index),
-            onDoubleTap: () => onOpen(item),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 260),
-              decoration: BoxDecoration(
-                color: Color(active ? 0xE50A0A16 : 0xC8070810),
-                border: Border.all(color: active ? const Color(0x9D8B78B7) : const Color(0x1DFFFFFF)),
-                boxShadow: active ? const [BoxShadow(color: Color(0x451E1439), blurRadius: 28, offset: Offset(0, 10))] : null,
-              ),
-              child: Stack(children: [
-                Positioned.fill(child: CustomPaint(painter: _CaseBackdrop(selected: active))),
-                Center(child: _PhysicalArtwork(url: url, title: item.title, large: active)),
-                Positioned(left: 9, right: 9, bottom: 9, child: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8, letterSpacing: active ? 1.1 : .2, fontWeight: active ? FontWeight.w600 : FontWeight.w400))),
-              ]),
-            ),
-          );
-        },
-      );
-}
-
-class _PhysicalArtwork extends StatelessWidget {
-  final String url; final String title; final bool large;
-  const _PhysicalArtwork({required this.url, required this.title, this.large = false});
-  @override
-  Widget build(BuildContext context) {
-    final maxW = MediaQuery.sizeOf(context).width;
-    final width = math.min(maxW * (large ? .27 : .14), large ? 300.0 : 155.0);
-    final height = width * 1.34;
-    final image = url.isEmpty
-        ? Center(child: Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: large ? 12 : 7)))
-        : Image.network(url, fit: BoxFit.contain, filterQuality: FilterQuality.high, errorBuilder: (_, __, ___) => Center(child: Text(title, textAlign: TextAlign.center)));
-    return Transform.rotate(
-      angle: large ? -.012 : .018,
-      child: Container(
-        width: width + 28,
-        height: height + 28,
-        padding: const EdgeInsets.fromLTRB(7, 7, 12, 12),
-        decoration: BoxDecoration(color: const Color(0xE310111A), borderRadius: BorderRadius.circular(2), border: Border.all(color: const Color(0x587C708F)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 25, offset: Offset(10, 16))]),
-        child: Stack(children: [
-          Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(border: Border.all(color: const Color(0x227F90A0)), gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0x18FFFFFF), Color(0x00000000)])))),
-          Center(child: image),
-          Positioned(right: 1, top: 8, bottom: 8, width: 5, child: DecoratedBox(decoration: BoxDecoration(color: const Color(0x2A9B8EB0), borderRadius: BorderRadius.circular(2)))),
-        ]),
-      ),
-    );
-  }
-}
-
-class _CaseBackdrop extends CustomPainter {
-  final bool selected;
-  const _CaseBackdrop({required this.selected});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(rect, Paint()..shader = RadialGradient(center: Alignment.center, radius: 1.15, colors: [selected ? const Color(0x201F1734) : const Color(0x100C1621), const Color(0x00000000)]).createShader(rect));
-    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = .55..color = const Color(0x167F90A4);
-    for (var i = 0; i < 5; i++) {
-      final inset = 14 + i * 16.0;
-      canvas.drawRRect(RRect.fromRectAndRadius(rect.deflate(inset), const Radius.circular(8)), paint);
-    }
-    canvas.drawLine(Offset(0, size.height * .73), Offset(size.width, size.height * .73), paint);
-  }
-  @override bool shouldRepaint(covariant _CaseBackdrop old) => old.selected != selected;
-}
-
-class _VaultPainter extends CustomPainter {
-  final double phase;
-  const _VaultPainter(this.phase);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(rect, Paint()..shader = const RadialGradient(center: Alignment(0, -.2), radius: 1.3, colors: [Color(0xFF1A1728), Color(0xFF080A12), Color(0xFF010207)]).createShader(rect));
-    final random = math.Random(922);
-    final center = Offset(size.width * .5, size.height * .42);
-    for (var i = 0; i < 430; i++) {
-      final point = Offset(random.nextDouble() * size.width, random.nextDouble() * size.height);
-      final depth = .15 + random.nextDouble();
-      canvas.drawCircle(point, .25 + depth * .8, Paint()..color = Colors.white.withValues(alpha: .025 + random.nextDouble() * .18));
-    }
-    final ring = Paint()..style = PaintingStyle.stroke..strokeWidth = .55..color = const Color(0x207F90A4);
-    for (var i = 0; i < 7; i++) {
-      final width = size.width * (.22 + i * .12);
-      canvas.drawOval(Rect.fromCenter(center: center, width: width, height: width * .18), ring);
-    }
-    final sweep = (phase * math.pi * 2) % (math.pi * 2);
-    canvas.drawArc(Rect.fromCenter(center: center, width: size.width * .78, height: size.width * .22), sweep, .7, false, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = const Color(0x557E93A6));
-    final scan = (phase * size.height * 1.35) % (size.height + 140) - 70;
-    canvas.drawRect(Rect.fromLTWH(0, scan, size.width, 1), Paint()..color = const Color(0x127F70B0));
-    canvas.drawCircle(center, size.width * .08, Paint()..shader = const RadialGradient(colors: [Color(0x287D719F), Color(0x00000000)]).createShader(Rect.fromCircle(center: center, radius: size.width * .08)));
-    canvas.drawRect(rect, Paint()..shader = RadialGradient(center: Alignment.center, radius: 1.1, colors: [const Color(0x00000000), const Color(0x99000000)]).createShader(rect));
-  }
-  @override bool shouldRepaint(covariant _VaultPainter old) => old.phase != phase;
 }
