@@ -59,6 +59,8 @@ class DarkestWorldArchiveTelemetry {
   int get relatedOverflowCount => (relatedCount - relatedVisibleLimit).clamp(0, relatedCount);
   int get compactRelatedOverflowCount => (relatedCount - compactRelatedVisibleLimit).clamp(0, relatedCount);
 
+  String get chainLabel => '$continuityCount/2';
+
   String get continuityLabel {
     switch (continuityCount) {
       case 2:
