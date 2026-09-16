@@ -38,12 +38,10 @@ class _ArchiveAtmospherePainter extends CustomPainter {
   static final Paint _framePaint=Paint()..style=PaintingStyle.stroke..strokeWidth=1..color=const Color(0x0C9BA9BC);
   Size _cachedSize=Size.zero; bool _geometryReady=false;
   late Rect _fullRect,_hazeRect,_coreGlowRect,_coreRect,_arcRect;
-  late List<Rect> _ringRects;
-  late List<double> _ringRotations;
-  late List<double> _ringStrokeWidths;
-  late List<Offset> _framePoints;
   late double _short,_core;
   late Shader _backgroundShader,_hazeShader,_coreGlowShader,_coreShader;
+  late List<Rect> _ringRects;
+  late List<Offset> _frameStarts,_frameEnds;
 
   void _ensureGeometry(Size s){
     if(_geometryReady&&_cachedSize==s)return;
@@ -55,15 +53,10 @@ class _ArchiveAtmospherePainter extends CustomPainter {
     _core=_short*.13;
     _coreGlowRect=Rect.fromCircle(center:center,radius:_core*2.8);
     _coreRect=Rect.fromCircle(center:center,radius:_core*.62);
-    _ringRects=List.generate(5,(i){final rr=_short*(.27+i*.072);return Rect.fromCenter(center:center,width:rr*2.25,height:rr*.60);},growable:false);
-    _ringRotations=List<double>.filled(5,0,growable:false);
-    _ringStrokeWidths=List.generate(5,(i)=>.42+i*.08,growable:false);
-    _framePoints=[
-      Offset(18,34),Offset(18,18),Offset(34,18),
-      Offset(s.width-18,34),Offset(s.width-18,18),Offset(s.width-34,18),
-      Offset(18,s.height-34),Offset(18,s.height-18),Offset(34,s.height-18),
-      Offset(s.width-18,s.height-34),Offset(s.width-18,s.height-18),Offset(s.width-34,s.height-18),
-    ];
+    _ringRects=List.generate(5,(i){final rr=_short*(.27+i*.072);return Rect.fromCenter(center:center,width:rr*2.25,height:rr*.60);});
+    const arm=34.0;
+    _frameStarts=[const Offset(18,arm),const Offset(18,18),Offset(s.width-18,arm),Offset(s.width-18,18),Offset(18,s.height-arm),Offset(18,s.height-18),Offset(s.width-18,s.height-arm),Offset(s.width-18,s.height-18)];
+    _frameEnds=[const Offset(18,18),const Offset(arm,18),Offset(s.width-18,18),Offset(s.width-arm,18),Offset(18,s.height-18),Offset(arm,s.height-18),Offset(s.width-18,s.height-18),Offset(s.width-arm,s.height-18)];
     _backgroundShader=RadialGradient(center:const Alignment(0,.05),radius:1.05,colors:[Colors.transparent,const Color(0x16040A18),const Color(0xA8010308)],stops:const[.34,.72,1]).createShader(_fullRect);
     _hazeShader=RadialGradient(colors:[const Color(0x1B8D78AA),const Color(0x0A526B89),Colors.transparent]).createShader(_hazeRect);
     _coreGlowShader=RadialGradient(colors:[const Color(0x1E7D70A0),const Color(0x091D2D42),Colors.transparent]).createShader(_coreGlowRect);
@@ -83,9 +76,9 @@ class _ArchiveAtmospherePainter extends CustomPainter {
     }
     _hazePaint.shader=_hazeShader;c.drawOval(_hazeRect,_hazePaint);
     for(var i=0;i<5;i++){
-      final rot=math.sin(phaseAngle+i)*.025; _ringRotations[i]=rot;
+      final rot=math.sin(phaseAngle+i)*.025;
       c.save(); c.translate(center.dx,center.dy); c.rotate(rot); c.translate(-center.dx,-center.dy);
-      _ringPaint.strokeWidth=_ringStrokeWidths[i]; _ringPaint.color=const Color(0x167D8FA8);
+      _ringPaint.strokeWidth=.42+i*.08; _ringPaint.color=const Color(0x167D8FA8);
       c.drawOval(_ringRects[i],_ringPaint); c.restore();
     }
     _arcPaint.strokeWidth=1.15; _arcPaint.color=const Color(0x4D8D7CB4); c.drawArc(_arcRect,phaseAngle,1.12,false,_arcPaint);
@@ -94,10 +87,7 @@ class _ArchiveAtmospherePainter extends CustomPainter {
     _corePaint.shader=_coreShader;c.drawCircle(center,_core*.62,_corePaint);
     final scan=(phase.value*s.height*1.25)%s.height; c.drawRect(Rect.fromLTWH(0,scan,s.width,1.1),_scanPaint);
     final scanBand=Rect.fromLTWH(0,scan-7,s.width,15); _scanBandPaint.shader=LinearGradient(colors:[Colors.transparent,const Color(0x052C5B7A),Colors.transparent]).createShader(scanBand); c.drawRect(scanBand,_scanBandPaint);
-    c.drawLine(_framePoints[0],_framePoints[1],_framePaint); c.drawLine(_framePoints[1],_framePoints[2],_framePaint);
-    c.drawLine(_framePoints[3],_framePoints[4],_framePaint); c.drawLine(_framePoints[4],_framePoints[5],_framePaint);
-    c.drawLine(_framePoints[6],_framePoints[7],_framePaint); c.drawLine(_framePoints[7],_framePoints[8],_framePaint);
-    c.drawLine(_framePoints[9],_framePoints[10],_framePaint); c.drawLine(_framePoints[10],_framePoints[11],_framePaint);
+    for(var i=0;i<_frameStarts.length;i++){c.drawLine(_frameStarts[i],_frameEnds[i],_framePaint);}
   }
   @override bool shouldRepaint(covariant _ArchiveAtmospherePainter old)=>false;
 }
