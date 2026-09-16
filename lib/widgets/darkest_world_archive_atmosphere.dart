@@ -21,7 +21,7 @@ class _ArchiveStar {
 }
 
 class _ArchiveAtmospherePainter extends CustomPainter {
-  final Animation<double> phase; const _ArchiveAtmospherePainter(this.phase):super(repaint:phase);
+  final Animation<double> phase; _ArchiveAtmospherePainter(this.phase):super(repaint:phase);
   static const int _lutSize=1024;
   static const int _lutMask=_lutSize-1;
   static final Float32List _sinLut=Float32List.fromList(List.generate(_lutSize+1,(i)=>math.sin(i*math.pi*2/_lutSize)));
@@ -74,7 +74,7 @@ class _ArchiveAtmospherePainter extends CustomPainter {
     for(var i=0;i<5;i++){final rot=_sin(phaseCycles+_ringPhaseOffsets[i])*.025;c.save();c.translate(_center.dx,_center.dy);c.rotate(rot);c.translate(-_center.dx,-_center.dy);_ringPaint.strokeWidth=_ringStrokeWidths[i];_ringPaint.color=const Color(0x167D8FA8);c.drawOval(_ringRects[i],_ringPaint);c.restore();}
     _arcPaint.strokeWidth=1.15;_arcPaint.color=const Color(0x4D8D7CB4);c.drawArc(_arcRect,phaseAngle,1.12,false,_arcPaint);_secondaryArcPaint.strokeWidth=.55;_secondaryArcPaint.color=const Color(0x2E9DB1C1);c.drawArc(_arcRect,phaseAngle+math.pi,.42,false,_secondaryArcPaint);
     _coreGlowPaint.shader=_coreGlowShader;c.drawCircle(_center,_core*2.8,_coreGlowPaint);_corePaint.shader=_coreShader;c.drawCircle(_center,_core*.62,_corePaint);
-    final scan=(phaseCycles*s.height*1.25)%s.height;c.drawLine(0,scan,s.width,scan,_scanPaint);
+    final scan=(phaseCycles*s.height*1.25)%s.height;c.drawLine(Offset.zero,Offset(s.width,scan),_scanPaint);
     c.save();c.translate(0,scan-7);_scanBandPaint.shader=_scanBandShader;c.drawRect(_scanBandRect,_scanBandPaint);c.restore();
     c.drawPath(_framePath,_framePaint);
   }
