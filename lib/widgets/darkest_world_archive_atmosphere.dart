@@ -14,11 +14,17 @@ class _DarkestWorldArchiveAtmosphereState extends State<DarkestWorldArchiveAtmos
   @override Widget build(BuildContext context)=>IgnorePointer(child:CustomPaint(painter:_ArchiveAtmospherePainter(_clock),size:Size.infinite));
 }
 
-class _ArchiveStar { final double x,y,depth; const _ArchiveStar(this.x,this.y,this.depth); }
+class _ArchiveStar {
+  final double x,y,driftFrequency,driftPhase,driftScale,twinkleFrequency,twinklePhase,radius,alpha;
+  const _ArchiveStar(this.x,this.y,this.driftFrequency,this.driftPhase,this.driftScale,this.twinkleFrequency,this.twinklePhase,this.radius,this.alpha);
+}
 
 class _ArchiveAtmospherePainter extends CustomPainter {
   final Animation<double> phase; const _ArchiveAtmospherePainter(this.phase):super(repaint:phase);
-  static final List<_ArchiveStar> _stars=List.generate(520,(i){final rng=math.Random(4207+i*17);return _ArchiveStar(rng.nextDouble(),rng.nextDouble(),rng.nextDouble());});
+  static final List<_ArchiveStar> _stars=List.generate(520,(i){
+    final rng=math.Random(4207+i*17); final depth=rng.nextDouble();
+    return _ArchiveStar(rng.nextDouble(),rng.nextDouble(),.25+depth*.7,i*.31,.7+depth*2.2,.5+depth*1.4,i*.77,.18+depth*1.05,.018+depth*.12);
+  });
   static final Paint _backgroundPaint=Paint();
   static final Paint _starPaint=Paint();
   static final Paint _hazePaint=Paint();
@@ -53,27 +59,27 @@ class _ArchiveAtmospherePainter extends CustomPainter {
   }
 
   @override void paint(Canvas c,Size s){
-    _ensureGeometry(s);final center=Offset(s.width*.5,s.height*.46);final value=phase.value;final tau=math.pi*2;
+    _ensureGeometry(s);final center=Offset(s.width*.5,s.height*.46);final phaseAngle=phase.value*math.pi*2;
     _backgroundPaint.shader=_backgroundShader;c.drawRect(_fullRect,_backgroundPaint);
     for(var i=0;i<_stars.length;i++){
-      final star=_stars[i]; final depth=star.depth;
-      final drift=math.sin(value*tau*(.25+depth*.7)+i*.31)*(.7+depth*2.2);
-      final twinkle=.45+.55*math.sin(value*tau*(.5+depth*1.4)+i*.77);
-      _starPaint.color=Colors.white.withValues(alpha:(.018+depth*.12)*twinkle.clamp(.25,1));
-      c.drawCircle(Offset(star.x*s.width+drift,star.y*s.height),.18+depth*1.05,_starPaint);
+      final star=_stars[i];
+      final drift=math.sin(phaseAngle*star.driftFrequency+star.driftPhase)*star.driftScale;
+      final twinkle=.45+.55*math.sin(phaseAngle*star.twinkleFrequency+star.twinklePhase);
+      _starPaint.color=Colors.white.withValues(alpha:(star.alpha*twinkle).clamp(.25,1));
+      c.drawCircle(Offset(star.x*s.width+drift,star.y*s.height),star.radius,_starPaint);
     }
     _hazePaint.shader=_hazeShader;c.drawOval(_hazeRect,_hazePaint);
     for(var i=0;i<5;i++){
-      final rr=_short*(.27+i*.072); final rot=math.sin(value*tau+i)*.025;
+      final rr=_short*(.27+i*.072); final rot=math.sin(phaseAngle+i)*.025;
       c.save(); c.translate(center.dx,center.dy); c.rotate(rot); c.translate(-center.dx,-center.dy);
       _ringPaint.strokeWidth=.42+i*.08; _ringPaint.color=const Color(0x167D8FA8);
       c.drawOval(Rect.fromCenter(center:center,width:rr*2.25,height:rr*.60),_ringPaint); c.restore();
     }
-    _arcPaint.strokeWidth=1.15; _arcPaint.color=const Color(0x4D8D7CB4); c.drawArc(_arcRect,value*tau,1.12,false,_arcPaint);
-    _secondaryArcPaint.strokeWidth=.55; _secondaryArcPaint.color=const Color(0x2E9DB1C1); c.drawArc(_arcRect,value*tau+math.pi,.42,false,_secondaryArcPaint);
+    _arcPaint.strokeWidth=1.15; _arcPaint.color=const Color(0x4D8D7CB4); c.drawArc(_arcRect,phaseAngle,1.12,false,_arcPaint);
+    _secondaryArcPaint.strokeWidth=.55; _secondaryArcPaint.color=const Color(0x2E9DB1C1); c.drawArc(_arcRect,phaseAngle+math.pi,.42,false,_secondaryArcPaint);
     _coreGlowPaint.shader=_coreGlowShader;c.drawCircle(center,_core*2.8,_coreGlowPaint);
     _corePaint.shader=_coreShader;c.drawCircle(center,_core*.62,_corePaint);
-    final scan=(value*s.height*1.25)%s.height; c.drawRect(Rect.fromLTWH(0,scan,s.width,1.1),_scanPaint);
+    final scan=(phase.value*s.height*1.25)%s.height; c.drawRect(Rect.fromLTWH(0,scan,s.width,1.1),_scanPaint);
     final scanBand=Rect.fromLTWH(0,scan-7,s.width,15); _scanBandPaint.shader=LinearGradient(colors:[Colors.transparent,const Color(0x052C5B7A),Colors.transparent]).createShader(scanBand); c.drawRect(scanBand,_scanBandPaint);
     const arm=34.0;
     c.drawLine(const Offset(18,arm),const Offset(18,18),_framePaint); c.drawLine(const Offset(18,18),const Offset(arm,18),_framePaint);
