@@ -60,6 +60,9 @@ class DarkestWorldArchiveTelemetry {
   int get compactRelatedOverflowCount => (relatedCount - compactRelatedVisibleLimit).clamp(0, relatedCount);
 
   String get chainLabel => '$continuityCount/2';
+  String get continuityMode => position == 'SINGLE' ? 'ISOLATED' : 'SEQUENCED';
+  String get relatedLabel => relatedCount == 0 ? 'NONE' : '${visibleRelatedCount}${relatedOverflowCount > 0 ? '+' : ''} ACTIVE';
+  String get routeLabel => '$source / $entryPoint';
 
   String get continuityLabel {
     switch (continuityCount) {
