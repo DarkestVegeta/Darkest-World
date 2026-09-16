@@ -13,6 +13,7 @@ class DarkestWorldArchiveTelemetry {
   final String currentId;
   final String? previousId;
   final String? nextId;
+  final List<String> relatedIds;
 
   const DarkestWorldArchiveTelemetry({
     required this.signal,
@@ -25,6 +26,7 @@ class DarkestWorldArchiveTelemetry {
     required this.currentId,
     required this.previousId,
     required this.nextId,
+    required this.relatedIds,
   });
 
   factory DarkestWorldArchiveTelemetry.fromNavigation(
@@ -41,6 +43,7 @@ class DarkestWorldArchiveTelemetry {
       currentId: state.currentId,
       previousId: state.previousId,
       nextId: state.nextId,
+      relatedIds: state.relatedIds,
     );
   }
 
