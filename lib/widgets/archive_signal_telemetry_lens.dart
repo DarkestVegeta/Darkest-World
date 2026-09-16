@@ -73,6 +73,7 @@ class _SignalMetrics extends StatelessWidget {
     _Metric(label: 'RELATED', value: telemetry.relatedLabel), const SizedBox(width: 18),
     _Metric(label: 'POSITION', value: telemetry.position), const SizedBox(width: 18),
     _Metric(label: 'SIGNAL', value: telemetry.signalBand), const SizedBox(width: 18),
+    _Metric(label: 'MODE', value: telemetry.presentationMode), const SizedBox(width: 18),
     _Metric(label: 'ORIGIN', value: telemetry.originLabel),
   ]);
 }
