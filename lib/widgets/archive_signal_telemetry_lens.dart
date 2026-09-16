@@ -62,7 +62,7 @@ class ArchiveSignalTelemetryLens extends StatelessWidget {
                             const SizedBox(height: 5),
                             Text(telemetry.signal, style: const TextStyle(fontSize: 13, letterSpacing: 2.1, fontWeight: FontWeight.w300)),
                             const SizedBox(height: 5),
-                            Text('${telemetry.source.toUpperCase()}  /  ${telemetry.entryPoint}', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.6, color: Color(0x667F8AA2))),
+                            Text(telemetry.routeLabel.toUpperCase(), style: const TextStyle(fontSize: 5.5, letterSpacing: 1.6, color: Color(0x667F8AA2))),
                             const SizedBox(height: 4),
                             Text(telemetry.continuityLabel, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.3, color: Color(0x557F8AA2))),
                           ],
@@ -122,7 +122,7 @@ class _SignalMetrics extends StatelessWidget {
   Widget build(BuildContext context) => Row(children: [
     _Metric(label: 'CHAIN', value: telemetry.chainLabel),
     const SizedBox(width: 18),
-    _Metric(label: 'RELATED', value: '${telemetry.relatedCount}'),
+    _Metric(label: 'RELATED', value: telemetry.relatedLabel),
     const SizedBox(width: 18),
     _Metric(label: 'POSITION', value: telemetry.position),
     const SizedBox(width: 18),
