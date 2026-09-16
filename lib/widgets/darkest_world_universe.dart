@@ -82,7 +82,8 @@ class _PlanetNode extends StatelessWidget {
     return Positioned(left: p.dx - d / 2, top: p.dy - d / 2, width: d, height: d + 30, child: RepaintBoundary(child: GestureDetector(
       onTap: onTap, onDoubleTap: onOpen,
       child: Stack(children: [
-        Positioned.fill(child: CustomPaint(painter: _PlanetPainter(index: index, selected: selected, phase: selected ? phase : 0))),
+        Positioned.fill(child: CustomPaint(painter: _PlanetPainter(index: index, selected: selected))),
+        if (selected) Positioned.fill(child: CustomPaint(painter: _PlanetSelectionPainter(phase))),
         Positioned(left: 0, right: 0, top: d * .70, child: IgnorePointer(child: Text(world.title.toUpperCase(), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withValues(alpha: selected ? .95 : .62), fontSize: math.max(5.5, d * .065), letterSpacing: 1.3, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)))),
       ]),
     )));
@@ -90,13 +91,12 @@ class _PlanetNode extends StatelessWidget {
 }
 
 class _PlanetPainter extends CustomPainter {
-  final int index; final bool selected; final double phase;
-  const _PlanetPainter({required this.index, required this.selected, required this.phase});
+  final int index; final bool selected;
+  const _PlanetPainter({required this.index, required this.selected});
   static const List<Color> _palette = [Color(0xFF8E7865), Color(0xFF647C82), Color(0xFF857E67), Color(0xFF75677F), Color(0xFF70877A), Color(0xFF7D7063)];
   static final Paint _glow = Paint(); static final Paint _body = Paint();
   static final Paint _detail = Paint()..style = PaintingStyle.stroke..strokeWidth = .45..color = const Color(0x558FA2A9);
   static final Paint _rim = Paint()..style = PaintingStyle.stroke;
-  static final Paint _selection = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = const Color(0xA0B7D0D8);
   @override void paint(Canvas x, Size s) {
     final c = Offset(s.width / 2, s.width / 2), r = s.width * .30;
     final base = _palette[index % _palette.length];
@@ -107,9 +107,19 @@ class _PlanetPainter extends CustomPainter {
     x.drawCircle(c, r, _body);
     for (var i = 1; i < 5; i++) x.drawArc(Rect.fromCircle(center: c, radius: r * i / 5), math.pi * (.2 + i * .06), math.pi * (1.2 + i * .1), false, _detail);
     _rim.strokeWidth = selected ? 1.5 : .65; _rim.color = const Color(0x889FB5BD); x.drawCircle(c, r, _rim);
-    if (selected) x.drawArc(Rect.fromCircle(center: c, radius: r * 1.32), phase * math.pi * 2, 1.4, false, _selection);
   }
-  @override bool shouldRepaint(covariant _PlanetPainter o) => o.index != index || o.selected != selected || (selected && o.phase != phase);
+  @override bool shouldRepaint(covariant _PlanetPainter o) => o.index != index || o.selected != selected;
+}
+
+class _PlanetSelectionPainter extends CustomPainter {
+  final double phase;
+  const _PlanetSelectionPainter(this.phase);
+  static final Paint _selection = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = const Color(0xA0B7D0D8);
+  @override void paint(Canvas x, Size s) {
+    final c = Offset(s.width / 2, s.width / 2), r = s.width * .30;
+    x.drawArc(Rect.fromCircle(center: c, radius: r * 1.32), phase * math.pi * 2, 1.4, false, _selection);
+  }
+  @override bool shouldRepaint(covariant _PlanetSelectionPainter o) => o.phase != phase;
 }
 
 class _Sun extends StatelessWidget { const _Sun(); @override Widget build(BuildContext c) => Container(width: 86, height: 86, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0xFFFFFFFF), Color(0xFFD7C49F), Color(0xFF695845), Color(0x00000000)], stops: [0, .18, .45, 1]), boxShadow: [BoxShadow(color: Color(0x665F7480), blurRadius: 48, spreadRadius: 12)])); }
@@ -117,7 +127,7 @@ class _Sun extends StatelessWidget { const _Sun(); @override Widget build(BuildC
 class _WorldPanel extends StatelessWidget {
   final GalaxyWorld world; final int index; final VoidCallback close, open;
   const _WorldPanel({required this.world, required this.index, required this.close, required this.open});
-  @override Widget build(BuildContext c) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xF0070B11), border: Border.all(color: const Color(0x4B829DA8)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 40)]), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('WORLD ${(index + 1).toString().padLeft(2, '0')} / ATLAS NODE', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.8, color: Color(0x62FFFFFF))), const SizedBox(height: 5), Text(world.title, style: const TextStyle(fontSize: 17, letterSpacing: 2.8)), const SizedBox(height: 4), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 7.5, color: Color(0x8CC7D2D6), height: 1.35))])), TextButton(onPressed: close, child: const Text('×')), FilledButton(onPressed: open, child: const Text('ENTER WORLD'))]));
+  @override Widget build(BuildContext c) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xF0070B11), border: Border.all(color: const Color(0x4B829DA8)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 40)]), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('WORLD ${(index + 1).toString().padLeft(2, '0')} / ATLAS NODE', style: const TextStyle(fontSize: 5.5, letterSpacing: 1.8, color: Color(0x62FFFFFF))), const SizedBox(height: 5), Text(world.title, style: const TextStyle(fontSize: 17, letterSpacing: 2.8)), const SizedBox(height: 4), Text(world.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 7.5, color: Color(0x8CC7D2D6, height: 1.35))])), TextButton(onPressed: close, child: const Text('×')), FilledButton(onPressed: open, child: const Text('ENTER WORLD'))]));
 }
 
 class _SpaceStar { final double x, y, size; final int phaseIndex; const _SpaceStar(this.x, this.y, this.size, this.phaseIndex); }
