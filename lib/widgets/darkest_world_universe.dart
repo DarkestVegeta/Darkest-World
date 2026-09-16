@@ -79,13 +79,13 @@ class _PlanetNode extends StatelessWidget {
     final a = -math.pi / 2 + index * math.pi * 2 / math.max(1, total) + phase * math.pi * .12 * (index.isEven ? 1 : -1);
     final p = Offset(c + math.cos(a) * orbit, c + math.sin(a) * orbit);
     final d = (selected ? diameter * .15 : diameter * .10).clamp(54.0, 118.0).toDouble();
-    return Positioned(left: p.dx - d / 2, top: p.dy - d / 2, width: d, height: d + 30, child: GestureDetector(
+    return Positioned(left: p.dx - d / 2, top: p.dy - d / 2, width: d, height: d + 30, child: RepaintBoundary(child: GestureDetector(
       onTap: onTap, onDoubleTap: onOpen,
       child: Stack(children: [
-        Positioned.fill(child: CustomPaint(painter: _PlanetPainter(index: index, selected: selected, phase: phase))),
+        Positioned.fill(child: CustomPaint(painter: _PlanetPainter(index: index, selected: selected, phase: selected ? phase : 0))),
         Positioned(left: 0, right: 0, top: d * .70, child: IgnorePointer(child: Text(world.title.toUpperCase(), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withValues(alpha: selected ? .95 : .62), fontSize: math.max(5.5, d * .065), letterSpacing: 1.3, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)))),
       ]),
-    ));
+    )));
   }
 }
 
@@ -109,7 +109,7 @@ class _PlanetPainter extends CustomPainter {
     _rim.strokeWidth = selected ? 1.5 : .65; _rim.color = const Color(0x889FB5BD); x.drawCircle(c, r, _rim);
     if (selected) x.drawArc(Rect.fromCircle(center: c, radius: r * 1.32), phase * math.pi * 2, 1.4, false, _selection);
   }
-  @override bool shouldRepaint(covariant _PlanetPainter o) => o.index != index || o.selected != selected || o.phase != phase;
+  @override bool shouldRepaint(covariant _PlanetPainter o) => o.index != index || o.selected != selected || (selected && o.phase != phase);
 }
 
 class _Sun extends StatelessWidget { const _Sun(); @override Widget build(BuildContext c) => Container(width: 86, height: 86, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0xFFFFFFFF), Color(0xFFD7C49F), Color(0xFF695845), Color(0x00000000)], stops: [0, .18, .45, 1]), boxShadow: [BoxShadow(color: Color(0x665F7480), blurRadius: 48, spreadRadius: 12)])); }
