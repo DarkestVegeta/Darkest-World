@@ -22,6 +22,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Enable Flutter Web
+        run: flutter create . --platforms web
+
       - name: Get dependencies
         run: flutter pub get
 
