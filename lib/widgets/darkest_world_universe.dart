@@ -1,21 +1,382 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
-import 'dart:ui' show PointMode;
 import 'package:flutter/material.dart';
 import '../screens/galaxy_navigation_session.dart';
 
 enum GalaxyWorldKind { vegeta, game, identity, cinema, creation, music, family, archive, comingSoon }
-class GalaxyWorld { final GalaxyWorldKind kind; final String title; final String description; const GalaxyWorld({required this.kind,required this.title,required this.description}); }
-class DarkestWorldUniverse extends StatefulWidget { final List<GalaxyWorld> worlds; final ValueChanged<GalaxyWorld>? onWorldTap; const DarkestWorldUniverse({super.key,required this.worlds,this.onWorldTap}); @override State<DarkestWorldUniverse> createState()=>_DarkestWorldUniverseState(); }
-class _DarkestWorldUniverseState extends State<DarkestWorldUniverse> with SingleTickerProviderStateMixin { late final AnimationController clock=AnimationController(vsync:this,duration:const Duration(seconds:180))..repeat(); late final _QuantizedAnimationNotifier starClock=_QuantizedAnimationNotifier(clock,360); _PlanetOrbitCache? cache; int? focused; @override void dispose(){starClock.dispose();clock.dispose();super.dispose();} void tap(int i){setState(()=>focused=focused==i?null:i);GalaxyNavigationSession.instance.selected=widget.worlds[i].kind.name;widget.onWorldTap?.call(widget.worlds[i]);} @override Widget build(BuildContext context){final compact=MediaQuery.sizeOf(context).width<820;return Scaffold(backgroundColor:const Color(0xFF010207),body:Stack(fit:StackFit.expand,children:[const CustomPaint(painter:_GalaxyBackground()),const CustomPaint(painter:_OrbitalRings()),CustomPaint(painter:_Space(clock,starClock)),Center(child:LayoutBuilder(builder:(_,b){final d=math.min(b.maxWidth*(compact ? .93 : .68),b.maxHeight*(compact ? .58 : .72));final oc=cache!=null&&cache!.total==widget.worlds.length&&cache!.diameter==d?cache!:cache=_PlanetOrbitCache(widget.worlds.length,d);return SizedBox.square(dimension:d,child:Flow(delegate:_PlanetFlowDelegate(phase:clock,total:widget.worlds.length,diameter:d,selectedIndex:focused,orbitCache:oc),children:[for(var i=0;i<widget.worlds.length;i++)_PlanetNode(widget.worlds[i],i,d,focused==i,clock,()=>tap(i),()=>widget.onWorldTap?.call(widget.worlds[i]))]));})),const Center(child:_Sun()),if(focused!=null)Positioned(left:compact?14:34,right:compact?14:34,bottom:compact?48:60,child:_WorldPanel(widget.worlds[focused!],focused!,()=>setState(()=>focused=null),()=>widget.onWorldTap?.call(widget.worlds[focused!])))]));}}
-class _QuantizedAnimationNotifier extends ChangeNotifier{final Animation<double> source;final int steps;late int last;_QuantizedAnimationNotifier(this.source,this.steps){last=(source.value*steps).floor()%steps;source.addListener(tick);}void tick(){final n=(source.value*steps).floor()%steps;if(n!=last){last=n;notifyListeners();}}@override void dispose(){source.removeListener(tick);super.dispose();}}
-class _PlanetOrbitCache{static const samples=256;final int total;final double diameter;final Float32List xy;_PlanetOrbitCache(this.total,this.diameter):xy=Float32List(total*samples*2){final safe=math.max(1,total);for(var i=0;i<total;i++){final orbit=diameter*(.20+(i%4)*.075),base=i*samples*2,dir=i.isEven?1.0:-1.0,baseAngle=-math.pi/2+i*math.pi*2/safe;for(var j=0;j<samples;j++){final a=baseAngle+(j/samples)*math.pi*.24*dir,k=base+j*2;xy[k]=math.cos(a)*orbit;xy[k+1]=math.sin(a)*orbit;}}}}
-class _PlanetFlowDelegate extends FlowDelegate{final Animation<double> phase;final double diameter;final int total;final int? selectedIndex;final _PlanetOrbitCache orbitCache;late final Float32List half=Float32List(total);late final Uint32List bases=Uint32List(total);late final List<Matrix4> transforms=List.generate(total,(_)=>Matrix4.identity(),growable:false);_PlanetFlowDelegate({required this.phase,required this.total,required this.diameter,required this.selectedIndex,required this.orbitCache}):super(repaint:phase){for(var i=0;i<total;i++){final d=(selectedIndex==i?diameter*.15:diameter*.10).clamp(54.0,118.0).toDouble();half[i]=d/2;bases[i]=i*_PlanetOrbitCache.samples*2;}}@override void paintChildren(FlowPaintingContext c){final center=diameter/2,pos=phase.value*256,floor=pos.floor(),idx=floor&255,next=(idx+1)&255,f=pos-floor,xy=orbitCache.xy;for(var i=0;i<c.childCount;i++){final b=bases[i],a=b+idx*2,n=b+next*2,x=xy[a]+(xy[n]-xy[a])*f,y=xy[a+1]+(xy[n+1]-xy[a+1])*f;transforms[i].setTranslationRaw(center+x-half[i],center+y-half[i],0);c.paintChild(i,transform:transforms[i]);}}@override bool shouldRepaint(covariant _PlanetFlowDelegate o)=>o.total!=total||o.diameter!=diameter||o.selectedIndex!=selectedIndex||!identical(o.orbitCache,orbitCache);}
-class _PlanetNode extends StatelessWidget{final GalaxyWorld world;final int index;final double diameter;final bool selected;final Animation<double> phase;final VoidCallback tap,open;const _PlanetNode(this.world,this.index,this.diameter,this.selected,this.phase,this.tap,this.open);@override Widget build(BuildContext c){final d=(selected?diameter*.15:diameter*.10).clamp(54.0,118.0).toDouble();return SizedBox(width:d,height:d+30,child:GestureDetector(onTap:tap,onDoubleTap:open,child:Stack(children:[CustomPaint(size:Size.square(d),painter:_PlanetPainter(index,selected)),if(selected)CustomPaint(size:Size.square(d),painter:_PlanetSelectionPainter(phase)),Positioned(left:0,right:0,top:d*.70,child:Text(world.title.toUpperCase(),textAlign:TextAlign.center,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(fontSize:math.max(5.5,d*.065),color:Colors.white.withValues(alpha:selected ? .95 : .62))))])));}}
-class _PlanetPainter extends CustomPainter{final int index;final bool selected;const _PlanetPainter(this.index,this.selected);static const colors=[Color(0xFF8E7865),Color(0xFF647C82),Color(0xFF857E67),Color(0xFF75677F),Color(0xFF70877A),Color(0xFF7D7063)];static final Paint p=Paint(),rim=Paint()..style=PaintingStyle.stroke;@override void paint(Canvas c,Size s){final center=Offset(s.width/2,s.width/2),r=s.width*.30,base=colors[index%colors.length];p.shader=RadialGradient(center:const Alignment(-.42,-.5),colors:[base,base.withValues(alpha:.78),const Color(0xFF26313A),const Color(0xFF02050A)]).createShader(Rect.fromCircle(center:center,radius:r));c.drawCircle(center,r,p);rim.strokeWidth=selected?1.5:.65;rim.color=const Color(0x889FB5BD);c.drawCircle(center,r,rim);}@override bool shouldRepaint(covariant _PlanetPainter o)=>o.index!=index||o.selected!=selected;}
-class _PlanetSelectionPainter extends CustomPainter{final Animation<double> phase;_PlanetSelectionPainter(this.phase):super(repaint:phase);static final Paint p=Paint()..style=PaintingStyle.stroke..strokeWidth=1.1..color=const Color(0xA0B7D0D8);@override void paint(Canvas c,Size s){c.drawArc(Rect.fromCircle(center:Offset(s.width/2,s.height/2),radius:s.width*.396),phase.value*math.pi*2,1.4,false,p);}@override bool shouldRepaint(covariant _PlanetSelectionPainter o)=>false;}
-class _Sun extends StatelessWidget{const _Sun();@override Widget build(BuildContext c)=>Container(width:86,height:86,decoration:const BoxDecoration(shape:BoxShape.circle,gradient:RadialGradient(colors:[Color(0xFFFFFFFF),Color(0xFFD7C49F),Color(0xFF695845),Color(0x00000000)],stops:[0,.18,.45,1]),boxShadow:[BoxShadow(color:Color(0x665F7480),blurRadius:48,spreadRadius:12)]));}
-class _WorldPanel extends StatelessWidget{final GalaxyWorld world;final int index;final VoidCallback close,open;const _WorldPanel(this.world,this.index,this.close,this.open);@override Widget build(BuildContext c)=>Container(padding:const EdgeInsets.all(16),decoration:const BoxDecoration(color:Color(0xF0070B11)),child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('WORLD ${index+1} / ATLAS NODE'),const SizedBox(height:5),Text(world.title),Text(world.description,maxLines:2,overflow:TextOverflow.ellipsis)])),TextButton(onPressed:close,child:const Text('×')),FilledButton(onPressed:open,child:const Text('ENTER WORLD'))]));}
-class _GalaxyBackground extends CustomPainter{const _GalaxyBackground();static final Paint p=Paint();@override void paint(Canvas c,Size s){p.shader=const RadialGradient(colors:[Color(0xFF0A141D),Color(0xFF02060B),Color(0xFF010207)]).createShader(Offset.zero&s);c.drawRect(Offset.zero&s,p);}@override bool shouldRepaint(covariant _GalaxyBackground o)=>false;}
-class _OrbitalRings extends CustomPainter{const _OrbitalRings();static final Paint p=Paint()..style=PaintingStyle.stroke..strokeWidth=.45..color=const Color(0x1C8BA5AF);@override void paint(Canvas c,Size s){final center=Offset(s.width/2,s.height/2);for(var i=0;i<5;i++){final w=s.width*(.42+i*.10),h=s.height*(.18+i*.04);c.drawOval(Rect.fromCenter(center:center,width:w,height:h),p);}}@override bool shouldRepaint(covariant _OrbitalRings o)=>false;}
-class _Space extends CustomPainter{final Animation<double> phase;_Space(this.phase,Listenable repaint):super(repaint:repaint);static const count=560,steps=360;static final Float32List xy=Float32List.fromList(List.generate(count*2,(i){final r=math.Random(912+(i>>1)*13);return i.isEven?r.nextDouble():r.nextDouble();}));static final Uint16List sp=Uint16List.fromList(List.generate(count,(i)=>(i*57)%steps));static final paints=List.generate(9,(i)=>Paint()..color=Colors.white.withValues(alpha:.018+.075*i/8));@override void paint(Canvas c,Size s){final buckets=List.generate(9,(_)=><Offset>[]),step=(phase.value*steps).floor()%steps;for(var i=0;i<count;i++){final b=i*2;buckets[((step+sp[i])%steps)%9].add(Offset(xy[b]*s.width,xy[b+1]*s.height));}for(var i=0;i<9;i++)if(buckets[i].isNotEmpty)c.drawPoints(PointMode.points,buckets[i],paints[i]);}@override bool shouldRepaint(covariant _Space o)=>false;}
+
+class GalaxyWorld {
+  final GalaxyWorldKind kind;
+  final String title;
+  final String description;
+  const GalaxyWorld({required this.kind, required this.title, required this.description});
+}
+
+/// Game-only visual core.
+/// The CreateWorld references define the visual language; the island composition
+/// is a strong structural guide, not a literal copy.
+class DarkestWorldUniverse extends StatefulWidget {
+  final List<GalaxyWorld> worlds;
+  final ValueChanged<GalaxyWorld>? onWorldTap;
+  const DarkestWorldUniverse({super.key, required this.worlds, this.onWorldTap});
+
+  @override
+  State<DarkestWorldUniverse> createState() => _DarkestWorldUniverseState();
+}
+
+class _DarkestWorldUniverseState extends State<DarkestWorldUniverse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController clock = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 28),
+  )..repeat();
+  bool worldOpen = false;
+
+  GalaxyWorld get gameWorld => widget.worlds.firstWhere(
+        (w) => w.kind == GalaxyWorldKind.game,
+        orElse: () => const GalaxyWorld(
+          kind: GalaxyWorldKind.game,
+          title: 'Game World',
+          description: 'The Game World',
+        ),
+      );
+
+  @override
+  void dispose() {
+    clock.dispose();
+    super.dispose();
+  }
+
+  void enterWorld() {
+    setState(() => worldOpen = true);
+    GalaxyNavigationSession.instance.selected = GalaxyWorldKind.game.name;
+    widget.onWorldTap?.call(gameWorld);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF03050B),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          CustomPaint(painter: _DeepSpacePainter(clock)),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 650),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: worldOpen
+                ? _GameWorldView(key: const ValueKey('game-world'), clock: clock)
+                : _GamePlanetView(
+                    key: const ValueKey('game-planet'),
+                    clock: clock,
+                    onEnter: enterWorld,
+                  ),
+          ),
+          if (worldOpen)
+            Positioned(
+              top: 28,
+              left: 28,
+              child: _BackButton(onTap: () => setState(() => worldOpen = false)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GamePlanetView extends StatelessWidget {
+  final Animation<double> clock;
+  final VoidCallback onEnter;
+  const _GamePlanetView({super.key, required this.clock, required this.onEnter});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final size = math.min(box.maxWidth, box.maxHeight) * .55;
+          return GestureDetector(
+            onTap: onEnter,
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CustomPaint(size: Size.square(size), painter: _PlanetAtmosphere(clock)),
+                  CustomPaint(size: Size.square(size), painter: _GamePlanetPainter(clock)),
+                  Positioned(
+                    bottom: size * .08,
+                    child: Text(
+                      'GAME',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .86),
+                        fontSize: math.max(13, size * .035),
+                        letterSpacing: math.max(4, size * .012),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _GameWorldView extends StatelessWidget {
+  final Animation<double> clock;
+  const _GameWorldView({super.key, required this.clock});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, box) {
+        final w = box.maxWidth;
+        final h = box.maxHeight;
+        return Center(
+          child: SizedBox(
+            width: w * .92,
+            height: h * .82,
+            child: CustomPaint(
+              painter: _IslandGameWorldPainter(clock),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BackButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _BackButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0x66101722),
+            border: Border.all(color: const Color(0x335C6F87)),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            'GAME PLANET',
+            style: TextStyle(color: Colors.white.withValues(alpha: .72), fontSize: 11, letterSpacing: 1.8),
+          ),
+        ),
+      );
+}
+
+class _DeepSpacePainter extends CustomPainter {
+  final Animation<double> clock;
+  _DeepSpacePainter(this.clock) : super(repaint: clock);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = Rect.fromLTWH(0, 0, size.width, size.height);
+    final bg = Paint()
+      ..shader = const RadialGradient(
+        center: Alignment(0, -.05),
+        radius: 1.15,
+        colors: [Color(0xFF10182A), Color(0xFF070B15), Color(0xFF020309)],
+      ).createShader(r);
+    canvas.drawRect(r, bg);
+
+    final star = Paint()..style = PaintingStyle.fill;
+    final random = math.Random(9127);
+    for (var i = 0; i < 170; i++) {
+      final x = random.nextDouble() * size.width;
+      final y = random.nextDouble() * size.height;
+      final pulse = .16 + .10 * math.sin(clock.value * math.pi * 2 + i);
+      star.color = Colors.white.withValues(alpha: pulse);
+      canvas.drawCircle(Offset(x, y), .45 + random.nextDouble() * .65, star);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DeepSpacePainter oldDelegate) => false;
+}
+
+class _PlanetAtmosphere extends CustomPainter {
+  final Animation<double> clock;
+  _PlanetAtmosphere(this.clock) : super(repaint: clock);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = size.width * .315;
+    final glow = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0x443E69A8),
+          const Color(0x222B3F75),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: c, radius: r * 1.28));
+    canvas.drawCircle(c, r * 1.28, glow);
+    final rim = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..color = const Color(0x7C718CC4);
+    canvas.drawArc(Rect.fromCircle(center: c, radius: r * 1.035), -.75, 2.3, false, rim);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PlanetAtmosphere oldDelegate) => true;
+}
+
+class _GamePlanetPainter extends CustomPainter {
+  final Animation<double> clock;
+  _GamePlanetPainter(this.clock) : super(repaint: clock);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = size.width * .315;
+    final surface = Paint()
+      ..shader = const RadialGradient(
+        center: Alignment(-.42, -.48),
+        radius: .82,
+        colors: [Color(0xFF66728A), Color(0xFF29344A), Color(0xFF111827), Color(0xFF04070D)],
+        stops: [0, .36, .73, 1],
+      ).createShader(Rect.fromCircle(center: c, radius: r));
+    canvas.drawCircle(c, r, surface);
+
+    final land = Paint()..style = PaintingStyle.fill;
+    final random = math.Random(4207);
+    for (var i = 0; i < 28; i++) {
+      final a = random.nextDouble() * math.pi * 2;
+      final rr = math.sqrt(random.nextDouble()) * r * .78;
+      final p = Offset(c.dx + math.cos(a) * rr, c.dy + math.sin(a) * rr * .72);
+      final rw = 3 + random.nextDouble() * 15;
+      land.color = const Color(0xFF4C566A).withValues(alpha: .25 + random.nextDouble() * .22);
+      canvas.drawOval(Rect.fromCenter(center: p, width: rw, height: rw * .55), land);
+    }
+
+    final night = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(.62, .55),
+        colors: [const Color(0x99000000), const Color(0x22000000), Colors.transparent],
+      ).createShader(Rect.fromCircle(center: c, radius: r));
+    canvas.drawCircle(c, r, night);
+
+    final edge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..color = const Color(0x6694A7C4);
+    canvas.drawCircle(c, r, edge);
+  }
+
+  @override
+  bool shouldRepaint(covariant _GamePlanetPainter oldDelegate) => true;
+}
+
+class _IslandGameWorldPainter extends CustomPainter {
+  final Animation<double> clock;
+  _IslandGameWorldPainter(this.clock) : super(repaint: clock);
+
+  Path island(Size s, List<Offset> points) {
+    final p = Path()..moveTo(points.first.dx * s.width, points.first.dy * s.height);
+    for (var i = 1; i < points.length; i++) {
+      p.lineTo(points[i].dx * s.width, points[i].dy * s.height);
+    }
+    return p..close();
+  }
+
+  void drawIsland(Canvas c, Size s, List<Offset> points, Color base, double scale) {
+    final path = island(s, points);
+    final bounds = path.getBounds();
+    final shadow = Paint()..color = const Color(0x66000000);
+    c.save();
+    c.translate(0, 12 * scale);
+    c.drawPath(path, shadow);
+    c.restore();
+
+    final fill = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [base.withValues(alpha: .98), base.withValues(alpha: .70), const Color(0xFF151C29)],
+      ).createShader(bounds);
+    c.drawPath(path, fill);
+
+    final rim = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3 * scale
+      ..color = const Color(0x665F7898);
+    c.drawPath(path, rim);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size;
+    final haze = Paint()
+      ..shader = const RadialGradient(colors: [Color(0x222D4875), Color(0x00000000)]).createShader(
+        Rect.fromCenter(center: Offset(s.width * .52, s.height * .48), width: s.width * .9, height: s.height * .9),
+      );
+    canvas.drawRect(Offset.zero & s, haze);
+
+    // Strong island/world composition: large main landmass with smaller separated
+    // platform islands around it. The forms are deliberately original but follow
+    // the reference's readable top-down island hierarchy.
+    drawIsland(canvas, s, [
+      const Offset(.20, .40), const Offset(.28, .28), const Offset(.42, .23),
+      const Offset(.57, .27), const Offset(.66, .39), const Offset(.63, .56),
+      const Offset(.53, .66), const Offset(.37, .69), const Offset(.25, .60),
+    ], const Color(0xFF53616A), 1.0);
+
+    drawIsland(canvas, s, [
+      const Offset(.66, .19), const Offset(.77, .14), const Offset(.87, .20),
+      const Offset(.84, .31), const Offset(.73, .33),
+    ], const Color(0xFF42515B), .75);
+
+    drawIsland(canvas, s, [
+      const Offset(.08, .23), const Offset(.17, .17), const Offset(.25, .21),
+      const Offset(.24, .31), const Offset(.13, .34),
+    ], const Color(0xFF46545E), .72);
+
+    drawIsland(canvas, s, [
+      const Offset(.70, .62), const Offset(.82, .59), const Offset(.91, .66),
+      const Offset(.86, .77), const Offset(.74, .76),
+    ], const Color(0xFF3D4A55), .70);
+
+    drawIsland(canvas, s, [
+      const Offset(.20, .72), const Offset(.30, .74), const Offset(.35, .82),
+      const Offset(.27, .88), const Offset(.16, .83),
+    ], const Color(0xFF3C4B55), .66);
+
+    // restrained internal terrain accents
+    final detail = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = const Color(0x447C91A2);
+    final main = Rect.fromLTWH(s.width * .28, s.height * .34, s.width * .30, s.height * .25);
+    canvas.drawOval(main, detail);
+    canvas.drawArc(main.deflate(18), -.4, 1.7, false, detail);
+    canvas.drawLine(Offset(s.width * .34, s.height * .53), Offset(s.width * .50, s.height * .40), detail);
+
+    final nodes = [
+      Offset(.35, .43), Offset(.50, .50), Offset(.58, .37), Offset(.76, .24), Offset(.17, .26),
+    ];
+    final node = Paint()..color = const Color(0x8897A8C2);
+    for (var i = 0; i < nodes.length; i++) {
+      final p = Offset(nodes[i].dx * s.width, nodes[i].dy * s.height);
+      canvas.drawCircle(p, 3.5 + math.sin(clock.value * math.pi * 2 + i) * .8, node);
+    }
+
+    final title = TextPainter(
+      text: TextSpan(
+        text: 'GAME WORLD',
+        style: TextStyle(color: Colors.white.withValues(alpha: .82), fontSize: math.max(13, s.width * .018), letterSpacing: 4.2, fontWeight: FontWeight.w500),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    title.paint(canvas, Offset((s.width - title.width) / 2, s.height * .91));
+  }
+
+  @override
+  bool shouldRepaint(covariant _IslandGameWorldPainter oldDelegate) => true;
+}
