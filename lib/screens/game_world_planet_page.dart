@@ -124,7 +124,7 @@ class _GamePlanetView extends StatelessWidget {
                   child: Text(
                     'CLICK PLANET  ·  ENTER GAME WORLD',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(.52),
+                      color: Colors.white.withValues(alpha: .52),
                       fontSize: compact ? 7 : 8,
                       letterSpacing: 2.2,
                     ),
@@ -215,7 +215,7 @@ class _GameWorldView extends StatelessWidget {
                     'NINTENDO   ·   SEGA   ·   PLAYSTATION   ·   XBOX',
                     textAlign: TextAlign.right,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(.42),
+                      color: Colors.white.withValues(alpha: .42),
                       fontSize: compact ? 5 : 6,
                       letterSpacing: 1.5,
                     ),
@@ -255,7 +255,7 @@ class _DeepSpacePainter extends CustomPainter {
       canvas.drawCircle(
         Offset(x, y),
         .35 + random.nextDouble() * .85,
-        Paint()..color = Colors.white.withOpacity(.035 + .055 * twinkle),
+        Paint()..color = Colors.white.withValues(alpha: .035 + .055 * twinkle),
       );
     }
 
