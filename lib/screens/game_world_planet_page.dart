@@ -431,7 +431,7 @@ class _GameWorldPainter extends CustomPainter {
       coast.shift(Offset(0, -size.height * .004)),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * .014,
+        ..strokeWidth = size.width * .014
         ..color = const Color(0x527E866F),
     );
 
