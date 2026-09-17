@@ -76,25 +76,6 @@ class _GamePlanetView extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Center(
-          child: LayoutBuilder(
-            builder: (context, box) {
-              final diameter = math.min(
-                box.maxWidth * (compact ? .82 : .54),
-                box.maxHeight * (compact ? .60 : .76),
-              );
-              return GestureDetector(
-                onTap: onEnter,
-                child: SizedBox.square(
-                  dimension: diameter,
-                  child: CustomPaint(
-                    painter: _GamePlanetPainter(phase),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
         SafeArea(
           child: Align(
             alignment: Alignment.topLeft,
@@ -112,6 +93,25 @@ class _GamePlanetView extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+        ),
+        Center(
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final diameter = math.min(
+                box.maxWidth * (compact ? .82 : .54),
+                box.maxHeight * (compact ? .60 : .76),
+              );
+              return GestureDetector(
+                onTap: onEnter,
+                child: SizedBox.square(
+                  dimension: diameter,
+                  child: CustomPaint(
+                    painter: _GamePlanetPainter(phase),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ],
