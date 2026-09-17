@@ -76,6 +76,25 @@ class _GamePlanetView extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: InkWell(
+                onTap: onBack,
+                child: const Text(
+                  '‹',
+                  style: TextStyle(
+                    color: Color(0xAFCBD2D9),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         Center(
           child: LayoutBuilder(
             builder: (context, box) {
@@ -291,6 +310,18 @@ class _GamePlanetPainter extends CustomPainter {
         ..color = const Color(0xA29C9FBE),
     );
 
+    final rimLight = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = r * .022
+      ..color = const Color(0x6E8D86B4);
+    canvas.drawArc(
+      Rect.fromCircle(center: c, radius: r * 1.012),
+      math.pi * .92,
+      math.pi * .72,
+      false,
+      rimLight,
+    );
+
     final arc = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = r * .012
@@ -394,6 +425,14 @@ class _GameWorldPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = size.width * .030
         ..color = const Color(0x405F8C91),
+    );
+
+    canvas.drawPath(
+      coast.shift(Offset(0, -size.height * .004)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * .014,
+        ..color = const Color(0x527E866F),
     );
 
     canvas.drawPath(
