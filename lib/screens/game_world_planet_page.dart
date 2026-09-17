@@ -96,42 +96,21 @@ class _GamePlanetView extends StatelessWidget {
           ),
         ),
         SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(compact ? 18 : 34),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'GAME-WORLD',
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: InkWell(
+                onTap: onBack,
+                child: const Text(
+                  '‹',
                   style: TextStyle(
-                    color: Color(0xE8E8EDF1),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 6,
+                    color: Color(0xAFCBD2D9),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w300,
                   ),
                 ),
-                const SizedBox(height: 6),
-                const Text(
-                  'GAME PLANET  /  SELECTED WORLD',
-                  style: TextStyle(
-                    color: Color(0x779DA7B6),
-                    fontSize: 7,
-                    letterSpacing: 2.5,
-                  ),
-                ),
-                const Spacer(),
-                Center(
-                  child: Text(
-                    'CLICK PLANET  ·  ENTER GAME WORLD',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .52),
-                      fontSize: compact ? 7 : 8,
-                      letterSpacing: 2.2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
+              ),
             ),
           ),
         ),
@@ -167,62 +146,6 @@ class _GameWorldView extends StatelessWidget {
                 ),
               );
             },
-          ),
-        ),
-        SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(compact ? 16 : 30),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                InkWell(
-                  onTap: onBack,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-                    child: Text(
-                      '‹  GAME PLANET',
-                      style: TextStyle(
-                        color: Color(0xAFCBD2D9),
-                        fontSize: 7,
-                        letterSpacing: 2.2,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'GAME WORLD',
-                  style: TextStyle(
-                    color: Color(0xE8E8EDF1),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 6,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                const Text(
-                  'TOP-DOWN WORLD ATLAS',
-                  style: TextStyle(
-                    color: Color(0x779DA7B6),
-                    fontSize: 7,
-                    letterSpacing: 2.5,
-                  ),
-                ),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Text(
-                    'NINTENDO   ·   SEGA   ·   PLAYSTATION   ·   XBOX',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .42),
-                      fontSize: compact ? 5 : 6,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ],
@@ -313,20 +236,20 @@ class _GamePlanetPainter extends CustomPainter {
           center: Alignment(-.43, -.48),
           radius: 1.0,
           colors: [
-            Color(0xFF8797A1),
-            Color(0xFF4C626D),
-            Color(0xFF263640),
-            Color(0xFF080D14),
+            Color(0xFF74758F),
+            Color(0xFF414563),
+            Color(0xFF20263F),
+            Color(0xFF070A16),
           ],
           stops: [.05, .36, .70, 1],
         ).createShader(sphere),
     );
 
-    final land = Paint()..color = const Color(0xB56C796C);
+    final land = Paint()..color = const Color(0xB27B7188);
     final coast = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = r * .012
-      ..color = const Color(0x6C9AA99B);
+      ..color = const Color(0x6C9A94B2);
 
     final continents = <List<Offset>>[
       [Offset(.18, .31), Offset(.27, .23), Offset(.39, .27), Offset(.44, .39), Offset(.35, .47), Offset(.22, .43), Offset(.16, .36)],
@@ -356,7 +279,7 @@ class _GamePlanetPainter extends CustomPainter {
     final texture = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = r * .004
-      ..color = const Color(0x477F969A);
+      ..color = const Color(0x475E648D);
     for (var i = 0; i < 18; i++) {
       final y = sphere.top + sphere.height * (.16 + i * .038);
       final path = Path()..moveTo(sphere.left, y);
@@ -384,13 +307,13 @@ class _GamePlanetPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = r * .012
-        ..color = const Color(0xA2AABBC2),
+        ..color = const Color(0xA29C9FBE),
     );
 
     final arc = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = r * .012
-      ..color = const Color(0x704D547F);
+      ..color = const Color(0x805C4F86);
     canvas.drawArc(
       Rect.fromCircle(center: c, radius: r * 1.055),
       phase * math.pi * 2,
@@ -413,16 +336,13 @@ class _GameWorldPainter extends CustomPainter {
     final rect = Offset.zero & size;
     final center = Offset(size.width / 2, size.height / 2);
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        rect.deflate(size.width * .015),
-        Radius.circular(size.width * .035),
-      ),
+    canvas.drawRect(
+      rect,
       Paint()
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF182C31), Color(0xFF0A181D), Color(0xFF040A0E)],
+          colors: [Color(0xFF152A35), Color(0xFF091821), Color(0xFF030910)],
         ).createShader(rect),
     );
 
@@ -436,14 +356,7 @@ class _GameWorldPainter extends CustomPainter {
           Color(0xFF07161B),
         ],
       ).createShader(rect);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: center,
-        width: size.width * .88,
-        height: size.height * .88,
-      ),
-      ocean,
-    );
+    canvas.drawRect(rect, ocean);
 
     _drawOceanContours(canvas, size, center);
     _drawMainLandmass(canvas, size, center);
@@ -502,7 +415,15 @@ class _GameWorldPainter extends CustomPainter {
 
     canvas.drawPath(
       coast.shift(Offset(0, size.height * .018)),
-      Paint()..color = const Color(0x88000305),
+      Paint()..color = const Color(0x99000205),
+    );
+
+    canvas.drawPath(
+      coast.shift(Offset(0, size.height * .006)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * .030
+        ..color = const Color(0x405F8C91),
     );
 
     canvas.drawPath(
@@ -511,7 +432,7 @@ class _GameWorldPainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF62705A), Color(0xFF3E5545), Color(0xFF263B34)],
+          colors: [Color(0xFF6D6A63), Color(0xFF46534A), Color(0xFF283732)],
         ).createShader(Offset.zero & size),
     );
 
@@ -520,7 +441,7 @@ class _GameWorldPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = size.width * .010
-        ..color = const Color(0x4B9DA887),
+        ..color = const Color(0x4B9A9479),
     );
 
     final plateau = Path()
@@ -535,7 +456,7 @@ class _GameWorldPainter extends CustomPainter {
         center.dx - size.width * .03, center.dy + size.height * .03,
         center.dx - size.width * .16, center.dy - size.height * .15,
       );
-    canvas.drawPath(plateau, Paint()..color = const Color(0x344F6855));
+    canvas.drawPath(plateau, Paint()..color = const Color(0x3D6D6652));
   }
 
   void _drawSecondaryIslands(Canvas canvas, Size size, Offset center) {
@@ -575,13 +496,13 @@ class _GameWorldPainter extends CustomPainter {
         path.shift(Offset(0, size.height * .012)),
         Paint()..color = const Color(0x77000305),
       );
-      canvas.drawPath(path, Paint()..color = const Color(0xFF435A49));
+      canvas.drawPath(path, Paint()..color = const Color(0xFF46544A));
       canvas.drawPath(
         path,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = size.width * .004
-          ..color = const Color(0x668B9D83),
+          ..color = const Color(0x668E947F),
       );
     }
   }
@@ -608,7 +529,7 @@ class _GameWorldPainter extends CustomPainter {
     final contour = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = size.width * .0018
-      ..color = const Color(0x466F866F);
+      ..color = const Color(0x465F7567);
     for (var i = 0; i < 7; i++) {
       final path = Path();
       final y = center.dy - size.height * .19 + i * size.height * .055;
@@ -626,7 +547,7 @@ class _GameWorldPainter extends CustomPainter {
     final route = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = size.width * .004
-      ..color = const Color(0x9AA6A178);
+      ..color = const Color(0x8A9D9470);
     final paths = [
       [
         Offset(-.34, .01), Offset(-.18, -.05), Offset(-.04, -.12),
@@ -661,7 +582,7 @@ class _GameWorldPainter extends CustomPainter {
       Offset(.09, .16), Offset(-.05, .22), Offset(.25, .12),
       Offset(-.31, .02),
     ];
-    final building = Paint()..color = const Color(0xB5AAA99A);
+    final building = Paint()..color = const Color(0xB0AAA59A);
     final shadow = Paint()..color = const Color(0x66000304);
     for (var i = 0; i < positions.length; i++) {
       final p = Offset(
