@@ -25,8 +25,8 @@ jobs:
       - name: Enable Flutter Web
         run: flutter create . --platforms web
 
-      - name: Remove generated sample test
-        run: rm -rf test
+      - name: Remove generated sample files
+        run: rm -rf test analysis_options.yaml
 
       - name: Get dependencies
         run: flutter pub get
