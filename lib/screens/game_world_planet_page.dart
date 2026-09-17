@@ -76,25 +76,6 @@ class _GamePlanetView extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        SafeArea(
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: InkWell(
-                onTap: onBack,
-                child: const Text(
-                  '‹',
-                  style: TextStyle(
-                    color: Color(0xAFCBD2D9),
-                    fontSize: 24,
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
         Center(
           child: LayoutBuilder(
             builder: (context, box) {
@@ -372,17 +353,6 @@ class _GameWorldPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, atmosphere);
 
-    final edge = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .004
-      ..color = const Color(0x3D9AA8AA);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        rect.deflate(size.width * .015),
-        Radius.circular(size.width * .035),
-      ),
-      edge,
-    );
   }
 
   Path _landPath(Size size, Offset center) {
