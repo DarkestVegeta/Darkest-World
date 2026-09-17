@@ -414,116 +414,211 @@ class _GameWorldPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
 
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect.deflate(size.width * .015), Radius.circular(size.width * .035)),
+      RRect.fromRectAndRadius(
+        rect.deflate(size.width * .015),
+        Radius.circular(size.width * .035),
+      ),
       Paint()
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF172A30), Color(0xFF0A171B), Color(0xFF050A0D)],
+          colors: [Color(0xFF182C31), Color(0xFF0A181D), Color(0xFF040A0E)],
         ).createShader(rect),
     );
 
-    final water = Paint()..color = const Color(0xFF0B252B);
+    final ocean = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-.05, -.12),
+        radius: 1.0,
+        colors: const [
+          Color(0xFF173A42),
+          Color(0xFF0C2930),
+          Color(0xFF07161B),
+        ],
+      ).createShader(rect);
     canvas.drawOval(
       Rect.fromCenter(
         center: center,
-        width: size.width * .82,
-        height: size.height * .82,
+        width: size.width * .88,
+        height: size.height * .88,
       ),
-      water,
+      ocean,
     );
 
-    _drawIsland(canvas, size, center, -0.30, 0.02, .34, .25, 1);
-    _drawIsland(canvas, size, center, 0.25, -.08, .28, .31, 2);
-    _drawIsland(canvas, size, center, .05, .32, .40, .17, 3);
-    _drawIsland(canvas, size, center, -.47, .30, .17, .14, 4);
-
-    _drawWaterLines(canvas, size, center);
+    _drawOceanContours(canvas, size, center);
+    _drawMainLandmass(canvas, size, center);
+    _drawSecondaryIslands(canvas, size, center);
+    _drawTerrainContours(canvas, size, center);
     _drawWorldRoutes(canvas, size, center);
     _drawLandmarks(canvas, size, center);
 
-    final vignette = Paint()
+    final atmosphere = Paint()
       ..shader = RadialGradient(
-        colors: [Colors.transparent, const Color(0xC6000204)],
-        stops: const [.55, 1],
+        colors: [Colors.transparent, const Color(0xB9000205)],
+        stops: const [.57, 1],
       ).createShader(rect);
-    canvas.drawRect(rect, vignette);
+    canvas.drawRect(rect, atmosphere);
 
     final edge = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .006
-      ..color = const Color(0x4F91A1A4);
+      ..strokeWidth = size.width * .004
+      ..color = const Color(0x3D9AA8AA);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect.deflate(size.width * .015), Radius.circular(size.width * .035)),
+      RRect.fromRectAndRadius(
+        rect.deflate(size.width * .015),
+        Radius.circular(size.width * .035),
+      ),
       edge,
     );
   }
 
-  void _drawIsland(Canvas canvas, Size size, Offset center, double dx, double dy, double w, double h, int seed) {
-    final islandCenter = Offset(
-      center.dx + dx * size.width,
-      center.dy + dy * size.height,
-    );
-    final islandSize = Size(size.width * w, size.height * h);
-    final random = math.Random(seed * 97);
-    final points = <Offset>[];
-    const count = 22;
-    for (var i = 0; i < count; i++) {
-      final a = math.pi * 2 * i / count;
-      final radius = .78 + random.nextDouble() * .22;
-      points.add(Offset(
-        islandCenter.dx + math.cos(a) * islandSize.width * .5 * radius,
-        islandCenter.dy + math.sin(a) * islandSize.height * .5 * radius,
-      ));
-    }
-
-    final path = Path()..moveTo(points.first.dx, points.first.dy);
+  Path _landPath(Size size, Offset center) {
+    final points = <Offset>[
+      Offset(.03, -.31), Offset(.14, -.39), Offset(.29, -.35),
+      Offset(.40, -.25), Offset(.43, -.11), Offset(.37, -.01),
+      Offset(.45, .09), Offset(.39, .22), Offset(.27, .28),
+      Offset(.17, .23), Offset(.08, .31), Offset(-.08, .33),
+      Offset(-.19, .27), Offset(-.23, .16), Offset(-.34, .13),
+      Offset(-.40, .02), Offset(-.34, -.09), Offset(-.25, -.13),
+      Offset(-.23, -.25), Offset(-.13, -.34),
+    ];
+    final path = Path()
+      ..moveTo(
+        center.dx + points.first.dx * size.width,
+        center.dy + points.first.dy * size.height,
+      );
     for (var i = 1; i < points.length; i++) {
-      path.lineTo(points[i].dx, points[i].dy);
+      path.lineTo(
+        center.dx + points[i].dx * size.width,
+        center.dy + points[i].dy * size.height,
+      );
     }
     path.close();
+    return path;
+  }
+
+  void _drawMainLandmass(Canvas canvas, Size size, Offset center) {
+    final coast = _landPath(size, center);
 
     canvas.drawPath(
-      path.shift(const Offset(0, 5)),
-      Paint()..color = const Color(0x77000608),
-    );
-    canvas.drawPath(
-      path,
-      Paint()..color = const Color(0xFF435C4A),
+      coast.shift(Offset(0, size.height * .018)),
+      Paint()..color = const Color(0x88000305),
     );
 
-    final inner = path.shift(const Offset(0, -2));
     canvas.drawPath(
-      inner,
+      coast,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF62705A), Color(0xFF3E5545), Color(0xFF263B34)],
+        ).createShader(Offset.zero & size),
+    );
+
+    canvas.drawPath(
+      coast.shift(Offset(0, -size.height * .006)),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * .004
-        ..color = const Color(0x5B8A9A7A),
+        ..strokeWidth = size.width * .010
+        ..color = const Color(0x4B9DA887),
     );
 
-    final hill = Paint()..color = const Color(0xFF30463A);
-    for (var i = 0; i < 7; i++) {
-      final p = Offset(
-        islandCenter.dx + (random.nextDouble() - .5) * islandSize.width * .65,
-        islandCenter.dy + (random.nextDouble() - .5) * islandSize.height * .55,
+    final plateau = Path()
+      ..moveTo(center.dx - size.width * .16, center.dy - size.height * .15)
+      ..cubicTo(
+        center.dx - size.width * .05, center.dy - size.height * .25,
+        center.dx + size.width * .13, center.dy - size.height * .22,
+        center.dx + size.width * .22, center.dy - size.height * .08,
+      )
+      ..cubicTo(
+        center.dx + size.width * .12, center.dy + size.height * .03,
+        center.dx - size.width * .03, center.dy + size.height * .03,
+        center.dx - size.width * .16, center.dy - size.height * .15,
       );
-      canvas.drawCircle(p, size.width * (.008 + random.nextDouble() * .012), hill);
+    canvas.drawPath(plateau, Paint()..color = const Color(0x344F6855));
+  }
+
+  void _drawSecondaryIslands(Canvas canvas, Size size, Offset center) {
+    final islands = [
+      [Offset(.47, -.31), .13, .09, 1],
+      [Offset(.39, .38), .14, .10, 2],
+      [Offset(-.47, .30), .11, .075, 3],
+      [Offset(-.42, -.27), .085, .065, 4],
+      [Offset(.03, .46), .10, .06, 5],
+    ];
+
+    for (final data in islands) {
+      final p = data[0] as Offset;
+      final w = data[1] as double;
+      final h = data[2] as double;
+      final seed = data[3] as int;
+      final c = Offset(
+        center.dx + p.dx * size.width,
+        center.dy + p.dy * size.height,
+      );
+      final random = math.Random(seed * 173);
+      final path = Path();
+      const count = 18;
+      for (var i = 0; i < count; i++) {
+        final a = math.pi * 2 * i / count;
+        final jitter = .82 + random.nextDouble() * .18;
+        final point = Offset(
+          c.dx + math.cos(a) * size.width * w * jitter,
+          c.dy + math.sin(a) * size.height * h * jitter,
+        );
+        if (i == 0) path.moveTo(point.dx, point.dy);
+        else path.lineTo(point.dx, point.dy);
+      }
+      path.close();
+
+      canvas.drawPath(
+        path.shift(Offset(0, size.height * .012)),
+        Paint()..color = const Color(0x77000305),
+      );
+      canvas.drawPath(path, Paint()..color = const Color(0xFF435A49));
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = size.width * .004
+          ..color = const Color(0x668B9D83),
+      );
     }
   }
 
-  void _drawWaterLines(Canvas canvas, Size size, Offset center) {
+  void _drawOceanContours(Canvas canvas, Size size, Offset center) {
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .0015
-      ..color = const Color(0x355B8E95);
-    for (var i = -4; i <= 4; i++) {
+      ..strokeWidth = size.width * .0013
+      ..color = const Color(0x385B8991);
+    for (var ring = 0; ring < 5; ring++) {
+      final rect = Rect.fromCenter(
+        center: center.translate(
+          math.sin(phase * math.pi * 2 + ring) * size.width * .003,
+          0,
+        ),
+        width: size.width * (.30 + ring * .12),
+        height: size.height * (.22 + ring * .11),
+      );
+      canvas.drawOval(rect, paint);
+    }
+  }
+
+  void _drawTerrainContours(Canvas canvas, Size size, Offset center) {
+    final contour = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .0018
+      ..color = const Color(0x466F866F);
+    for (var i = 0; i < 7; i++) {
       final path = Path();
-      for (var j = 0; j <= 8; j++) {
-        final x = center.dx + (j - 4) * size.width * .11;
-        final y = center.dy + i * size.height * .065 + math.sin(j * .9 + i + phase * math.pi * 2) * 4;
-        if (j == 0) path.moveTo(x, y); else path.lineTo(x, y);
+      final y = center.dy - size.height * .19 + i * size.height * .055;
+      path.moveTo(center.dx - size.width * .25, y);
+      for (var j = 1; j <= 7; j++) {
+        final x = center.dx - size.width * .25 + j * size.width * .07;
+        final wave = math.sin(j * .85 + i * .9) * size.height * .012;
+        path.lineTo(x, y + wave);
       }
-      canvas.drawPath(path, paint);
+      canvas.drawPath(path, contour);
     }
   }
 
@@ -531,17 +626,30 @@ class _GameWorldPainter extends CustomPainter {
     final route = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = size.width * .004
-      ..color = const Color(0x8F9A9B72);
+      ..color = const Color(0x9AA6A178);
     final paths = [
-      [Offset(-.43, .06), Offset(-.18, .00), Offset(.02, .08), Offset(.28, -.04), Offset(.42, -.12)],
-      [Offset(-.28, .24), Offset(-.08, .15), Offset(.12, .23), Offset(.32, .18)],
-      [Offset(-.02, -.28), Offset(.04, -.10), Offset(.12, .10), Offset(.06, .32)],
+      [
+        Offset(-.34, .01), Offset(-.18, -.05), Offset(-.04, -.12),
+        Offset(.10, -.08), Offset(.23, .02), Offset(.36, .10),
+      ],
+      [
+        Offset(-.13, .26), Offset(-.07, .13), Offset(.01, .03),
+        Offset(.10, -.08), Offset(.18, -.20),
+      ],
+      [
+        Offset(.08, .32), Offset(.15, .24), Offset(.24, .22),
+        Offset(.37, .27),
+      ],
     ];
     for (final points in paths) {
       final path = Path();
       for (var i = 0; i < points.length; i++) {
-        final p = Offset(center.dx + points[i].dx * size.width, center.dy + points[i].dy * size.height);
-        if (i == 0) path.moveTo(p.dx, p.dy); else path.lineTo(p.dx, p.dy);
+        final p = Offset(
+          center.dx + points[i].dx * size.width,
+          center.dy + points[i].dy * size.height,
+        );
+        if (i == 0) path.moveTo(p.dx, p.dy);
+        else path.lineTo(p.dx, p.dy);
       }
       canvas.drawPath(path, route);
     }
@@ -549,19 +657,31 @@ class _GameWorldPainter extends CustomPainter {
 
   void _drawLandmarks(Canvas canvas, Size size, Offset center) {
     final positions = [
-      Offset(-.26, .01), Offset(.06, -.02), Offset(.25, -.10), Offset(.08, .24), Offset(-.10, .31), Offset(-.39, .05),
+      Offset(-.19, -.02), Offset(-.02, -.10), Offset(.15, -.07),
+      Offset(.09, .16), Offset(-.05, .22), Offset(.25, .12),
+      Offset(-.31, .02),
     ];
-    final building = Paint()..color = const Color(0xB5A2A29A);
+    final building = Paint()..color = const Color(0xB5AAA99A);
     final shadow = Paint()..color = const Color(0x66000304);
     for (var i = 0; i < positions.length; i++) {
-      final p = Offset(center.dx + positions[i].dx * size.width, center.dy + positions[i].dy * size.height);
-      final w = size.width * (.018 + (i % 3) * .006);
-      final h = w * (1.0 + (i % 2) * .7);
-      canvas.drawRect(Rect.fromLTWH(p.dx - w / 2 + 3, p.dy - h / 2 + 3, w, h), shadow);
-      canvas.drawRect(Rect.fromLTWH(p.dx - w / 2, p.dy - h / 2, w, h), building);
+      final p = Offset(
+        center.dx + positions[i].dx * size.width,
+        center.dy + positions[i].dy * size.height,
+      );
+      final w = size.width * (.014 + (i % 3) * .005);
+      final h = w * (1.0 + (i % 2) * .75);
+      canvas.drawRect(
+        Rect.fromLTWH(p.dx - w / 2 + 3, p.dy - h / 2 + 3, w, h),
+        shadow,
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(p.dx - w / 2, p.dy - h / 2, w, h),
+        building,
+      );
     }
   }
 
   @override
-  bool shouldRepaint(covariant _GameWorldPainter oldDelegate) => oldDelegate.phase != phase;
+  bool shouldRepaint(covariant _GameWorldPainter oldDelegate) =>
+      oldDelegate.phase != phase;
 }
