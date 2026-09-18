@@ -526,1555 +526,442 @@ class _GamePlanetPainter extends CustomPainter {
 class _GameWorldPainter extends CustomPainter {
   final double phase;
   final double angle;
-  double get _currentAngle => angle;
   const _GameWorldPainter(this.phase, this.angle);
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    final center = Offset(size.width / 2, size.height / 2);
+    final c = Offset(size.width / 2, size.height / 2);
 
+    // The world is built as a small 3D scene, not as a flat map:
+    // x = left/right, d = depth, h = terrain height.
     canvas.drawRect(
       rect,
       Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF152A35), Color(0xFF091821), Color(0xFF030910)],
+        ..shader = const RadialGradient(
+          center: Alignment(0, -.35),
+          radius: 1.05,
+          colors: [
+            Color(0xFF152C38),
+            Color(0xFF0A1B25),
+            Color(0xFF03090F),
+          ],
         ).createShader(rect),
     );
 
-    final ocean = Paint()
+    final yaw = angle;
+    _drawOcean(canvas, size, c, yaw);
+
+    final islands = <_WorldIsland>[
+      _WorldIsland(
+        x: 0,
+        d: 0.02,
+        scale: 1.0,
+        height: .16,
+        seed: 7,
+        main: true,
+        points: const [
+          Offset(-.48, -.10), Offset(-.40, -.28), Offset(-.20, -.39),
+          Offset(.02, -.34), Offset(.23, -.42), Offset(.43, -.27),
+          Offset(.49, -.05), Offset(.38, .15), Offset(.43, .31),
+          Offset(.22, .42), Offset(-.02, .38), Offset(-.18, .47),
+          Offset(-.39, .32), Offset(-.50, .13),
+        ],
+      ),
+      _WorldIsland(x: -.56, d: -.34, scale: .42, height: .10, seed: 11, points: const [
+        Offset(-.52, -.12), Offset(-.25, -.36), Offset(.10, -.31),
+        Offset(.40, -.12), Offset(.48, .12), Offset(.20, .33),
+        Offset(-.18, .30), Offset(-.46, .17),
+      ]),
+      _WorldIsland(x: .57, d: -.28, scale: .34, height: .09, seed: 19, points: const [
+        Offset(-.50, -.10), Offset(-.20, -.34), Offset(.22, -.28),
+        Offset(.46, -.02), Offset(.35, .25), Offset(.02, .35),
+        Offset(-.34, .25),
+      ]),
+      _WorldIsland(x: -.54, d: .42, scale: .31, height: .075, seed: 23, points: const [
+        Offset(-.46, -.10), Offset(-.12, -.30), Offset(.31, -.20),
+        Offset(.43, .08), Offset(.20, .29), Offset(-.28, .26),
+      ]),
+      _WorldIsland(x: .50, d: .47, scale: .27, height: .07, seed: 31, points: const [
+        Offset(-.45, -.08), Offset(-.10, -.26), Offset(.32, -.16),
+        Offset(.42, .10), Offset(.12, .27), Offset(-.30, .20),
+      ]),
+    ];
+
+    // Back-to-front sorting is what makes the drag a camera orbit rather than
+    // moving one picture sideways.
+    final ordered = [...islands]
+      ..sort((a, b) => _depthOf(b, yaw).compareTo(_depthOf(a, yaw)));
+
+    for (final island in ordered) {
+      _drawIsland(canvas, size, c, island, yaw);
+    }
+
+    _drawOceanAtmosphere(canvas, size, c, yaw);
+
+    final vignette = Paint()
       ..shader = RadialGradient(
-        center: const Alignment(-.05, -.12),
+        colors: [Colors.transparent, const Color(0xB8000206)],
+        stops: const [.56, 1],
+      ).createShader(rect);
+    canvas.drawRect(rect, vignette);
+  }
+
+  double _depthOf(_WorldIsland island, double yaw) {
+    return island.d * math.cos(yaw) + island.x * math.sin(yaw);
+  }
+
+  Offset _project(
+    Size size,
+    Offset c,
+    double x,
+    double d,
+    double h,
+    double yaw, {
+    double perspective = .20,
+  }) {
+    final cy = math.cos(yaw);
+    final sy = math.sin(yaw);
+    final rx = x * cy - d * sy;
+    final rd = x * sy + d * cy;
+
+    final depthScale = (1.0 - rd * perspective).clamp(.72, 1.24);
+    final px = c.dx + rx * size.width * .46 * depthScale;
+    final py = c.dy + rd * size.height * .29 * depthScale - h * size.height * .92 * depthScale;
+    return Offset(px, py);
+  }
+
+  void _drawOcean(Canvas canvas, Size size, Offset c, double yaw) {
+    final deep = Paint()
+      ..shader = RadialGradient(
+        center: Alignment(.0, -.12),
         radius: 1.0,
         colors: const [
-          Color(0xFF173A42),
-          Color(0xFF0C2930),
-          Color(0xFF07161B),
-        ],
-      ).createShader(rect);
-    canvas.drawRect(rect, ocean);
-
-    canvas.save();
-    final yaw = math.sin(angle);
-    final facing = math.cos(angle).abs();
-    final turn = math.sin(angle);
-    final depthX = .62 + .38 * facing;
-    final depthY = .68 + .32 * facing;
-    final cameraShiftX = yaw * size.width * .145;
-    final cameraShiftY = turn * size.height * .072;
-    final shear = yaw * .115;
-
-    // Lightweight orbital camera: horizontal drag changes yaw, compresses
-    // the far side and shifts the near side so the land reads as a volume.
-    canvas.translate(center.dx + cameraShiftX, center.dy + cameraShiftY);
-    canvas.scale(depthX, depthY);
-    canvas.skew(shear, 0);
-    canvas.translate(-center.dx, -center.dy);
-    _drawOceanContours(canvas, size, center);
-    _drawOceanDepthBands(canvas, size, center, angle);
-    _drawOrbitalWorldHorizon(canvas, size, center, angle);
-    _drawRotatedFarIslands(canvas, size, center, angle);
-    _drawOrbitalIslandShadowPlane(canvas, size, center, angle);
-    _drawSecondaryIslands(canvas, size, center);
-    _drawFarHorizonMist(canvas, size, center, angle);
-    _drawMainLandmassDepth(canvas, size, center, angle);
-    _drawOrbitalLandmassSilhouette(canvas, size, center, angle);
-    _drawOrbitalLandFaces(canvas, size, center, angle);
-    _drawMainLandmass(canvas, size, center);
-    _drawOrbitalMainIslandFace(canvas, size, center, angle);
-    _drawOrbitalTerrainVolumes(canvas, size, center, angle);
-    _drawNearTerrainLayers(canvas, size, center, angle);
-    _drawOrbitalTerrainParallax(canvas, size, center, angle);
-    _drawCoastalInlets(canvas, size, center);
-    _drawCoastalShelves(canvas, size, center);
-    _drawIslandMaterial(canvas, size, center);
-    _drawCoastalDepth(canvas, size, center);
-    _drawTerrainContours(canvas, size, center);
-    _drawElevationRidges(canvas, size, center);
-    _drawTerrainMasses(canvas, size, center);
-    _drawTerrainEdgeFaces(canvas, size, center, angle);
-    _drawTerrainHighlights(canvas, size, center);
-    _drawTerrainShadows(canvas, size, center);
-    _drawRaisedCliffs(canvas, size, center, angle);
-    _drawWaterReflections(canvas, size, center);
-    _drawOrbitalShorelineDepth(canvas, size, center, angle);
-    _drawSpatialOcclusion(canvas, size, center, angle);
-    _drawSpatialDepthFog(canvas, size, center, angle);
-    _drawWorldMist(canvas, size, center);
-    _drawWorldLightSweep(canvas, size, center);
-    _drawNearForeground(canvas, size, center, angle);
-    _drawWorldForegroundShelf(canvas, size, center, angle);
-    _drawOrbitalLightDirection(canvas, size, center, angle);
-
-    // A restrained near/far atmosphere layer sells the camera height
-    // without turning the world into a flat map or HUD.
-    final nearGlow = Paint()
-      ..shader = RadialGradient(
-        center: Alignment(yaw * .10, .92),
-        radius: 1.15,
-        colors: const [
-          Color(0x1B3B6870),
-          Color(0x09233B43),
-          Colors.transparent,
-        ],
-        stops: const [.0, .48, 1],
-      ).createShader(rect);
-    canvas.drawRect(rect, nearGlow);
-
-    // Curved horizon haze: the world should read as a place with a horizon,
-    // not a flat board viewed from above.
-    final horizonArc = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * (.010 + facing * .004)
-      ..color = Color(0x223F7375).withValues(alpha: .55 + facing * .25);
-    canvas.drawArc(
-      Rect.fromCenter(
-        center: center.translate(yaw * size.width * .025, size.height * .075),
-        width: size.width * (.82 + facing * .08),
-        height: size.height * (.42 + facing * .10),
-      ),
-      math.pi * .10,
-      math.pi * .80,
-      false,
-      horizonArc,
-    );
-
-    _drawWorldAtmosphericDepth(canvas, size, center, angle);
-    canvas.restore();
-
-    final atmosphere = Paint()
-      ..shader = RadialGradient(
-        colors: [Colors.transparent, const Color(0xB9000205)],
-        stops: const [.57, 1],
-      ).createShader(rect);
-    canvas.drawRect(rect, atmosphere);
-
-  }
-
-  void _drawWorldAtmosphericDepth(Canvas canvas, Size size, Offset center, double angle) {
-    final yaw = math.sin(angle);
-    final farSide = yaw >= 0 ? -1.0 : 1.0;
-    final horizon = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment(0, farSide),
-        end: Alignment(0, -farSide),
-        colors: const [
-          Color(0x1B6D8580),
-          Colors.transparent,
-          Color(0x12030A0C),
-        ],
-        stops: const [.0, .42, 1.0],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, horizon);
-
-    // A soft lower-world falloff gives the scene a spherical-world reading
-    // without adding a visible UI frame around it.
-    final limb = Paint()
-      ..shader = RadialGradient(
-        center: Alignment(yaw * .28, -.08),
-        radius: .72,
-        colors: const [
-          Colors.transparent,
-          Color(0x14000608),
-          Color(0x3A000306),
-        ],
-        stops: const [.46, .78, 1.0],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, limb);
-  }
-
-  void _drawFarHorizonMist(Canvas canvas, Size size, Offset center, double angle) {
-    final far = math.max(0.0, math.sin(angle));
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0x3A6B8B8D).withValues(alpha: .18 + far * .12),
-          Colors.transparent,
-        ],
-        stops: const [.0, .42],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, paint);
-  }
-
-  void _drawOrbitalLandFaces(Canvas canvas, Size size, Offset center, double angle) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-    final orbitSide = yaw.sign;
-    if (amount < .035) return;
-
-    final dir = yaw.sign;
-    final main = _landPath(size, center);
-
-    // Draw the exposed side before the normal landmass: the silhouette now
-    // behaves like lifted terrain instead of a flat shape sliding on water.
-    final lowerFace = Paint()..color = const Color(0x7A101A17);
-    final lowerEdge = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * (.006 + amount * .010)
-      ..color = const Color(0x52627262);
-
-    for (var i = 3; i >= 1; i--) {
-      final t = i / 3;
-      canvas.drawPath(
-        main.shift(Offset(
-          dir * size.width * (.008 + amount * .020) * t,
-          size.height * (.012 + amount * .030) * t,
-        )),
-        Paint()..color = Color(0x2A101713).withValues(alpha: .42 + t * .12),
-      );
-    }
-
-    canvas.drawPath(
-      main.shift(Offset(
-        dir * size.width * (.014 + amount * .024),
-        size.height * (.018 + amount * .040),
-      )),
-      lowerFace,
-    );
-    canvas.drawPath(
-      main.shift(Offset(
-        dir * size.width * (.010 + amount * .014),
-        size.height * (.012 + amount * .024),
-      )),
-      lowerEdge,
-    );
-
-    // Raised interior terrain gets the same orbital side-face treatment.
-    final masses = [
-      [Offset(-.09, -.12), .095, .052],
-      [Offset(.08, -.08), .082, .046],
-      [Offset(.02, .10), .115, .055],
-      [Offset(.16, .16), .072, .040],
-    ];
-
-    for (var i = 0; i < masses.length; i++) {
-      final m = masses[i];
-      final p = m[0] as Offset;
-      final w = m[1] as double;
-      final h = m[2] as double;
-      final c = Offset(
-        center.dx + p.dx * size.width,
-        center.dy + p.dy * size.height,
-      );
-      final oval = Path()
-        ..moveTo(c.dx - size.width * w, c.dy)
-        ..quadraticBezierTo(
-          c.dx,
-          c.dy - size.height * h,
-          c.dx + size.width * w,
-          c.dy - size.height * h * .10,
-        )
-        ..quadraticBezierTo(
-          c.dx + size.width * w * .38,
-          c.dy + size.height * h,
-          c.dx - size.width * w,
-          c.dy,
-        )
-        ..close();
-
-      final sideShift = Offset(
-        dir * size.width * (.008 + amount * (.010 + i * .002)),
-        size.height * (.012 + amount * .012),
-      );
-      canvas.drawPath(oval.shift(sideShift), Paint()..color = const Color(0x5C17211C));
-      canvas.drawPath(
-        oval.shift(Offset(
-          dir * size.width * (.004 + amount * .006),
-          size.height * (.006 + amount * .006),
-        )),
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = size.width * .003
-          ..color = const Color(0x3F647064),
-      );
-    }
-  }
-
-  void _drawRaisedCliffs(Canvas canvas, Size size, Offset center, double angle) {
-    final yaw = math.sin(angle);
-    final near = yaw >= 0 ? 1.0 : -1.0;
-    final main = _landPath(size, center);
-    final cliff = Paint()..color = const Color(0x8A17211D);
-    final rock = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .018
-      ..color = const Color(0x554D5B50);
-
-    // A broad lower face makes the main island read as lifted terrain.
-    canvas.drawPath(
-      main.shift(Offset(near * size.width * .010, size.height * .026)),
-      cliff,
-    );
-    canvas.drawPath(
-      main.shift(Offset(near * size.width * .004, size.height * .012)),
-      rock,
-    );
-  }
-
-  void _drawSpatialOcclusion(Canvas canvas, Size size, Offset center, double angle) {
-    final yaw = math.sin(angle);
-    final edge = yaw.abs();
-    final side = yaw >= 0 ? 1.0 : -1.0;
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: side > 0
-            ? [Colors.transparent, const Color(0x16000608)]
-            : [const Color(0x16000608), Colors.transparent],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, paint);
-
-    if (edge > .28) {
-      final veil = Paint()..color = const Color(0x1802080B).withValues(alpha: edge * .22);
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: center.translate(-side * size.width * .22, size.height * .01),
-          width: size.width * .34,
-          height: size.height * .52,
-        ),
-        veil,
-      );
-    }
-  }
-
-  void _drawWorldForegroundShelf(Canvas canvas, Size size, Offset center, double angle) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-
-    final shelf = Path()
-      ..moveTo(center.dx - size.width * .46, center.dy + size.height * .27)
-      ..cubicTo(
-        center.dx - size.width * .28, center.dy + size.height * (.34 + amount * .03),
-        center.dx + size.width * .16, center.dy + size.height * (.36 + amount * .02),
-        center.dx + size.width * .48, center.dy + size.height * .25,
-      )
-      ..cubicTo(
-        center.dx + size.width * .38, center.dy + size.height * .34,
-        center.dx - size.width * .27, center.dy + size.height * .36,
-        center.dx - size.width * .46, center.dy + size.height * .27,
-      );
-
-    canvas.drawPath(
-      shelf.shift(Offset(-yaw * size.width * .018, size.height * .018)),
-      Paint()..color = const Color(0x5A020A0D),
-    );
-    canvas.drawPath(
-      shelf,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: const [
-            Color(0x2D48625C),
-            Color(0x180F2729),
-            Colors.transparent,
-          ],
-        ).createShader(Offset.zero & size),
-    );
-
-    final edge = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .004
-      ..color = const Color(0x254C7B78);
-    canvas.drawPath(shelf, edge);
-  }
-
-  void _drawNearForeground(Canvas canvas, Size size, Offset center, double angle) {
-    final side = math.sin(angle);
-    final alpha = .10 + side.abs() * .08;
-    final foreground = Paint()
-      ..shader = RadialGradient(
-        center: Alignment(side * .62, .92),
-        radius: 1.0,
-        colors: [
-          Color(0x264B7072).withValues(alpha: alpha),
-          Colors.transparent,
+          Color(0xFF18404A),
+          Color(0xFF0B2932),
+          Color(0xFF06151C),
         ],
       ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, foreground);
-  }
-
-  Path _landPath(Size size, Offset center) {
-    final points = <Offset>[
-      Offset(.03, -.31), Offset(.14, -.39), Offset(.29, -.35),
-      Offset(.40, -.25), Offset(.43, -.11), Offset(.37, -.01),
-      Offset(.45, .09), Offset(.39, .22), Offset(.27, .28),
-      Offset(.17, .23), Offset(.08, .31), Offset(-.08, .33),
-      Offset(-.19, .27), Offset(-.23, .16), Offset(-.34, .13),
-      Offset(-.40, .02), Offset(-.34, -.09), Offset(-.25, -.13),
-      Offset(-.23, -.25), Offset(-.13, -.34),
-    ];
-    final p = points.map((v) => Offset(
-      center.dx + v.dx * size.width,
-      center.dy + v.dy * size.height,
-    )).toList();
-
-    final path = Path()..moveTo(p.first.dx, p.first.dy);
-    for (var i = 1; i < p.length; i++) {
-      final prev = p[i - 1];
-      final cur = p[i];
-      final mid = Offset((prev.dx + cur.dx) / 2, (prev.dy + cur.dy) / 2);
-      path.quadraticBezierTo(prev.dx, prev.dy, mid.dx, mid.dy);
-    }
-    final last = p.last;
-    final first = p.first;
-    final mid = Offset((last.dx + first.dx) / 2, (last.dy + first.dy) / 2);
-    path.quadraticBezierTo(last.dx, last.dy, mid.dx, mid.dy);
-    path.quadraticBezierTo(first.dx, first.dy, first.dx, first.dy);
-    path.close();
-    return path;
-  }
-
-  void _drawRotatedFarIslands(Canvas canvas, Size size, Offset center, double angle) {
-    final amount = math.sin(angle).abs();
-    final dir = math.sin(angle).sign;
-    final front = math.max(0.0, math.sin(angle));
-    final back = math.max(0.0, -math.sin(angle));
-    final facing = math.cos(angle).abs();
-
-    final islands = [
-      (Offset(-.42, -.26), .050, .032, .72),
-      (Offset(-.08, -.04), .075, .040, .88),
-      (Offset(.30, .18), .060, .035, .78),
-    ];
-
-    for (var i = 0; i < islands.length; i++) {
-      final item = islands[i];
-      // Far islands compress and retreat during an orbit instead of
-      // behaving like cards sliding around.
-      final reveal = .82 - amount * .48 + (1.0 - facing) * .02;
-      final x = item.$1.dx + dir * (.055 + i * .012) * amount;
-      final y = item.$1.dy + (front - back) * (.028 + i * .010);
-      final c = Offset(center.dx + x * size.width, center.dy + y * size.height);
-      final w = size.width * item.$2 * reveal;
-      final h = size.height * item.$3 * reveal * (.84 + .16 * facing);
-
-      final depth = size.height * (.018 + amount * (.022 + i * .006));
-      final side = Path()
-        ..moveTo(c.dx - w, c.dy)
-        ..quadraticBezierTo(c.dx, c.dy - h, c.dx + w, c.dy - h * .10)
-        ..quadraticBezierTo(c.dx + w * .35, c.dy + h, c.dx - w, c.dy);
-
-      canvas.drawPath(
-        side.shift(Offset(-dir * size.width * .010, depth)),
-        Paint()..color = const Color(0x99000103),
-      );
-
-      final top = Path()
-        ..moveTo(c.dx - w, c.dy - depth)
-        ..quadraticBezierTo(c.dx, c.dy - h - depth, c.dx + w, c.dy - h * .10 - depth)
-        ..quadraticBezierTo(c.dx + w * .35, c.dy + h - depth, c.dx - w, c.dy - depth);
-
-      canvas.drawPath(
-        top,
-        Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: const [
-              Color(0xFF536258),
-              Color(0xFF35463E),
-              Color(0xFF202F2B),
-            ],
-          ).createShader(Rect.fromCenter(center: c, width: w * 2, height: h * 2)),
-      );
-
-      canvas.drawPath(
-        top,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = size.width * .0025
-          ..color = const Color(0x66858C79),
-      );
-    }
-  }
-
-
-
-  void _drawOrbitalIslandShadowPlane(
-    Canvas canvas,
-    Size size,
-    Offset center,
-    double angle,
-  ) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-    final dir = yaw.sign;
-
-    // Soft contact shadows move sideways with the camera. This gives the
-    // islands a common ground plane and makes the orbit easier to read.
-    final shadow = Paint()
-      ..shader = RadialGradient(
-        center: Alignment(-dir * .30, .0),
-        radius: .75,
-        colors: const [
-          Color(0x26000406),
-          Color(0x12000406),
-          Colors.transparent,
-        ],
-        stops: const [.0, .52, 1],
-      ).createShader(Offset.zero & size);
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(
-          center.dx + dir * amount * size.width * .035,
-          center.dy + size.height * .155,
-        ),
-        width: size.width * (.72 + amount * .06),
-        height: size.height * (.25 + amount * .025),
-      ),
-      shadow,
-    );
-  }
-
-  void _drawOrbitalTerrainParallax(
-    Canvas canvas,
-    Size size,
-    Offset center,
-    double angle,
-  ) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-    if (amount < .04) return;
-
-    final dir = yaw.sign;
-    final near = math.max(0.0, yaw);
-    final far = math.max(0.0, -yaw);
-
-    // Foreground terrain advances while the opposite side retreats. The
-    // movement is deliberately small so the scene stays grounded.
-    final features = [
-      [Offset(-.08, -.12), .090, .045],
-      [Offset(.10, -.07), .075, .040],
-      [Offset(.03, .11), .105, .050],
-      [Offset(.15, .16), .062, .035],
-    ];
-
-    for (var i = 0; i < features.length; i++) {
-      final f = features[i];
-      final p = f[0] as Offset;
-      final w = f[1] as double;
-      final h = f[2] as double;
-      final frontFactor = .70 + near * .42 - far * .16;
-      final c = Offset(
-        center.dx + (p.dx - dir * amount * (.010 + i * .002)) * size.width,
-        center.dy + (p.dy + amount * (.010 + i * .002)) * size.height,
-      );
-
-      final rx = size.width * w * frontFactor;
-      final ry = size.height * h * (1.0 + near * .10);
-      final lift = size.height * (.010 + amount * (.018 + i * .003));
-
-      final path = Path()
-        ..moveTo(c.dx - rx, c.dy)
-        ..quadraticBezierTo(
-          c.dx - rx * .38,
-          c.dy - ry,
-          c.dx + rx,
-          c.dy - ry * .08,
-        )
-        ..quadraticBezierTo(
-          c.dx + rx * .35,
-          c.dy + ry,
-          c.dx - rx,
-          c.dy,
-        )
-        ..close();
-
-      final lower = path.shift(
-        Offset(-dir * size.width * (.004 + amount * .008), lift),
-      );
-      canvas.drawPath(
-        lower,
-        Paint()..color = const Color(0x3E050B09),
-      );
-
-      canvas.drawPath(
-        path,
-        Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: const [
-              Color(0x3A92937B),
-              Color(0x243E5146),
-              Color(0x15202D28),
-            ],
-          ).createShader(path.getBounds()),
-      );
-    }
-  }
-
-  void _drawOrbitalLightDirection(
-    Canvas canvas,
-    Size size,
-    Offset center,
-    double angle,
-  ) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-    final dir = yaw.sign;
-
-    // One broad moving light/shadow relationship ties water, island and
-    // terrain together while the camera turns.
-    final light = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment(-.85 - dir * amount * .35, -.75),
-        end: Alignment(.80 - dir * amount * .10, .70),
-        colors: const [
-          Color(0x1B9EAA98),
-          Color(0x080B1613),
-          Color(0x24000405),
-        ],
-        stops: const [.0, .54, 1.0],
-      ).createShader(Offset.zero & size);
-
-    canvas.drawRect(
-      Offset.zero & size,
-      light,
-    );
-
-    final rim = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * (.003 + amount * .002)
-      ..color = const Color(0x1C7B9A92);
-
-    final arcRect = Rect.fromCenter(
-      center: Offset(
-        center.dx - dir * amount * size.width * .03,
-        center.dy + size.height * .05,
-      ),
-      width: size.width * (.74 + amount * .06),
-      height: size.height * (.40 + amount * .04),
-    );
-    canvas.drawArc(arcRect, math.pi * .18, math.pi * .64, false, rim);
-  }
-
-  void _drawOrbitalWorldHorizon(
-    Canvas canvas,
-    Size size,
-    Offset center,
-    double angle,
-  ) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-    final horizonY = center.dy - size.height * (.255 - amount * .018);
+    canvas.drawRect(Offset.zero & size, deep);
 
     final horizon = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * (.004 + amount * .002)
-      ..color = const Color(0x285A8587);
-
-    final arcRect = Rect.fromCenter(
-      center: Offset(center.dx - yaw * size.width * .025, horizonY),
-      width: size.width * (.86 - amount * .08),
-      height: size.height * (.25 + amount * .035),
-    );
-    canvas.drawArc(arcRect, math.pi * .10, math.pi * .80, false, horizon);
-
-    // A second, softer atmospheric rim gives the water plane a distant edge.
-    final haze = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * (.022 + amount * .010)
-      ..color = const Color(0x112C666B);
-    canvas.drawArc(
-      arcRect.shift(Offset(0, size.height * .018)),
-      math.pi * .12,
-      math.pi * .76,
-      false,
-      haze,
-    );
-  }
-
-  void _drawOrbitalMainIslandFace(
-    Canvas canvas,
-    Size size,
-    Offset center,
-    double angle,
-  ) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-    if (amount < .035) return;
-
-    final dir = yaw.sign;
-    final base = _landPath(size, center);
-    final sideDepth = size.height * (.022 + amount * .082);
-    final sideShift = Offset(
-      -dir * size.width * (.014 + amount * .028),
-      sideDepth,
-    );
-
-    // Draw the lower silhouette first so the top landmass remains dominant.
-    final lower = base.shift(sideShift);
-    canvas.drawPath(
-      lower,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: const [
-            Color(0x6A38483F),
-            Color(0x9A18241F),
-            Color(0xC1080E0D),
-          ],
-        ).createShader(lower.getBounds()),
-    );
-
-    // A narrow shelf between top and side face makes the extrusion readable
-    // without turning the island into a block.
-    final shelf = base.shift(
-      Offset(
-        -dir * size.width * (.008 + amount * .016),
-        sideDepth * .48,
-      ),
-    );
-    canvas.drawPath(
-      shelf,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * (.009 + amount * .007)
-        ..color = const Color(0x3E6B7766),
-    );
-
-    // Near-side edge highlight changes sides as the world turns.
-    final edge = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * (.003 + amount * .003)
-      ..color = const Color(0x507B8875);
-    canvas.drawPath(
-      base.shift(
-        Offset(
-          -dir * size.width * (.004 + amount * .009),
-          sideDepth * .08,
-        ),
-      ),
-      edge,
-    );
-  }
-
-  void _drawOrbitalShorelineDepth(
-    Canvas canvas,
-    Size size,
-    Offset center,
-    double angle,
-  ) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-    if (amount < .06) return;
-
-    final dir = yaw.sign;
-    final main = _landPath(size, center);
-
-    // Dark coastal band on the turning side: this is a lighting/occlusion cue
-    // for the 3D turn, not a decorative outline around the whole island.
-    final band = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * (.014 + amount * .018)
-      ..color = const Color(0x3A071313);
-
-    canvas.drawPath(
-      main.shift(
-        Offset(
-          -dir * size.width * (.010 + amount * .020),
-          size.height * (.012 + amount * .018),
-        ),
-      ),
-      band,
-    );
-
-    final waterEdge = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * (.004 + amount * .002)
-      ..color = const Color(0x42658D8C);
-    canvas.drawPath(
-      main.shift(
-        Offset(
-          -dir * size.width * (.004 + amount * .010),
-          size.height * (.004 + amount * .008),
-        ),
-      ),
-      waterEdge,
-    );
-  }
-
-  void _drawMainLandmassDepth(Canvas canvas, Size size, Offset center, double angle) {
-    final amount = math.sin(angle).abs();
-    if (amount < .015) return;
-    final base = _landPath(size, center);
-    final dir = math.sin(angle).sign;
-    final lift = size.height * (.022 + amount * .065);
-
-    // Deep lower shelf: the island moves through space, rather than only
-    // changing its colour when the camera orbits.
-    canvas.drawPath(
-      base.shift(Offset(-dir * size.width * (.018 + amount * .018), lift)),
-      Paint()..color = const Color(0xB8000103),
-    );
-
-    // Broad exposed face with a restrained upper highlight.
-    canvas.drawPath(
-      base.shift(Offset(-dir * size.width * (.010 + amount * .010), lift * .50)),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * (.019 + amount * .014)
-        ..color = const Color(0x50182522),
-    );
-    canvas.drawPath(
-      base.shift(Offset(-dir * size.width * (.004 + amount * .004), lift * .12)),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * (.008 + amount * .006)
-        ..color = const Color(0x507A8775),
-    );
-  }
-
-  void _drawNearTerrainLayers(Canvas canvas, Size size, Offset center, double angle) {
-    final amount = math.sin(angle).abs();
-    if (amount < .03) return;
-    final dir = math.sin(angle).sign;
-    final layers = [
-      (Offset(-.11, -.12), .11, .050, .028),
-      (Offset(.08, -.02), .095, .045, .024),
-      (Offset(.01, .14), .13, .055, .032),
-    ];
-
-    for (var i = 0; i < layers.length; i++) {
-      final item = layers[i];
-      final p = Offset(
-        center.dx + (item.$1.dx - dir * (.006 + amount * .010)) * size.width,
-        center.dy + (item.$1.dy + amount * (.008 + i * .004)) * size.height,
+      ..strokeWidth = size.width * .0025
+      ..color = const Color(0x355E8990);
+    final path = Path()
+      ..moveTo(0, size.height * .18)
+      ..quadraticBezierTo(
+        size.width * .50,
+        size.height * (.08 + math.sin(yaw) * .025),
+        size.width,
+        size.height * .18,
       );
-      final nearScale = 1.0 + amount * (.16 + i * .025);
-      final w = size.width * item.$2 * nearScale;
-      final h = size.height * item.$3 * (1.0 + amount * .10);
-      final lift = size.height * (.012 + amount * (.032 + i * .008));
+    canvas.drawPath(path, horizon);
 
-      final base = Path()
-        ..moveTo(p.dx - w, p.dy)
-        ..quadraticBezierTo(p.dx - w * .45, p.dy - h, p.dx + w, p.dy - h * .12)
-        ..quadraticBezierTo(p.dx + w * .40, p.dy + h, p.dx - w, p.dy);
-
-      canvas.drawPath(
-        base.shift(Offset(-dir * size.width * (.012 + amount * .006), lift)),
-        Paint()..color = const Color(0x88000103),
-      );
-
-      final top = base.shift(Offset(-dir * size.width * .004, -lift * .15));
-      canvas.drawPath(
-        top,
-        Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: const [
-              Color(0x657B7967),
-              Color(0x453F5148),
-              Color(0x2425312B),
-            ],
-          ).createShader(Rect.fromCenter(center: p, width: w * 2, height: h * 2)),
-      );
+    // Long, sparse water planes follow the camera, giving scale without
+    // turning the sea into contour-line wallpaper.
+    final water = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .0012
+      ..color = const Color(0x214B7E86);
+    for (var i = 0; i < 8; i++) {
+      final d = -.72 + i * .19;
+      final left = _project(size, c, -.95, d, 0, yaw);
+      final right = _project(size, c, .95, d, 0, yaw);
+      canvas.drawLine(left, right, water);
     }
   }
 
-  void _drawMainLandmass(Canvas canvas, Size size, Offset center) {
-    final coast = _landPath(size, center);
-
-    canvas.drawPath(
-      coast.shift(Offset(0, size.height * .018)),
-      Paint()..color = const Color(0x99000205),
-    );
-
-    canvas.drawPath(
-      coast.shift(Offset(0, size.height * .006)),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * .030
-        ..color = const Color(0x405F8C91),
-    );
-
-    canvas.drawPath(
-      coast.shift(Offset(0, -size.height * .004)),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * .014
-        ..color = const Color(0x527E866F),
-    );
-
-    canvas.drawPath(
-      coast,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF6D6A63), Color(0xFF46534A), Color(0xFF283732)],
-        ).createShader(Offset.zero & size),
-    );
-
-    canvas.drawPath(
-      coast.shift(Offset(0, -size.height * .006)),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * .010
-        ..color = const Color(0x4B9A9479),
-    );
-
-    final plateau = Path()
-      ..moveTo(center.dx - size.width * .16, center.dy - size.height * .15)
-      ..cubicTo(
-        center.dx - size.width * .05, center.dy - size.height * .25,
-        center.dx + size.width * .13, center.dy - size.height * .22,
-        center.dx + size.width * .22, center.dy - size.height * .08,
-      )
-      ..cubicTo(
-        center.dx + size.width * .12, center.dy + size.height * .03,
-        center.dx - size.width * .03, center.dy + size.height * .03,
-        center.dx - size.width * .16, center.dy - size.height * .15,
-      );
-    canvas.drawPath(plateau, Paint()..color = const Color(0x3D6D6652));
-  }
-
-  void _drawCoastalShelves(Canvas canvas, Size size, Offset center) {
-    final main = _landPath(size, center);
-
-    final shelfOuter = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .030
-      ..color = const Color(0x1F6BA0A0);
-    final shelfMid = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .015
-      ..color = const Color(0x2D7A9A87);
-    final sand = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .007
-      ..color = const Color(0x4A9C9679);
-
-    canvas.drawPath(main.shift(Offset(0, size.height * .012)), shelfOuter);
-    canvas.drawPath(main.shift(Offset(0, size.height * .006)), shelfMid);
-    canvas.drawPath(main.shift(Offset(0, -size.height * .002)), sand);
-
-    final coves = [
-      Offset(-.34, -.01),
-      Offset(-.22, -.22),
-      Offset(.31, -.17),
-      Offset(.38, .10),
-      Offset(.14, .25),
-    ];
-    for (var i = 0; i < coves.length; i++) {
-      final p = Offset(
-        center.dx + coves[i].dx * size.width,
-        center.dy + coves[i].dy * size.height,
-      );
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: p,
-          width: size.width * (.035 + i * .006),
-          height: size.height * (.018 + i * .003),
-        ),
-        Paint()..color = const Color(0x183E8588),
-      );
+  void _drawIsland(
+    Canvas canvas,
+    Size size,
+    Offset c,
+    _WorldIsland island,
+    double yaw,
+  ) {
+    final top = <Offset>[];
+    for (final p in island.points) {
+      top.add(_project(
+        size,
+        c,
+        island.x + p.dx * island.scale,
+        island.d + p.dy * island.scale,
+        island.height,
+        yaw,
+      ));
     }
-  }
 
-  void _drawOrbitalLandmassSilhouette(Canvas canvas, Size size, Offset center, double angle) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-    if (amount < .025) return;
+    // A thick island body is drawn below the top surface. Its visible face
+    // changes with camera angle and naturally disappears on the far side.
+    final bottom = <Offset>[];
+    for (final p in island.points) {
+      bottom.add(_project(
+        size,
+        c,
+        island.x + p.dx * island.scale,
+        island.d + p.dy * island.scale,
+        0,
+        yaw,
+      ));
+    }
 
-    final dir = yaw.sign;
-    final coast = _landPath(size, center);
+    final centerDepth = _depthOf(island, yaw);
+    final sideDark = Color.lerp(
+      const Color(0xFF0A1110),
+      const Color(0xFF25372E),
+      (.35 + centerDepth * .35).clamp(.0, 1.0),
+    )!;
 
-    // Extruded lower rim: the top remains the same landmass, while the
-    // offset face becomes visible during orbit.
-    final extrusionX = -dir * size.width * (.012 + amount * .045);
-    final extrusionY = size.height * (.014 + amount * .038);
-
-    final face = coast.shift(Offset(extrusionX, extrusionY));
-    canvas.drawPath(
-      face,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: const [
-            Color(0x8A25332E),
-            Color(0xA0131E1B),
-            Color(0xC20A1010),
-          ],
-        ).createShader(Offset.zero & size),
-    );
-
-    final shelf = coast.shift(
-      Offset(extrusionX * .55, extrusionY * .52),
-    );
-    canvas.drawPath(
-      shelf,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * (.012 + amount * .010)
-        ..color = const Color(0x4C53665B),
-    );
-  }
-
-  void _drawSecondaryIslands(Canvas canvas, Size size, Offset center) {
-    final angle = _currentAngle;
-    final amount = math.sin(angle).abs();
-    final dir = math.sin(angle).sign;
-    final facing = math.cos(angle).abs();
-    final islands = [
-      [Offset(.47, -.31), .13, .09, 1],
-      [Offset(.39, .38), .14, .10, 2],
-      [Offset(-.47, .30), .11, .075, 3],
-      [Offset(-.42, -.27), .085, .065, 4],
-      [Offset(.03, .46), .10, .06, 5],
-    ];
-
-    // Paint far islands first and near islands last. Their depth order
-    // changes with the camera angle, so the orbit can reveal real overlap.
-    final ordered = [...islands]..sort((a, b) {
-      final ao = a[0] as Offset;
-      final bo = b[0] as Offset;
-      final ay = ao.dy + ao.dx * math.sin(angle) * .34;
-      final by = bo.dy + bo.dx * math.sin(angle) * .34;
-      return ay.compareTo(by);
-    });
-
-    for (final data in ordered) {
-      final base = data[0] as Offset;
-      final w = data[1] as double;
-      final h = data[2] as double;
-      final seed = data[3] as int;
-      final x = base.dx + dir * amount * (.028 + seed * .003);
-      final y = base.dy + math.sin(angle) * (.014 + seed * .002);
-      final verticalDepth = (1.0 - ((y + .5).clamp(0.0, 1.0)));
-      final depthFactor = .70 + .30 * verticalDepth;
-      final orbitFactor = .82 + .18 * facing;
-      final wDepth = w * depthFactor * orbitFactor;
-      final hDepth = h * depthFactor * (.86 + .14 * facing);
-      final c = Offset(center.dx + x * size.width, center.dy + y * size.height);
-      final depth = size.height * (.014 + amount * (.024 + seed * .0015));
-      final random = math.Random(seed * 173);
-      final path = Path();
-      const count = 18;
-      for (var i = 0; i < count; i++) {
-        final a = math.pi * 2 * i / count;
-        final jitter = .82 + random.nextDouble() * .18;
-        final point = Offset(
-          c.dx + math.cos(a) * size.width * wDepth * jitter,
-          c.dy + math.sin(a) * size.height * hDepth * jitter,
-        );
-        if (i == 0) path.moveTo(point.dx, point.dy);
-        else path.lineTo(point.dx, point.dy);
+    // Only connect edges that face the camera. This is the important
+    // difference from a flat offset shadow.
+    final face = Path();
+    for (var i = 0; i < top.length; i++) {
+      final next = (i + 1) % top.length;
+      final a = top[i];
+      final b = top[next];
+      final pa = island.points[i];
+      final pb = island.points[next];
+      final ex = pb.dx - pa.dx;
+      final ed = pb.dy - pa.dy;
+      final facing = ex * math.sin(yaw) - ed * math.cos(yaw);
+      if (facing > -.02) {
+        face.moveTo(a.dx, a.dy);
+        face.lineTo(b.dx, b.dy);
+        face.lineTo(bottom[next].dx, bottom[next].dy);
+        face.lineTo(bottom[i].dx, bottom[i].dy);
+        face.close();
       }
-      path.close();
-
-      final farFade = .72 + .28 * facing;
-      canvas.drawPath(
-        path.shift(Offset(-dir * size.width * (.006 + amount * .010), depth)),
-        Paint()..color = const Color(0x88000305).withValues(alpha: .53 + .35 * farFade),
-      );
-
-      canvas.drawPath(
-        path.shift(Offset(-dir * size.width * .003, -depth * .12)),
-        Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: const [
-              Color(0xFF566257),
-              Color(0xFF35463D),
-              Color(0xFF26352F),
-            ],
-          ).createShader(Rect.fromCenter(
-            center: c,
-            width: size.width * w * 2.2,
-            height: size.height * h * 2.2,
-          )),
-      );
-
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = size.width * .003
-          ..color = const Color(0x668E947F),
-      );
     }
-  }
+    canvas.drawPath(face, Paint()..color = sideDark);
 
-  void _drawIslandMaterial(Canvas canvas, Size size, Offset center) {
-    final main = _landPath(size, center);
-    canvas.save();
-    canvas.clipPath(main);
+    // A second, softer lower lip gives the rock/earth mass a little more
+    // separation from the ocean.
+    final lip = Path();
+    for (var i = 0; i < top.length; i++) {
+      final next = (i + 1) % top.length;
+      if (i.isEven) {
+        lip.moveTo(bottom[i].dx, bottom[i].dy);
+        lip.lineTo(bottom[next].dx, bottom[next].dy);
+      }
+    }
+    canvas.drawPath(
+      lip,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * .006
+        ..color = const Color(0x29111A17),
+    );
 
-    final light = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(-.42, -.45),
-        radius: .95,
-        colors: const [
-          Color(0x3FBBB08B),
-          Color(0x163D5147),
-          Colors.transparent,
-        ],
-        stops: [.0, .48, 1],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, light);
+    final topPath = Path()..moveTo(top.first.dx, top.first.dy);
+    for (var i = 1; i < top.length; i++) {
+      topPath.lineTo(top[i].dx, top[i].dy);
+    }
+    topPath.close();
 
-    final dark = Paint()
+    final topPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: const [
-          Colors.transparent,
-          Color(0x1C000807),
-          Color(0x4B000607),
-        ],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, dark);
+        colors: island.main
+            ? const [
+                Color(0xFF6B7868),
+                Color(0xFF465449),
+                Color(0xFF27352E),
+              ]
+            : const [
+                Color(0xFF59665A),
+                Color(0xFF35453B),
+                Color(0xFF222F29),
+              ],
+      ).createShader(topPath.getBounds());
+    canvas.drawPath(topPath, topPaint);
 
-    final soil = Paint()
+    // Coastal shelf: a thin darker ring, not a decorative outline.
+    final shelf = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .0022
-      ..color = const Color(0x305D675B);
+      ..strokeWidth = size.width * (island.main ? .009 : .006)
+      ..color = const Color(0x5A1C302D);
+    canvas.drawPath(topPath, shelf);
 
-    for (var i = 0; i < 12; i++) {
-      final y = center.dy - size.height * .25 + i * size.height * .043;
-      final path = Path()..moveTo(center.dx - size.width * .40, y);
-      for (var j = 1; j <= 9; j++) {
-        final x = center.dx - size.width * .40 + j * size.width * .09;
-        final wave = math.sin(i * .8 + j * 1.17) * size.height * .010;
-        path.lineTo(x, y + wave);
+    _drawIslandTerrain(canvas, size, c, island, yaw, topPath);
+  }
+
+  void _drawIslandTerrain(
+    Canvas canvas,
+    Size size,
+    Offset c,
+    _WorldIsland island,
+    double yaw,
+    Path topPath,
+  ) {
+    canvas.save();
+    canvas.clipPath(topPath);
+
+    final terrain = <_TerrainMass>[
+      _TerrainMass(-.18, -.15, .17, .09, .055),
+      _TerrainMass(.06, -.08, .14, .08, .045),
+      _TerrainMass(.18, .10, .13, .10, .050),
+      _TerrainMass(-.10, .18, .12, .07, .038),
+    ];
+
+    final maxCount = island.main ? 4 : 2;
+    for (var i = 0; i < maxCount; i++) {
+      final t = terrain[i];
+      final localX = t.x * island.scale;
+      final localD = t.d * island.scale;
+      final center = _project(
+        size,
+        c,
+        island.x + localX,
+        island.d + localD,
+        island.height + t.h,
+        yaw,
+      );
+
+      final w = size.width * t.w * island.scale;
+      final h = size.height * t.h * .42;
+      final hill = Path()
+        ..moveTo(center.dx - w, center.dy + h * .35)
+        ..quadraticBezierTo(center.dx - w * .55, center.dy - h,
+            center.dx, center.dy - h * 1.25)
+        ..quadraticBezierTo(center.dx + w * .72, center.dy - h * .75,
+            center.dx + w, center.dy + h * .25)
+        ..quadraticBezierTo(center.dx + w * .25, center.dy + h * .72,
+            center.dx - w, center.dy + h * .35)
+        ..close();
+
+      final shadow = hill.shift(Offset(0, h * .32));
+      canvas.drawPath(shadow, Paint()..color = const Color(0x40101915));
+
+      canvas.drawPath(
+        hill,
+        Paint()
+          ..shader = RadialGradient(
+            center: const Alignment(-.38, -.55),
+            radius: 1,
+            colors: const [
+              Color(0x765E6D5B),
+              Color(0x3D394A3E),
+              Color(0x10202D27),
+            ],
+          ).createShader(hill.getBounds()),
+      );
+    }
+
+    // A few natural ridge planes; no dense map-like contour system.
+    if (island.main) {
+      final ridge = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * .0028
+        ..strokeCap = StrokeCap.round
+        ..color = const Color(0x426E7968);
+
+      final ridgeSets = [
+        [Offset(-.25, -.13), Offset(-.08, -.20), Offset(.10, -.15)],
+        [Offset(-.16, .08), Offset(.02, .01), Offset(.19, .08)],
+        [Offset(-.04, .23), Offset(.09, .18), Offset(.20, .22)],
+      ];
+
+      for (final set in ridgeSets) {
+        final path = Path();
+        for (var i = 0; i < set.length; i++) {
+          final p = set[i];
+          final q = _project(
+            size,
+            c,
+            island.x + p.dx * island.scale,
+            island.d + p.dy * island.scale,
+            island.height + .012,
+            yaw,
+          );
+          if (i == 0) {
+            path.moveTo(q.dx, q.dy);
+          } else {
+            path.quadraticBezierTo(
+              (q.dx + path.getBounds().center.dx) / 2,
+              q.dy,
+              q.dx,
+              q.dy,
+            );
+          }
+        }
+        canvas.drawPath(path, ridge);
       }
-      canvas.drawPath(path, soil);
     }
 
     canvas.restore();
   }
 
-  void _drawCoastalDepth(Canvas canvas, Size size, Offset center) {
-    final coastGlow = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .022
-      ..color = const Color(0x304D8584);
-
-    final innerCoast = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .006
-      ..color = const Color(0x668C9A82);
-
-    final main = _landPath(size, center);
-    canvas.drawPath(main.shift(Offset(0, size.height * .010)), coastGlow);
-    canvas.drawPath(main.shift(Offset(0, -size.height * .003)), innerCoast);
-
-    final shallow = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .010
-      ..color = const Color(0x244E9A9B);
-
-    for (final offset in [
-      Offset(-.02, .01),
-      Offset(.01, -.012),
-      Offset(.035, .018),
-    ]) {
-      canvas.drawPath(
-        main.shift(Offset(size.width * offset.dx, size.height * offset.dy)),
-        shallow,
-      );
-    }
-  }
-
-  void _drawElevationRidges(Canvas canvas, Size size, Offset center) {
-    final ridge = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .003
-      ..color = const Color(0x3F8D8B78);
-
-    final ridges = [
-      [
-        Offset(-.18, -.16), Offset(-.09, -.21), Offset(.01, -.18),
-        Offset(.09, -.12), Offset(.17, -.15),
-      ],
-      [
-        Offset(-.12, .03), Offset(-.03, -.02), Offset(.07, .01),
-        Offset(.14, .07), Offset(.23, .05),
-      ],
-      [
-        Offset(-.02, .18), Offset(.06, .14), Offset(.14, .17),
-        Offset(.20, .23),
-      ],
-    ];
-
-    for (final points in ridges) {
-      final path = Path();
-      for (var i = 0; i < points.length; i++) {
-        final p = Offset(
-          center.dx + points[i].dx * size.width,
-          center.dy + points[i].dy * size.height,
-        );
-        if (i == 0) {
-          path.moveTo(p.dx, p.dy);
-        } else {
-          path.quadraticBezierTo(
-            (path.getBounds().left + p.dx) / 2,
-            p.dy,
-            p.dx,
-            p.dy,
-          );
-        }
-      }
-      canvas.drawPath(path, ridge);
-    }
-
-    final peak = Paint()..color = const Color(0x466D6B5C);
-    for (final p in [
-      Offset(-.08, -.12),
-      Offset(.10, -.04),
-      Offset(.04, .13),
-    ]) {
-      final point = Offset(
-        center.dx + p.dx * size.width,
-        center.dy + p.dy * size.height,
-      );
-      canvas.drawCircle(point, size.width * .012, peak);
-      canvas.drawCircle(
-        point.translate(size.width * .008, -size.height * .006),
-        size.width * .006,
-        Paint()..color = const Color(0x4C9B987F),
-      );
-    }
-  }
-
-  void _drawTerrainContours(Canvas canvas, Size size, Offset center) {
-    final contour = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .0018
-      ..color = const Color(0x465F7567);
-    for (var i = 0; i < 7; i++) {
-      final path = Path();
-      final y = center.dy - size.height * .19 + i * size.height * .055;
-      path.moveTo(center.dx - size.width * .25, y);
-      for (var j = 1; j <= 7; j++) {
-        final x = center.dx - size.width * .25 + j * size.width * .07;
-        final wave = math.sin(j * .85 + i * .9) * size.height * .012;
-        path.lineTo(x, y + wave);
-      }
-      canvas.drawPath(path, contour);
-    }
-  }
-
-  void _drawTerrainShadows(Canvas canvas, Size size, Offset center) {
-    final shadow = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = size.width * .018
-      ..color = const Color(0x26000608);
-
-    for (final points in [
-      [Offset(-.18, -.20), Offset(-.04, -.27), Offset(.12, -.20)],
-      [Offset(-.16, .05), Offset(-.02, -.02), Offset(.13, .01), Offset(.24, -.05)],
-      [Offset(-.10, .22), Offset(.02, .17), Offset(.16, .21)],
-    ]) {
-      final path=Path();
-      for(var i=0;i<points.length;i++){
-        final p=Offset(center.dx+points[i].dx*size.width,center.dy+points[i].dy*size.height);
-        if(i==0) path.moveTo(p.dx,p.dy); else path.lineTo(p.dx,p.dy);
-      }
-      canvas.drawPath(path,shadow);
-    }
-  }
-
-  void _drawWaterReflections(Canvas canvas, Size size, Offset center) {
-    final reflection = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = size.width * .0018
-      ..color = const Color(0x315F9AA0);
-    for (var i=0;i<12;i++) {
-      final y=center.dy-size.height*.31+i*size.height*.052;
-      final path=Path()..moveTo(center.dx-size.width*.43,y);
-      for(var j=1;j<=9;j++){
-        final x=center.dx-size.width*.43+j*size.width*.095;
-        final wave=math.sin(j*.72+i*.65+phase*math.pi*2)*size.height*.006;
-        path.lineTo(x,y+wave);
-      }
-      canvas.drawPath(path,reflection);
-    }
-  }
-
-  void _drawTerrainMasses(Canvas canvas, Size size, Offset center) {
-    final masses = [
-      [Offset(-.09, -.12), .095, .052, .12],
-      [Offset(.08, -.08), .082, .046, .08],
-      [Offset(.02, .10), .115, .055, .10],
-      [Offset(.16, .16), .072, .040, .06],
-    ];
-
-    for (var i = 0; i < masses.length; i++) {
-      final m = masses[i];
-      final p = m[0] as Offset;
-      final w = m[1] as double;
-      final h = m[2] as double;
-      final lift = m[3] as double;
-
-      final c = Offset(
-        center.dx + p.dx * size.width,
-        center.dy + p.dy * size.height - size.height * lift * .08,
-      );
-
-      final shadow = Path()
-        ..moveTo(c.dx - size.width * w, c.dy)
-        ..quadraticBezierTo(
-          c.dx,
-          c.dy - size.height * h,
-          c.dx + size.width * w,
-          c.dy - size.height * h * .10,
-        )
-        ..quadraticBezierTo(
-          c.dx + size.width * w * .38,
-          c.dy + size.height * h,
-          c.dx - size.width * w,
-          c.dy,
-        );
-
-      // Each terrain mass gets a visible lower face instead of only a flat oval.
-      canvas.drawPath(
-        shadow.shift(Offset(size.width * .004, size.height * .012)),
-        Paint()..color = const Color(0x50111B17),
-      );
-
-      final top = shadow.shift(Offset(0, -size.height * (.006 + i * .002)));
-      canvas.drawPath(
-        top,
-        Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: const [
-              Color(0x5A7D7C68),
-              Color(0x394E584A),
-              Color(0x1E27342D),
-            ],
-          ).createShader(Rect.fromCenter(
-            center: c,
-            width: size.width * w * 2.2,
-            height: size.height * h * 2.2,
-          )),
-      );
-
-      // Small upper shelf: gives the terrain a readable raised plateau.
-      final shelf = top.shift(Offset(-size.width * .003, -size.height * .006));
-      canvas.drawPath(
-        shelf,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = size.width * (.0035 + i * .0004)
-          ..color = const Color(0x357E866F),
-      );
-    }
-  }
-
-  void _drawOrbitalTerrainVolumes(Canvas canvas, Size size, Offset center, double angle) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-    if (amount < .035) return;
-    final dir = yaw.sign;
-
-    final masses = [
-      [Offset(-.09, -.12), .095, .052],
-      [Offset(.08, -.08), .082, .046],
-      [Offset(.02, .10), .115, .055],
-      [Offset(.16, .16), .072, .040],
-    ];
-
-    for (var i = 0; i < masses.length; i++) {
-      final m = masses[i];
-      final p = m[0] as Offset;
-      final w = m[1] as double;
-      final h = m[2] as double;
-      final c = Offset(
-        center.dx + (p.dx - dir * amount * .012) * size.width,
-        center.dy + (p.dy + amount * .010) * size.height,
-      );
-      final faceDepth = size.height * (.010 + amount * (.024 + i * .003));
-      final face = Path()
-        ..moveTo(c.dx - size.width * w, c.dy + size.height * h * .18)
-        ..quadraticBezierTo(c.dx, c.dy + size.height * h * .12,
-            c.dx + size.width * w, c.dy - size.height * h * .08)
-        ..lineTo(c.dx + size.width * w - dir * size.width * amount * .012,
-            c.dy - size.height * h * .08 + faceDepth)
-        ..quadraticBezierTo(c.dx, c.dy + size.height * h * .12 + faceDepth,
-            c.dx - size.width * w - dir * size.width * amount * .012,
-            c.dy + size.height * h * .18 + faceDepth)
-        ..close();
-
-      canvas.drawPath(face, Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: const [Color(0x5A34443B), Color(0x8B18231F), Color(0xA00A1110)],
-        ).createShader(face.getBounds()));
-      canvas.drawPath(face, Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * (.0025 + amount * .002)
-        ..color = const Color(0x3E58685A));
-    }
-  }
-
-  void _drawTerrainEdgeFaces(Canvas canvas, Size size, Offset center, double angle) {
-    final yaw = math.sin(angle);
-    final amount = yaw.abs();
-    if (amount < .04) return;
-
-    final dir = yaw.sign;
-    final face = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = size.width * (.010 + amount * .012)
-      ..color = const Color(0x42202D28);
-
-    final lower = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = size.width * (.004 + amount * .004)
-      ..color = const Color(0x365D6A5D);
-
-    // Interior plateaus expose a darker vertical lip as the world turns.
-    final paths = [
-      [Offset(-.20, -.12), Offset(-.08, -.18), Offset(.05, -.14)],
-      [Offset(-.10, .04), Offset(.02, .00), Offset(.15, .05)],
-      [Offset(-.07, .18), Offset(.04, .14), Offset(.14, .18)],
-    ];
-
-    for (final points in paths) {
-      final path = Path();
-      for (var i = 0; i < points.length; i++) {
-        final p = Offset(
-          center.dx + (points[i].dx - dir * amount * .010) * size.width,
-          center.dy + (points[i].dy + amount * .008) * size.height,
-        );
-        if (i == 0) {
-          path.moveTo(p.dx, p.dy);
-        } else {
-          path.lineTo(p.dx, p.dy);
-        }
-      }
-      canvas.drawPath(path.shift(Offset(-dir * size.width * .006, size.height * (.010 + amount * .018))), face);
-      canvas.drawPath(path.shift(Offset(-dir * size.width * .002, size.height * (.004 + amount * .008))), lower);
-    }
-  }
-
-  void _drawTerrainHighlights(Canvas canvas, Size size, Offset center) {
-    final highlight = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = size.width * .004
-      ..color = const Color(0x4B9A947B);
-
-    for (final points in [
-      [Offset(-.23, -.13), Offset(-.11, -.18), Offset(.02, -.14), Offset(.12, -.07)],
-      [Offset(-.10, .08), Offset(.00, .04), Offset(.10, .08), Offset(.19, .15)],
-      [Offset(-.18, .20), Offset(-.07, .24), Offset(.03, .20)],
-    ]) {
-      final path = Path();
-      for (var i = 0; i < points.length; i++) {
-        final p = Offset(
-          center.dx + points[i].dx * size.width,
-          center.dy + points[i].dy * size.height,
-        );
-        if (i == 0) {
-          path.moveTo(p.dx, p.dy);
-        } else {
-          path.quadraticBezierTo(
-            (p.dx + path.getBounds().center.dx) / 2,
-            p.dy,
-            p.dx,
-            p.dy,
-          );
-        }
-      }
-      canvas.drawPath(path, highlight);
-    }
-  }
-
-  void _drawSpatialDepthFog(Canvas canvas, Size size, Offset center, double angle) {
-    final turn = math.sin(angle);
+  void _drawOceanAtmosphere(Canvas canvas, Size size, Offset c, double yaw) {
     final far = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          const Color(0x183C5660).withValues(alpha: .18 + math.max(0.0, -turn) * .10),
+        colors: const [
+          Color(0x223E6970),
           Colors.transparent,
-          const Color(0x10263D42).withValues(alpha: .12 + math.max(0.0, turn) * .08),
+          Color(0x2402070B),
         ],
-        stops: const [.0, .46, 1.0],
+        stops: const [.0, .44, 1],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, far);
-  }
 
-  void _drawWorldMist(Canvas canvas, Size size, Offset center) {
     final mist = Paint()
       ..shader = RadialGradient(
-        center: const Alignment(-.15, -.10),
-        radius: .82,
+        center: Alignment(math.sin(yaw) * .12, -.20),
+        radius: .85,
         colors: const [
-          Color(0x00000000),
-          Color(0x123B5960),
-          Color(0x25040B0F),
+          Colors.transparent,
+          Color(0x123C6870),
+          Color(0x2B02070A),
         ],
-        stops: const [.35, .72, 1],
+        stops: const [.42, .76, 1],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, mist);
 
-    final veil = Paint()
+    final light = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .010
-      ..color = const Color(0x143F7276);
-    for (var i = 0; i < 4; i++) {
-      final y = center.dy - size.height * .28 + i * size.height * .18;
-      final path = Path()..moveTo(-size.width * .05, y);
-      for (var j = 1; j <= 8; j++) {
-        final x = size.width * j / 8;
-        final wave = math.sin(i * 1.4 + j * .72 + phase * math.pi * 2) *
-            size.height * .018  void _drawMainIslandRidgeLighting(Canvas canvas, Size size, double yaw, double facing) {
-    final amount = yaw.abs();
-    final p = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = size.width * (.004 + facing * .002)
-      ..color = Color.lerp(
-        const Color(0x385E756D),
-        const Color(0x5A7C8578),
-        facing,
-      )!;
-    final path = Path()
-      ..moveTo(size.width * (.30 + yaw * .025), size.height * .48)
-      ..quadraticBezierTo(
-        size.width * (.46 + yaw * .045),
-        size.height * (.40 - amount * .015),
-        size.width * (.64 + yaw * .025),
-        size.height * .50,
-      );
-    canvas.drawPath(path, p);
-    final low = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .002
-      ..color = const Color(0x254A5B58);
-    final lowPath = Path()
-      ..moveTo(size.width * (.34 + yaw * .02), size.height * .57)
-      ..quadraticBezierTo(
-        size.width * .50,
-        size.height * (.63 + amount * .018),
-        size.width * (.67 + yaw * .02),
-        size.height * .55,
-      );
-    canvas.drawPath(lowPath, low);
+      ..strokeWidth = size.width * .003
+      ..color = const Color(0x244C858A);
+    final arc = Rect.fromCenter(
+      center: c.translate(math.sin(yaw) * size.width * .03, size.height * .08),
+      width: size.width * .82,
+      height: size.height * .38,
+    );
+    canvas.drawArc(arc, math.pi * .08, math.pi * .84, false, light);
   }
 
-;
+  @override
+  bool shouldRepaint(covariant _GameWorldPainter oldDelegate) =>
+      oldDelegate.phase != phase || oldDelegate.angle != angle;
+}
+
+class _WorldIsland {
+  final double x;
+  final double d;
+  final double scale;
+  final double height;
+  final int seed;
+  final bool main;
+  final List<Offset> points;
+
+  const _WorldIsland({
+    required this.x,
+    required this.d,
+    required this.scale,
+    required this.height,
+    required this.seed,
+    required this.points,
+    this.main = false,
+  });
+}
+
+class _TerrainMass {
+  final double x;
+  final double d;
+  final double w;
+  final double h;
+  final double lift;
+
+  const _TerrainMass(this.x, this.d, this.w, this.h, this.lift);
+}
