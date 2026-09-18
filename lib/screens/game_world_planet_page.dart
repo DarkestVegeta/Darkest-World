@@ -551,13 +551,14 @@ class _GameWorldPainter extends CustomPainter {
 
     final yaw = angle;
     _drawOcean(canvas, size, c, yaw);
+    _drawWorldShadowField(canvas, size, c, yaw);
 
     final islands = <_WorldIsland>[
       _WorldIsland(
         x: 0,
         d: 0.02,
         scale: 1.0,
-        height: .16,
+        height: .19,
         seed: 7,
         main: true,
         points: const [
@@ -568,21 +569,21 @@ class _GameWorldPainter extends CustomPainter {
           Offset(-.39, .32), Offset(-.50, .13),
         ],
       ),
-      _WorldIsland(x: -.56, d: -.34, scale: .42, height: .10, seed: 11, points: const [
+      _WorldIsland(x: -.56, d: -.34, scale: .42, height: .12, seed: 11, points: const [
         Offset(-.52, -.12), Offset(-.25, -.36), Offset(.10, -.31),
         Offset(.40, -.12), Offset(.48, .12), Offset(.20, .33),
         Offset(-.18, .30), Offset(-.46, .17),
       ]),
-      _WorldIsland(x: .57, d: -.28, scale: .34, height: .09, seed: 19, points: const [
+      _WorldIsland(x: .57, d: -.28, scale: .34, height: .105, seed: 19, points: const [
         Offset(-.50, -.10), Offset(-.20, -.34), Offset(.22, -.28),
         Offset(.46, -.02), Offset(.35, .25), Offset(.02, .35),
         Offset(-.34, .25),
       ]),
-      _WorldIsland(x: -.54, d: .42, scale: .31, height: .075, seed: 23, points: const [
+      _WorldIsland(x: -.54, d: .42, scale: .31, height: .085, seed: 23, points: const [
         Offset(-.46, -.10), Offset(-.12, -.30), Offset(.31, -.20),
         Offset(.43, .08), Offset(.20, .29), Offset(-.28, .26),
       ]),
-      _WorldIsland(x: .50, d: .47, scale: .27, height: .07, seed: 31, points: const [
+      _WorldIsland(x: .50, d: .47, scale: .27, height: .078, seed: 31, points: const [
         Offset(-.45, -.08), Offset(-.10, -.26), Offset(.32, -.16),
         Offset(.42, .10), Offset(.12, .27), Offset(-.30, .20),
       ]),
@@ -597,6 +598,7 @@ class _GameWorldPainter extends CustomPainter {
       _drawIsland(canvas, size, c, island, yaw);
     }
 
+    _drawWorldAtmosphereGlow(canvas, size, c, yaw);
     _drawOceanAtmosphere(canvas, size, c, yaw);
 
     final vignette = Paint()
@@ -625,9 +627,16 @@ class _GameWorldPainter extends CustomPainter {
     final rx = x * cy - d * sy;
     final rd = x * sy + d * cy;
 
-    final depthScale = (1.0 - rd * perspective).clamp(.72, 1.24);
-    final px = c.dx + rx * size.width * .46 * depthScale;
-    final py = c.dy + rd * size.height * .29 * depthScale - h * size.height * .92 * depthScale;
+    // Orbit changes both azimuth and apparent camera pitch. At the side
+    // angles the far land compresses and the exposed cliff faces become
+    // visibly taller, so the world reads as a volume rather than a map.
+    final orbit = sy.abs();
+    final pitch = .28 + orbit * .13;
+    final depthScale = (1.0 - rd * perspective).clamp(.68, 1.28);
+    final px = c.dx + rx * size.width * (.46 + orbit * .035) * depthScale;
+    final py = c.dy
+        + rd * size.height * pitch * depthScale
+        - h * size.height * (1.02 + orbit * .16) * depthScale;
     return Offset(px, py);
   }
 
@@ -779,8 +788,8 @@ class _GameWorldPainter extends CustomPainter {
     // Coastal shelf: a thin darker ring, not a decorative outline.
     final shelf = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * (island.main ? .009 : .006)
-      ..color = const Color(0x5A1C302D);
+      ..strokeWidth = size.width * (island.main ? .006 : .004)
+      ..color = const Color(0x70465A4B);
     canvas.drawPath(topPath, shelf);
 
     _drawIslandTerrain(canvas, size, c, island, yaw, topPath);
@@ -848,6 +857,39 @@ class _GameWorldPainter extends CustomPainter {
       );
     }
 
+    // One broad natural highland mass gives the main island a real
+    // elevated center without turning it into a map full of lines.
+    if (island.main) {
+      final highland = Path()
+        ..moveTo(c.dx - size.width * .13, c.dy - size.height * .07)
+        ..quadraticBezierTo(
+          c.dx - size.width * .02, c.dy - size.height * .17,
+          c.dx + size.width * .12, c.dy - size.height * .08,
+        )
+        ..quadraticBezierTo(
+          c.dx + size.width * .16, c.dy + size.height * .02,
+          c.dx + size.width * .03, c.dy + size.height * .08,
+        )
+        ..quadraticBezierTo(
+          c.dx - size.width * .11, c.dy + size.height * .05,
+          c.dx - size.width * .13, c.dy - size.height * .07,
+        )
+        ..close();
+      canvas.drawPath(
+        highland,
+        Paint()
+          ..shader = RadialGradient(
+            center: const Alignment(-.35, -.55),
+            radius: 1,
+            colors: const [
+              Color(0x405E6D59),
+              Color(0x1C34463B),
+              Colors.transparent,
+            ],
+          ).createShader(highland.getBounds()),
+      );
+    }
+
     // A few natural ridge planes; no dense map-like contour system.
     if (island.main) {
       final ridge = Paint()
@@ -890,6 +932,43 @@ class _GameWorldPainter extends CustomPainter {
     }
 
     canvas.restore();
+  }
+
+  void _drawWorldShadowField(Canvas canvas, Size size, Offset c, double yaw) {
+    final shadow = Paint()
+      ..shader = RadialGradient(
+        center: Alignment(math.sin(yaw) * .10, .12),
+        radius: .82,
+        colors: const [
+          Color(0x4201070A),
+          Color(0x1D01070A),
+          Colors.transparent,
+        ],
+        stops: const [.0, .48, 1],
+      ).createShader(Offset.zero & size);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: c.translate(math.sin(yaw) * size.width * .02, size.height * .10),
+        width: size.width * .82,
+        height: size.height * .40,
+      ),
+      shadow,
+    );
+  }
+
+  void _drawWorldAtmosphereGlow(Canvas canvas, Size size, Offset c, double yaw) {
+    final glow = Paint()
+      ..shader = RadialGradient(
+        center: Alignment(-.18 + math.sin(yaw) * .12, -.30),
+        radius: .72,
+        colors: const [
+          Color(0x163D6872),
+          Color(0x092D5662),
+          Colors.transparent,
+        ],
+        stops: const [.0, .52, 1],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, glow);
   }
 
   void _drawOceanAtmosphere(Canvas canvas, Size size, Offset c, double yaw) {
