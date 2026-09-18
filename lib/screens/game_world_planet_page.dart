@@ -313,6 +313,7 @@ class _GamePlanetPainter extends CustomPainter {
       ).createShader(sphere);
     canvas.drawCircle(c, r, night);
     _drawPlanetSurfaceMaterial(canvas, sphere, c, r, phase);
+    _drawPlanetSurfaceZones(canvas, sphere, c, r);
     _drawPlanetAtmosphere(canvas, sphere, c, r, phase);
     canvas.restore();
 
@@ -394,6 +395,47 @@ class _GamePlanetPainter extends CustomPainter {
     canvas.drawCircle(c, r, terminator);
   }
 
+  void _drawPlanetSurfaceZones(Canvas canvas, Rect sphere, Offset c, double r) {
+    final north = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: const [
+          Color(0x163A4568),
+          Colors.transparent,
+        ],
+      ).createShader(sphere);
+    canvas.drawRect(sphere, north);
+
+    final equator = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = r * .024
+      ..color = const Color(0x0F9C9AB5);
+    canvas.drawArc(
+      Rect.fromCenter(
+        center: c.translate(0, r * .03),
+        width: r * 1.72,
+        height: r * .68,
+      ),
+      math.pi * .06,
+      math.pi * .88,
+      false,
+      equator,
+    );
+
+    final dusk = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(.82, .30),
+        radius: .72,
+        colors: const [
+          Color(0x16000612),
+          Color(0x09000612),
+          Colors.transparent,
+        ],
+      ).createShader(sphere);
+    canvas.drawCircle(c, r, dusk);
+  }
+
   void _drawPlanetAtmosphere(Canvas canvas, Rect sphere, Offset c, double r, double phase) {
     final cloud = Paint()
       ..style = PaintingStyle.stroke
@@ -467,6 +509,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawCoastalDepth(canvas, size, center);
     _drawTerrainContours(canvas, size, center);
     _drawElevationRidges(canvas, size, center);
+    _drawTerrainMasses(canvas, size, center);
     _drawTerrainHighlights(canvas, size, center);
     _drawTerrainShadows(canvas, size, center);
     _drawWaterReflections(canvas, size, center);
@@ -474,6 +517,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawLandmarks(canvas, size, center);
     _drawWorldMist(canvas, size, center);
     _drawWorldLightSweep(canvas, size, center);
+    _drawWorldSurfaceFrame(canvas, size, center);
 
     final atmosphere = Paint()
       ..shader = RadialGradient(
@@ -494,17 +538,23 @@ class _GameWorldPainter extends CustomPainter {
       Offset(-.40, .02), Offset(-.34, -.09), Offset(-.25, -.13),
       Offset(-.23, -.25), Offset(-.13, -.34),
     ];
-    final path = Path()
-      ..moveTo(
-        center.dx + points.first.dx * size.width,
-        center.dy + points.first.dy * size.height,
-      );
-    for (var i = 1; i < points.length; i++) {
-      path.lineTo(
-        center.dx + points[i].dx * size.width,
-        center.dy + points[i].dy * size.height,
-      );
+    final p = points.map((v) => Offset(
+      center.dx + v.dx * size.width,
+      center.dy + v.dy * size.height,
+    )).toList();
+
+    final path = Path()..moveTo(p.first.dx, p.first.dy);
+    for (var i = 1; i < p.length; i++) {
+      final prev = p[i - 1];
+      final cur = p[i];
+      final mid = Offset((prev.dx + cur.dx) / 2, (prev.dy + cur.dy) / 2);
+      path.quadraticBezierTo(prev.dx, prev.dy, mid.dx, mid.dy);
     }
+    final last = p.last;
+    final first = p.first;
+    final mid = Offset((last.dx + first.dx) / 2, (last.dy + first.dy) / 2);
+    path.quadraticBezierTo(last.dx, last.dy, mid.dx, mid.dy);
+    path.quadraticBezierTo(first.dx, first.dy, first.dx, first.dy);
     path.close();
     return path;
   }
@@ -898,6 +948,59 @@ class _GameWorldPainter extends CustomPainter {
     }
   }
 
+  void _drawTerrainMasses(Canvas canvas, Size size, Offset center) {
+    final masses = [
+      [Offset(-.09, -.12), .095, .052, 0.12],
+      [Offset(.08, -.08), .082, .046, 0.08],
+      [Offset(.02, .10), .115, .055, 0.10],
+      [Offset(.16, .16), .072, .040, 0.06],
+    ];
+
+    for (final m in masses) {
+      final p = m[0] as Offset;
+      final w = m[1] as double;
+      final h = m[2] as double;
+      final lift = m[3] as double;
+      final c = Offset(
+        center.dx + p.dx * size.width,
+        center.dy + p.dy * size.height - size.height * lift * .08,
+      );
+
+      final base = Paint()..color = const Color(0x2B111B17);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: c.translate(size.width * .006, size.height * .010),
+          width: size.width * w * 2.2,
+          height: size.height * h * 2.2,
+        ),
+        base,
+      );
+
+      final face = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: const [
+            Color(0x456F705E),
+            Color(0x28484F43),
+            Color(0x18222F2A),
+          ],
+        ).createShader(Rect.fromCenter(
+          center: c,
+          width: size.width * w * 2.2,
+          height: size.height * h * 2.2,
+        ));
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: c,
+          width: size.width * w * 2.2,
+          height: size.height * h * 2.2,
+        ),
+        face,
+      );
+    }
+  }
+
   void _drawTerrainHighlights(Canvas canvas, Size size, Offset center) {
     final highlight = Paint()
       ..style = PaintingStyle.stroke
@@ -1021,6 +1124,28 @@ class _GameWorldPainter extends CustomPainter {
         height: size.height * .58,
       ),
       horizon,
+    );
+  }
+
+  void _drawWorldSurfaceFrame(Canvas canvas, Size size, Offset center) {
+    final frame = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .0025
+      ..color = const Color(0x244C7C80);
+    final inner = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .006
+      ..color = const Color(0x123B6468);
+
+    final oval = Rect.fromCenter(
+      center: center,
+      width: size.width * .93,
+      height: size.height * .91,
+    );
+    canvas.drawOval(oval, frame);
+    canvas.drawOval(
+      oval.deflate(size.width * .018),
+      inner,
     );
   }
 
