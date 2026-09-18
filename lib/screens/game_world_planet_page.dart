@@ -536,11 +536,11 @@ class _GameWorldPainter extends CustomPainter {
     final yaw = math.sin(angle);
     final facing = math.cos(angle).abs();
     final turn = math.sin(angle);
-    final depthX = .60 + .40 * facing;
-    final depthY = .76 + .24 * facing;
-    final cameraShiftX = yaw * size.width * .075;
-    final cameraShiftY = turn * size.height * .035;
-    final shear = yaw * .055;
+    final depthX = .56 + .44 * facing;
+    final depthY = .68 + .32 * facing;
+    final cameraShiftX = yaw * size.width * .095;
+    final cameraShiftY = turn * size.height * .045;
+    final shear = yaw * .075;
 
     // Lightweight orbital camera: horizontal drag changes yaw, compresses
     // the far side and shifts the near side so the land reads as a volume.
@@ -563,6 +563,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawTerrainContours(canvas, size, center);
     _drawElevationRidges(canvas, size, center);
     _drawTerrainMasses(canvas, size, center);
+    _drawTerrainEdgeFaces(canvas, size, center, angle);
     _drawTerrainHighlights(canvas, size, center);
     _drawTerrainShadows(canvas, size, center);
     _drawRaisedCliffs(canvas, size, center, angle);
@@ -755,14 +756,16 @@ class _GameWorldPainter extends CustomPainter {
 
     for (var i = 0; i < islands.length; i++) {
       final item = islands[i];
-      final reveal = .35 + amount * item.$4;
+      // Far islands compress and retreat during an orbit instead of
+      // behaving like cards sliding around.
+      final reveal = .78 - amount * .28 + (1.0 - facing) * .04;
       final x = item.$1.dx + dir * (.055 + i * .012) * amount;
       final y = item.$1.dy + (front - back) * (.028 + i * .010);
       final c = Offset(center.dx + x * size.width, center.dy + y * size.height);
       final w = size.width * item.$2 * reveal;
-      final h = size.height * item.$3 * reveal;
+      final h = size.height * item.$3 * reveal * (.84 + .16 * facing);
 
-      final depth = size.height * (.014 + amount * (.010 + i * .004));
+      final depth = size.height * (.016 + amount * (.016 + i * .005));
       final side = Path()
         ..moveTo(c.dx - w, c.dy)
         ..quadraticBezierTo(c.dx, c.dy - h, c.dx + w, c.dy - h * .10)
@@ -807,30 +810,29 @@ class _GameWorldPainter extends CustomPainter {
     if (amount < .015) return;
     final base = _landPath(size, center);
     final dir = math.sin(angle).sign;
-    final lift = size.height * (.018 + amount * .045);
+    final lift = size.height * (.022 + amount * .065);
 
-    // Deep lower shelf.
+    // Deep lower shelf: the island moves through space, rather than only
+    // changing its colour when the camera orbits.
     canvas.drawPath(
-      base.shift(Offset(-dir * size.width * (.014 + amount * .010), lift)),
-      Paint()..color = const Color(0xA8000103),
+      base.shift(Offset(-dir * size.width * (.018 + amount * .018), lift)),
+      Paint()..color = const Color(0xB8000103),
     );
 
-    // Exposed vertical face.
+    // Broad exposed face with a restrained upper highlight.
     canvas.drawPath(
-      base.shift(Offset(-dir * size.width * (.008 + amount * .006), lift * .48)),
+      base.shift(Offset(-dir * size.width * (.010 + amount * .010), lift * .50)),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * (.015 + amount * .010)
-        ..color = const Color(0x3E1C2D2A),
+        ..strokeWidth = size.width * (.019 + amount * .014)
+        ..color = const Color(0x50182522),
     );
-
-    // Thin upper shelf catches the light when the camera turns.
     canvas.drawPath(
-      base.shift(Offset(-dir * size.width * .004, lift * .12)),
+      base.shift(Offset(-dir * size.width * (.004 + amount * .004), lift * .12)),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * (.007 + amount * .004)
-        ..color = const Color(0x477A8775),
+        ..strokeWidth = size.width * (.008 + amount * .006)
+        ..color = const Color(0x507A8775),
     );
   }
 
@@ -850,9 +852,10 @@ class _GameWorldPainter extends CustomPainter {
         center.dx + (item.$1.dx - dir * (.006 + amount * .010)) * size.width,
         center.dy + (item.$1.dy + amount * (.008 + i * .004)) * size.height,
       );
-      final w = size.width * item.$2;
-      final h = size.height * item.$3;
-      final lift = size.height * (.008 + amount * (.016 + i * .006));
+      final nearScale = 1.0 + amount * (.12 + i * .02);
+      final w = size.width * item.$2 * nearScale;
+      final h = size.height * item.$3 * (1.0 + amount * .10);
+      final lift = size.height * (.012 + amount * (.032 + i * .008));
 
       final base = Path()
         ..moveTo(p.dx - w, p.dy)
@@ -1324,6 +1327,49 @@ class _GameWorldPainter extends CustomPainter {
     }
   }
 
+  void _drawTerrainEdgeFaces(Canvas canvas, Size size, Offset center, double angle) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+    if (amount < .04) return;
+
+    final dir = yaw.sign;
+    final face = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = size.width * (.010 + amount * .012)
+      ..color = const Color(0x42202D28);
+
+    final lower = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = size.width * (.004 + amount * .004)
+      ..color = const Color(0x365D6A5D);
+
+    // Interior plateaus expose a darker vertical lip as the world turns.
+    final paths = [
+      [Offset(-.20, -.12), Offset(-.08, -.18), Offset(.05, -.14)],
+      [Offset(-.10, .04), Offset(.02, .00), Offset(.15, .05)],
+      [Offset(-.07, .18), Offset(.04, .14), Offset(.14, .18)],
+    ];
+
+    for (final points in paths) {
+      final path = Path();
+      for (var i = 0; i < points.length; i++) {
+        final p = Offset(
+          center.dx + (points[i].dx - dir * amount * .010) * size.width,
+          center.dy + (points[i].dy + amount * .008) * size.height,
+        );
+        if (i == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.lineTo(p.dx, p.dy);
+        }
+      }
+      canvas.drawPath(path.shift(Offset(-dir * size.width * .006, size.height * (.010 + amount * .018))), face);
+      canvas.drawPath(path.shift(Offset(-dir * size.width * .002, size.height * (.004 + amount * .008))), lower);
+    }
+  }
+
   void _drawTerrainHighlights(Canvas canvas, Size size, Offset center) {
     final highlight = Paint()
       ..style = PaintingStyle.stroke
@@ -1398,64 +1444,3 @@ class _GameWorldPainter extends CustomPainter {
         final x = size.width * j / 8;
         final wave = math.sin(i * 1.4 + j * .72 + phase * math.pi * 2) *
             size.height * .018;
-        path.lineTo(x, y + wave);
-      }
-      canvas.drawPath(path, veil);
-    }
-  }
-
-  void _drawWorldLightSweep(Canvas canvas, Size size, Offset center) {
-    final sweep = Paint()
-      ..shader = LinearGradient(
-        begin: const Alignment(-.85, -.55),
-        end: const Alignment(.75, .55),
-        colors: const [
-          Color(0x101D3940),
-          Color(0x082C4C50),
-          Colors.transparent,
-        ],
-        stops: const [.0, .42, 1],
-      ).createShader(Offset.zero & size);
-
-    canvas.drawRect(Offset.zero & size, sweep);
-
-    final horizon = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .002
-      ..color = const Color(0x263F777A);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: center.translate(0, -size.height * .01),
-        width: size.width * .76,
-        height: size.height * .58,
-      ),
-      horizon,
-    );
-  }
-
-  void _drawWorldSurfaceFrame(Canvas canvas, Size size, Offset center) {
-    final frame = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .0025
-      ..color = const Color(0x244C7C80);
-    final inner = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .006
-      ..color = const Color(0x123B6468);
-
-    final oval = Rect.fromCenter(
-      center: center,
-      width: size.width * .93,
-      height: size.height * .91,
-    );
-    canvas.drawOval(oval, frame);
-    canvas.drawOval(
-      oval.deflate(size.width * .018),
-      inner,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _GameWorldPainter oldDelegate) =>
-      oldDelegate.phase != phase || oldDelegate.angle != angle;
-}
