@@ -76,25 +76,6 @@ class _GamePlanetView extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        SafeArea(
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: InkWell(
-                onTap: onBack,
-                child: const Text(
-                  '‹',
-                  style: TextStyle(
-                    color: Color(0xAFCBD2D9),
-                    fontSize: 24,
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
         Center(
           child: LayoutBuilder(
             builder: (context, box) {
