@@ -536,7 +536,6 @@ class _GameWorldPainter extends CustomPainter {
     final yaw = math.sin(angle);
     final facing = math.cos(angle).abs();
     final turn = math.sin(angle);
-    final orbit = angle.abs();
     final depthX = .60 + .40 * facing;
     final depthY = .76 + .24 * facing;
     final cameraShiftX = yaw * size.width * .075;
@@ -548,7 +547,6 @@ class _GameWorldPainter extends CustomPainter {
     canvas.translate(center.dx + cameraShiftX, center.dy + cameraShiftY);
     canvas.scale(depthX, depthY);
     canvas.skew(shear, 0);
-    canvas.translate(-center.dx, -center.dy);
     canvas.translate(-center.dx, -center.dy);
     _drawOceanContours(canvas, size, center);
     _drawOceanDepthBands(canvas, size, center, angle);
@@ -590,7 +588,7 @@ class _GameWorldPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, nearGlow);
 
-    _drawWorldSurfaceFrame(canvas, size, center);
+    _drawWorldAtmosphericDepth(canvas, size, center, angle);
     canvas.restore();
 
     final atmosphere = Paint()
@@ -600,6 +598,38 @@ class _GameWorldPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, atmosphere);
 
+  }
+
+  void _drawWorldAtmosphericDepth(Canvas canvas, Size size, Offset center, double angle) {
+    final yaw = math.sin(angle);
+    final farSide = yaw >= 0 ? -1.0 : 1.0;
+    final horizon = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment(0, farSide),
+        end: Alignment(0, -farSide),
+        colors: const [
+          Color(0x1B6D8580),
+          Colors.transparent,
+          Color(0x12030A0C),
+        ],
+        stops: const [.0, .42, 1.0],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, horizon);
+
+    // A soft lower-world falloff gives the scene a spherical-world reading
+    // without adding a visible UI frame around it.
+    final limb = Paint()
+      ..shader = RadialGradient(
+        center: Alignment(yaw * .28, -.08),
+        radius: .72,
+        colors: const [
+          Colors.transparent,
+          Color(0x14000608),
+          Color(0x3A000306),
+        ],
+        stops: const [.46, .78, 1.0],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, limb);
   }
 
   void _drawFarHorizonMist(Canvas canvas, Size size, Offset center, double angle) {
@@ -1327,39 +1357,6 @@ class _GameWorldPainter extends CustomPainter {
     }
   }
 
-  void _drawWorldRoutes(Canvas canvas, Size size, Offset center) {
-    final route = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .004
-      ..color = const Color(0x8A9D9470);
-    final paths = [
-      [
-        Offset(-.34, .01), Offset(-.18, -.05), Offset(-.04, -.12),
-        Offset(.10, -.08), Offset(.23, .02), Offset(.36, .10),
-      ],
-      [
-        Offset(-.13, .26), Offset(-.07, .13), Offset(.01, .03),
-        Offset(.10, -.08), Offset(.18, -.20),
-      ],
-      [
-        Offset(.08, .32), Offset(.15, .24), Offset(.24, .22),
-        Offset(.37, .27),
-      ],
-    ];
-    for (final points in paths) {
-      final path = Path();
-      for (var i = 0; i < points.length; i++) {
-        final p = Offset(
-          center.dx + points[i].dx * size.width,
-          center.dy + points[i].dy * size.height,
-        );
-        if (i == 0) path.moveTo(p.dx, p.dy);
-        else path.lineTo(p.dx, p.dy);
-      }
-      canvas.drawPath(path, route);
-    }
-  }
-
   void _drawSpatialDepthFog(Canvas canvas, Size size, Offset center, double angle) {
     final turn = math.sin(angle);
     final far = Paint()
@@ -1456,32 +1453,6 @@ class _GameWorldPainter extends CustomPainter {
       oval.deflate(size.width * .018),
       inner,
     );
-  }
-
-  void _drawLandmarks(Canvas canvas, Size size, Offset center) {
-    final positions = [
-      Offset(-.19, -.02), Offset(-.02, -.10), Offset(.15, -.07),
-      Offset(.09, .16), Offset(-.05, .22), Offset(.25, .12),
-      Offset(-.31, .02),
-    ];
-    final building = Paint()..color = const Color(0xB0AAA59A);
-    final shadow = Paint()..color = const Color(0x66000304);
-    for (var i = 0; i < positions.length; i++) {
-      final p = Offset(
-        center.dx + positions[i].dx * size.width,
-        center.dy + positions[i].dy * size.height,
-      );
-      final w = size.width * (.014 + (i % 3) * .005);
-      final h = w * (1.0 + (i % 2) * .75);
-      canvas.drawRect(
-        Rect.fromLTWH(p.dx - w / 2 + 3, p.dy - h / 2 + 3, w, h),
-        shadow,
-      );
-      canvas.drawRect(
-        Rect.fromLTWH(p.dx - w / 2, p.dy - h / 2, w, h),
-        building,
-      );
-    }
   }
 
   @override
