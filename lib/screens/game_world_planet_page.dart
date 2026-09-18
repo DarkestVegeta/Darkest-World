@@ -241,286 +241,229 @@ class _GamePlanetPainter extends CustomPainter {
     final r = size.shortestSide * .39;
     final sphere = Rect.fromCircle(center: c, radius: r);
 
+    // A restrained atmospheric halo: soft enough to feel like a planet,
+    // not a glowing UI object.
     canvas.drawCircle(
       c,
-      r * 1.16,
+      r * 1.18,
       Paint()
         ..shader = RadialGradient(
-          colors: [
-            const Color(0x554E477D),
-            const Color(0x203A3B69),
+          colors: const [
+            Color(0x3D625D93),
+            Color(0x183D426E),
             Colors.transparent,
           ],
-          stops: const [.65, .82, 1],
-        ).createShader(Rect.fromCircle(center: c, radius: r * 1.16)),
+          stops: const [.58, .78, 1],
+        ).createShader(Rect.fromCircle(center: c, radius: r * 1.18)),
     );
 
     canvas.save();
     canvas.clipPath(Path()..addOval(sphere));
 
+    // Base sphere volume.
     canvas.drawCircle(
       c,
       r,
       Paint()
         ..shader = const RadialGradient(
-          center: Alignment(-.43, -.48),
-          radius: 1.0,
+          center: Alignment(-.46, -.48),
+          radius: 1.02,
           colors: [
-            Color(0xFF74758F),
-            Color(0xFF414563),
-            Color(0xFF20263F),
-            Color(0xFF070A16),
+            Color(0xFF73758B),
+            Color(0xFF555970),
+            Color(0xFF34394F),
+            Color(0xFF171B2C),
+            Color(0xFF050710),
           ],
-          stops: [.05, .36, .70, 1],
+          stops: [.02, .22, .48, .76, 1],
         ).createShader(sphere),
     );
+
+    // Broad surface regions give the planet material variation without
+    // becoming a literal Earth texture.
+    final regions = <Path>[
+      _planetRegion(sphere, [
+        Offset(.13,.32), Offset(.22,.22), Offset(.38,.25), Offset(.47,.37),
+        Offset(.39,.47), Offset(.25,.43), Offset(.15,.38),
+      ]),
+      _planetRegion(sphere, [
+        Offset(.51,.16), Offset(.67,.18), Offset(.79,.30), Offset(.72,.43),
+        Offset(.58,.39), Offset(.53,.29),
+      ]),
+      _planetRegion(sphere, [
+        Offset(.32,.55), Offset(.46,.50), Offset(.57,.60), Offset(.53,.75),
+        Offset(.39,.81), Offset(.27,.68),
+      ]),
+      _planetRegion(sphere, [
+        Offset(.63,.53), Offset(.80,.52), Offset(.87,.65), Offset(.77,.77),
+        Offset(.63,.70),
+      ]),
+    ];
 
     final land = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: const [
-          Color(0xC58D8796),
-          Color(0x9E5E6178),
-          Color(0x633A4058),
+          Color(0xB8A09AA4),
+          Color(0x866D6B7B),
+          Color(0x4C46495E),
         ],
       ).createShader(sphere);
-    final coast = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = r * .009
-      ..color = const Color(0x4AABA5BD);
 
-    final continents = <List<Offset>>[
-      [Offset(.18, .31), Offset(.27, .23), Offset(.39, .27), Offset(.44, .39), Offset(.35, .47), Offset(.22, .43), Offset(.16, .36)],
-      [Offset(.52, .18), Offset(.67, .20), Offset(.78, .31), Offset(.73, .43), Offset(.61, .40), Offset(.55, .31)],
-      [Offset(.34, .56), Offset(.47, .52), Offset(.57, .60), Offset(.52, .76), Offset(.38, .80), Offset(.28, .68)],
-      [Offset(.64, .54), Offset(.80, .52), Offset(.86, .66), Offset(.76, .77), Offset(.63, .70)],
-    ];
-
-    for (final points in continents) {
-      final path = Path();
-      for (var i = 0; i < points.length; i++) {
-        final p = Offset(
-          sphere.left + points[i].dx * sphere.width,
-          sphere.top + points[i].dy * sphere.height,
-        );
-        if (i == 0) {
-          path.moveTo(p.dx, p.dy);
-        } else {
-          path.lineTo(p.dx, p.dy);
-        }
-      }
-      path.close();
+    for (final path in regions) {
       canvas.drawPath(path, land);
-      canvas.drawPath(path, coast);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = r * .006
+          ..color = const Color(0x2ECCC7D0),
+      );
     }
 
-    final texture = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = r * .004
-      ..color = const Color(0x475E648D);
-    for (var i = 0; i < 18; i++) {
-      final y = sphere.top + sphere.height * (.16 + i * .038);
-      final path = Path()..moveTo(sphere.left, y);
-      for (var j = 1; j <= 6; j++) {
-        final x = sphere.left + sphere.width * j / 6;
-        final wave = math.sin(i * 1.7 + j * .8 + phase * math.pi * 2) * r * .012;
-        path.lineTo(x, y + wave);
-      }
-      canvas.drawPath(path, texture);
-    }
-
-    final night = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment(-.1, -.9),
-        end: Alignment(.95, .6),
-        colors: [Colors.transparent, Color(0x6600050C), Color(0xDD000207)],
-        stops: [.28, .62, 1],
-      ).createShader(sphere);
-    canvas.drawCircle(c, r, night);
-
-    // Soft surface relief keeps the continents visually seated on the sphere.
+    // Surface relief is broad and soft, like reflected terrain rather than
+    // map lines.
     final relief = Paint()
       ..shader = RadialGradient(
-        center: const Alignment(-.38, -.36),
-        radius: .86,
+        center: const Alignment(-.38, -.48),
+        radius: .82,
         colors: const [
-          Color(0x1EFFFFFF),
-          Color(0x0CFFFFFF),
+          Color(0x24FFFFFF),
+          Color(0x0EFFFFFF),
           Colors.transparent,
         ],
-        stops: const [.0, .48, 1],
+        stops: const [0, .48, 1],
       ).createShader(sphere);
     canvas.drawCircle(c, r, relief);
 
-    _drawPlanetSurfaceMaterial(canvas, sphere, c, r, phase);
-    _drawPlanetSurfaceZones(canvas, sphere, c, r);
-    _drawPlanetAtmosphere(canvas, sphere, c, r, phase);
-    canvas.restore();
-
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = r * .012
-        ..color = const Color(0xA29C9FBE),
-    );
-
-    final rimLight = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = r * .022
-      ..color = const Color(0x6E8D86B4);
-    canvas.drawArc(
-      Rect.fromCircle(center: c, radius: r * 1.012),
-      math.pi * .92,
-      math.pi * .72,
-      false,
-      rimLight,
-    );
-
-    final physicalGlow = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(-.48, -.44),
-        radius: 1.0,
-        colors: const [
-          Color(0x1EAFB4D0),
-          Color(0x0A6D7195),
-          Colors.transparent,
-        ],
-        stops: const [.0, .58, 1],
-      ).createShader(Rect.fromCircle(center: c, radius: r * 1.08));
-    canvas.drawCircle(c, r * 1.03, physicalGlow);
-
-    final arc = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = r * .012
-      ..color = const Color(0x805C4F86);
-    canvas.drawArc(
-      Rect.fromCircle(center: c, radius: r * 1.055),
-      phase * math.pi * 2,
-      math.pi * .82,
-      false,
-      arc,
-    );
-  }
-
-  void _drawPlanetSurfaceMaterial(Canvas canvas, Rect sphere, Offset c, double r, double phase) {
-    final bands = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = r * .010
-      ..color = const Color(0x185C6385);
-
-    for (var i = 0; i < 7; i++) {
-      final y = sphere.top + sphere.height * (.18 + i * .105);
-      final path = Path()..moveTo(sphere.left - r * .04, y);
-      for (var j = 1; j <= 10; j++) {
-        final x = sphere.left + sphere.width * j / 10;
-        final wave = math.sin(i * .9 + j * .72 + phase * math.pi * 2) * r * .010;
+    for (var i = 0; i < 9; i++) {
+      final y = sphere.top + sphere.height * (.16 + i * .082);
+      final path = Path()..moveTo(sphere.left - r * .05, y);
+      for (var j = 1; j <= 9; j++) {
+        final x = sphere.left + sphere.width * j / 9;
+        final wave = math.sin(i * 1.31 + j * .77 + phase * math.pi * 2) * r * .009;
         path.lineTo(x, y + wave);
       }
-      canvas.drawPath(path, bands);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = r * .0035
+          ..color = const Color(0x1A9A9DB4),
+      );
     }
 
-    final dawn = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(-.58, -.20),
-        radius: .72,
-        colors: const [
-          Color(0x223D4E70),
-          Color(0x102D355A),
+    // Controlled night-side falloff establishes the light direction and
+    // gives the sphere a stronger three-dimensional terminator.
+    final night = Paint()
+      ..shader = const RadialGradient(
+        center: Alignment(-.50, -.42),
+        radius: 1.08,
+        colors: [
           Colors.transparent,
+          Color(0x1200050D),
+          Color(0x6500040B),
+          Color(0xE9000207),
         ],
-        stops: const [.0, .55, 1],
+        stops: [.42, .58, .78, 1],
       ).createShader(sphere);
-    canvas.drawCircle(c, r, dawn);
+    canvas.drawCircle(c, r, night);
 
-    final terminator = Paint()
+    // A subtle cool dawn band sits just inside the lit limb.
+    final dawn = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: const [
+          Color(0x183F5A78),
           Colors.transparent,
-          Color(0x14000004),
-          Color(0x22000005),
+          Color(0x120B0E20),
         ],
-        stops: const [.38, .72, 1],
+        stops: [.0, .48, 1],
       ).createShader(sphere);
-    canvas.drawCircle(c, r, terminator);
-  }
+    canvas.drawCircle(c, r, dawn);
 
-  void _drawPlanetSurfaceZones(Canvas canvas, Rect sphere, Offset c, double r) {
-    final north = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: const [
-          Color(0x163A4568),
-          Colors.transparent,
-        ],
-      ).createShader(sphere);
-    canvas.drawRect(sphere, north);
-
-    final equator = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = r * .024
-      ..color = const Color(0x0F9C9AB5);
-    canvas.drawArc(
-      Rect.fromCenter(
-        center: c.translate(0, r * .03),
-        width: r * 1.72,
-        height: r * .68,
-      ),
-      math.pi * .06,
-      math.pi * .88,
-      false,
-      equator,
-    );
-
-    final dusk = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(.82, .30),
-        radius: .72,
-        colors: const [
-          Color(0x16000612),
-          Color(0x09000612),
-          Colors.transparent,
-        ],
-      ).createShader(sphere);
-    canvas.drawCircle(c, r, dusk);
-  }
-
-  void _drawPlanetAtmosphere(Canvas canvas, Rect sphere, Offset c, double r, double phase) {
-    final cloud = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = r * .018
-      ..color = const Color(0x255E6790);
-    for (var i = 0; i < 5; i++) {
-      final y = sphere.top + sphere.height * (.25 + i * .13);
-      final path = Path()..moveTo(sphere.left - r * .08, y);
-      for (var j = 1; j <= 8; j++) {
-        final x = sphere.left + sphere.width * j / 8;
-        final wave = math.sin(i * 1.2 + j * .9 + phase * math.pi * 2) * r * .014;
+    // Soft cloud/atmospheric bands, deliberately sparse.
+    for (var i = 0; i < 4; i++) {
+      final y = sphere.top + sphere.height * (.27 + i * .14);
+      final path = Path()..moveTo(sphere.left - r * .07, y);
+      for (var j = 1; j <= 7; j++) {
+        final x = sphere.left + sphere.width * j / 7;
+        final wave = math.sin(i * 1.8 + j * .95 + phase * math.pi * 2) * r * .012;
         path.lineTo(x, y + wave);
       }
-      canvas.drawPath(path, cloud);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = r * .014
+          ..color = const Color(0x142F3C62),
+      );
     }
 
-    final atmosphericEdge = Paint()
+    canvas.restore();
+
+    // Physical edge: brighter on the lit upper-left limb, nearly absent on
+    // the night side.
+    final rim = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = r * .035
-      ..color = const Color(0x2D6D6E9A);
+      ..strokeWidth = r * .018
+      ..color = const Color(0x706F7199);
     canvas.drawArc(
-      Rect.fromCircle(center: c, radius: r * 1.025),
-      math.pi * 1.05,
-      math.pi * .78,
+      Rect.fromCircle(center: c, radius: r * 1.006),
+      math.pi * 1.02,
+      math.pi * .72,
       false,
-      atmosphericEdge,
+      rim,
     );
+
+    final violetRim = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = r * .012
+      ..color = const Color(0x805C4E89);
+    canvas.drawArc(
+      Rect.fromCircle(center: c, radius: r * 1.045),
+      phase * math.pi * 2 + math.pi * .25,
+      math.pi * .64,
+      false,
+      violetRim,
+    );
+  }
+
+  Path _planetRegion(Rect sphere, List<Offset> points) {
+    final path = Path();
+    for (var i = 0; i < points.length; i++) {
+      final p = Offset(
+        sphere.left + points[i].dx * sphere.width,
+        sphere.top + points[i].dy * sphere.height,
+      );
+      if (i == 0) {
+        path.moveTo(p.dx, p.dy);
+      } else if (i == points.length - 1) {
+        final prev = Offset(
+          sphere.left + points[i - 1].dx * sphere.width,
+          sphere.top + points[i - 1].dy * sphere.height,
+        );
+        final mid = Offset((prev.dx + p.dx) / 2, (prev.dy + p.dy) / 2);
+        path.quadraticBezierTo(prev.dx, prev.dy, mid.dx, mid.dy);
+        path.quadraticBezierTo(p.dx, p.dy, p.dx, p.dy);
+      } else {
+        final prev = Offset(
+          sphere.left + points[i - 1].dx * sphere.width,
+          sphere.top + points[i - 1].dy * sphere.height,
+        );
+        final mid = Offset((prev.dx + p.dx) / 2, (prev.dy + p.dy) / 2);
+        path.quadraticBezierTo(prev.dx, prev.dy, mid.dx, mid.dy);
+      }
+    }
+    path.close();
+    return path;
   }
 
   @override
-  bool shouldRepaint(covariant _GamePlanetPainter oldDelegate) => oldDelegate.phase != phase;
+  bool shouldRepaint(covariant _GamePlanetPainter oldDelegate) =>
+      oldDelegate.phase != phase;
 }
 
 class _GameWorldPainter extends CustomPainter {
