@@ -2042,4 +2042,39 @@ class _GameWorldPainter extends CustomPainter {
       for (var j = 1; j <= 8; j++) {
         final x = size.width * j / 8;
         final wave = math.sin(i * 1.4 + j * .72 + phase * math.pi * 2) *
-            size.height * .018;
+            size.height * .018  void _drawMainIslandRidgeLighting(Canvas canvas, Size size, double yaw, double facing) {
+    final amount = yaw.abs();
+    final p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = size.width * (.004 + facing * .002)
+      ..color = Color.lerp(
+        const Color(0x385E756D),
+        const Color(0x5A7C8578),
+        facing,
+      )!;
+    final path = Path()
+      ..moveTo(size.width * (.30 + yaw * .025), size.height * .48)
+      ..quadraticBezierTo(
+        size.width * (.46 + yaw * .045),
+        size.height * (.40 - amount * .015),
+        size.width * (.64 + yaw * .025),
+        size.height * .50,
+      );
+    canvas.drawPath(path, p);
+    final low = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .002
+      ..color = const Color(0x254A5B58);
+    final lowPath = Path()
+      ..moveTo(size.width * (.34 + yaw * .02), size.height * .57)
+      ..quadraticBezierTo(
+        size.width * .50,
+        size.height * (.63 + amount * .018),
+        size.width * (.67 + yaw * .02),
+        size.height * .55,
+      );
+    canvas.drawPath(lowPath, low);
+  }
+
+;
