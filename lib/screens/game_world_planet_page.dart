@@ -560,11 +560,11 @@ class _GameWorldPainter extends CustomPainter {
     final yaw = math.sin(angle);
     final facing = math.cos(angle).abs();
     final turn = math.sin(angle);
-    final depthX = .58 + .42 * facing;
-    final depthY = .68 + .32 * facing;
-    final cameraShiftX = yaw * size.width * .16;
-    final cameraShiftY = turn * size.height * .075;
-    final shear = yaw * .14;
+    final depthX = .62 + .38 * facing;
+    final depthY = .70 + .30 * facing;
+    final cameraShiftX = yaw * size.width * .145;
+    final cameraShiftY = turn * size.height * .060;
+    final shear = yaw * .105;
 
     // Lightweight orbital camera: horizontal drag changes yaw, compresses
     // the far side and shifts the near side so the land reads as a volume.
@@ -574,6 +574,7 @@ class _GameWorldPainter extends CustomPainter {
     canvas.translate(-center.dx, -center.dy);
     _drawOceanContours(canvas, size, center);
     _drawOceanDepthBands(canvas, size, center, angle);
+    _drawOrbitalWorldHorizon(canvas, size, center, angle);
     _drawRotatedFarIslands(canvas, size, center, angle);
     _drawSecondaryIslands(canvas, size, center);
     _drawFarHorizonMist(canvas, size, center, angle);
@@ -581,6 +582,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawOrbitalLandmassSilhouette(canvas, size, center, angle);
     _drawOrbitalLandFaces(canvas, size, center, angle);
     _drawMainLandmass(canvas, size, center);
+    _drawOrbitalMainIslandFace(canvas, size, center, angle);
     _drawOrbitalTerrainVolumes(canvas, size, center, angle);
     _drawNearTerrainLayers(canvas, size, center, angle);
     _drawCoastalInlets(canvas, size, center);
@@ -595,6 +597,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawTerrainShadows(canvas, size, center);
     _drawRaisedCliffs(canvas, size, center, angle);
     _drawWaterReflections(canvas, size, center);
+    _drawOrbitalShorelineDepth(canvas, size, center, angle);
     _drawSpatialOcclusion(canvas, size, center, angle);
     _drawSpatialDepthFog(canvas, size, center, angle);
     _drawWorldMist(canvas, size, center);
@@ -928,6 +931,7 @@ class _GameWorldPainter extends CustomPainter {
     final dir = math.sin(angle).sign;
     final front = math.max(0.0, math.sin(angle));
     final back = math.max(0.0, -math.sin(angle));
+    final facing = math.cos(angle).abs();
 
     final islands = [
       (Offset(-.42, -.26), .050, .032, .72),
@@ -984,6 +988,154 @@ class _GameWorldPainter extends CustomPainter {
           ..color = const Color(0x66858C79),
       );
     }
+  }
+
+
+  void _drawOrbitalWorldHorizon(
+    Canvas canvas,
+    Size size,
+    Offset center,
+    double angle,
+  ) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+    final horizonY = center.dy - size.height * (.255 - amount * .018);
+
+    final horizon = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * (.004 + amount * .002)
+      ..color = const Color(0x285A8587);
+
+    final arcRect = Rect.fromCenter(
+      center: Offset(center.dx - yaw * size.width * .025, horizonY),
+      width: size.width * (.86 - amount * .08),
+      height: size.height * (.25 + amount * .035),
+    );
+    canvas.drawArc(arcRect, math.pi * .10, math.pi * .80, false, horizon);
+
+    // A second, softer atmospheric rim gives the water plane a distant edge.
+    final haze = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * (.022 + amount * .010)
+      ..color = const Color(0x112C666B);
+    canvas.drawArc(
+      arcRect.shift(Offset(0, size.height * .018)),
+      math.pi * .12,
+      math.pi * .76,
+      false,
+      haze,
+    );
+  }
+
+  void _drawOrbitalMainIslandFace(
+    Canvas canvas,
+    Size size,
+    Offset center,
+    double angle,
+  ) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+    if (amount < .035) return;
+
+    final dir = yaw.sign;
+    final base = _landPath(size, center);
+    final sideDepth = size.height * (.018 + amount * .065);
+    final sideShift = Offset(
+      -dir * size.width * (.014 + amount * .028),
+      sideDepth,
+    );
+
+    // Draw the lower silhouette first so the top landmass remains dominant.
+    final lower = base.shift(sideShift);
+    canvas.drawPath(
+      lower,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: const [
+            Color(0x6A38483F),
+            Color(0x9A18241F),
+            Color(0xC1080E0D),
+          ],
+        ).createShader(lower.getBounds()),
+    );
+
+    // A narrow shelf between top and side face makes the extrusion readable
+    // without turning the island into a block.
+    final shelf = base.shift(
+      Offset(
+        -dir * size.width * (.008 + amount * .016),
+        sideDepth * .48,
+      ),
+    );
+    canvas.drawPath(
+      shelf,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * (.009 + amount * .007)
+        ..color = const Color(0x3E6B7766),
+    );
+
+    // Near-side edge highlight changes sides as the world turns.
+    final edge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * (.003 + amount * .003)
+      ..color = const Color(0x507B8875);
+    canvas.drawPath(
+      base.shift(
+        Offset(
+          -dir * size.width * (.004 + amount * .009),
+          sideDepth * .08,
+        ),
+      ),
+      edge,
+    );
+  }
+
+  void _drawOrbitalShorelineDepth(
+    Canvas canvas,
+    Size size,
+    Offset center,
+    double angle,
+  ) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+    if (amount < .06) return;
+
+    final dir = yaw.sign;
+    final main = _landPath(size, center);
+
+    // Dark coastal band on the turning side: this is a lighting/occlusion cue
+    // for the 3D turn, not a decorative outline around the whole island.
+    final band = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * (.014 + amount * .018)
+      ..color = const Color(0x3A071313);
+
+    canvas.drawPath(
+      main.shift(
+        Offset(
+          -dir * size.width * (.010 + amount * .020),
+          size.height * (.012 + amount * .018),
+        ),
+      ),
+      band,
+    );
+
+    final waterEdge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * (.004 + amount * .002)
+      ..color = const Color(0x42658D8C);
+    canvas.drawPath(
+      main.shift(
+        Offset(
+          -dir * size.width * (.004 + amount * .010),
+          size.height * (.004 + amount * .008),
+        ),
+      ),
+      waterEdge,
+    );
   }
 
   void _drawMainLandmassDepth(Canvas canvas, Size size, Offset center, double angle) {
