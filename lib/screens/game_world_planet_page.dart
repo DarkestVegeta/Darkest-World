@@ -312,6 +312,7 @@ class _GamePlanetPainter extends CustomPainter {
         stops: [.28, .62, 1],
       ).createShader(sphere);
     canvas.drawCircle(c, r, night);
+    _drawPlanetSurfaceMaterial(canvas, sphere, c, r, phase);
     _drawPlanetAtmosphere(canvas, sphere, c, r, phase);
     canvas.restore();
 
@@ -347,6 +348,50 @@ class _GamePlanetPainter extends CustomPainter {
       false,
       arc,
     );
+  }
+
+  void _drawPlanetSurfaceMaterial(Canvas canvas, Rect sphere, Offset c, double r, double phase) {
+    final bands = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = r * .010
+      ..color = const Color(0x185C6385);
+
+    for (var i = 0; i < 7; i++) {
+      final y = sphere.top + sphere.height * (.18 + i * .105);
+      final path = Path()..moveTo(sphere.left - r * .04, y);
+      for (var j = 1; j <= 10; j++) {
+        final x = sphere.left + sphere.width * j / 10;
+        final wave = math.sin(i * .9 + j * .72 + phase * math.pi * 2) * r * .010;
+        path.lineTo(x, y + wave);
+      }
+      canvas.drawPath(path, bands);
+    }
+
+    final dawn = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-.58, -.20),
+        radius: .72,
+        colors: const [
+          Color(0x223D4E70),
+          Color(0x102D355A),
+          Colors.transparent,
+        ],
+        stops: const [.0, .55, 1],
+      ).createShader(sphere);
+    canvas.drawCircle(c, r, dawn);
+
+    final terminator = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: const [
+          Colors.transparent,
+          Color(0x14000004),
+          Color(0x22000005),
+        ],
+        stops: const [.38, .72, 1],
+      ).createShader(sphere);
+    canvas.drawCircle(c, r, terminator);
   }
 
   void _drawPlanetAtmosphere(Canvas canvas, Rect sphere, Offset c, double r, double phase) {
@@ -416,6 +461,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawOceanContours(canvas, size, center);
     _drawMainLandmass(canvas, size, center);
     _drawCoastalInlets(canvas, size, center);
+    _drawCoastalShelves(canvas, size, center);
     _drawSecondaryIslands(canvas, size, center);
     _drawIslandMaterial(canvas, size, center);
     _drawCoastalDepth(canvas, size, center);
@@ -427,6 +473,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawWorldRoutes(canvas, size, center);
     _drawLandmarks(canvas, size, center);
     _drawWorldMist(canvas, size, center);
+    _drawWorldLightSweep(canvas, size, center);
 
     final atmosphere = Paint()
       ..shader = RadialGradient(
@@ -519,6 +566,49 @@ class _GameWorldPainter extends CustomPainter {
     canvas.drawPath(plateau, Paint()..color = const Color(0x3D6D6652));
   }
 
+  void _drawCoastalShelves(Canvas canvas, Size size, Offset center) {
+    final main = _landPath(size, center);
+
+    final shelfOuter = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .030
+      ..color = const Color(0x1F6BA0A0);
+    final shelfMid = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .015
+      ..color = const Color(0x2D7A9A87);
+    final sand = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .007
+      ..color = const Color(0x4A9C9679);
+
+    canvas.drawPath(main.shift(Offset(0, size.height * .012)), shelfOuter);
+    canvas.drawPath(main.shift(Offset(0, size.height * .006)), shelfMid);
+    canvas.drawPath(main.shift(Offset(0, -size.height * .002)), sand);
+
+    final coves = [
+      Offset(-.34, -.01),
+      Offset(-.22, -.22),
+      Offset(.31, -.17),
+      Offset(.38, .10),
+      Offset(.14, .25),
+    ];
+    for (var i = 0; i < coves.length; i++) {
+      final p = Offset(
+        center.dx + coves[i].dx * size.width,
+        center.dy + coves[i].dy * size.height,
+      );
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: p,
+          width: size.width * (.035 + i * .006),
+          height: size.height * (.018 + i * .003),
+        ),
+        Paint()..color = const Color(0x183E8588),
+      );
+    }
+  }
+
   void _drawSecondaryIslands(Canvas canvas, Size size, Offset center) {
     final islands = [
       [Offset(.47, -.31), .13, .09, 1],
@@ -555,6 +645,10 @@ class _GameWorldPainter extends CustomPainter {
       canvas.drawPath(
         path.shift(Offset(0, size.height * .012)),
         Paint()..color = const Color(0x77000305),
+      );
+      canvas.drawPath(
+        path.shift(Offset(0, size.height * .004)),
+        Paint()..color = const Color(0xFF283B35),
       );
       canvas.drawPath(path, Paint()..color = const Color(0xFF46544A));
       canvas.drawPath(
@@ -899,6 +993,35 @@ class _GameWorldPainter extends CustomPainter {
       }
       canvas.drawPath(path, veil);
     }
+  }
+
+  void _drawWorldLightSweep(Canvas canvas, Size size, Offset center) {
+    final sweep = Paint()
+      ..shader = LinearGradient(
+        begin: const Alignment(-.85, -.55),
+        end: const Alignment(.75, .55),
+        colors: const [
+          Color(0x101D3940),
+          Color(0x082C4C50),
+          Colors.transparent,
+        ],
+        stops: const [.0, .42, 1],
+      ).createShader(Offset.zero & size);
+
+    canvas.drawRect(Offset.zero & size, sweep);
+
+    final horizon = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .002
+      ..color = const Color(0x263F777A);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: center.translate(0, -size.height * .01),
+        width: size.width * .76,
+        height: size.height * .58,
+      ),
+      horizon,
+    );
   }
 
   void _drawLandmarks(Canvas canvas, Size size, Offset center) {
