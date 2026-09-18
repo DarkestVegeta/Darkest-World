@@ -589,18 +589,62 @@ class _GameWorldPainter extends CustomPainter {
 
   void _drawRotatedFarIslands(Canvas canvas, Size size, Offset center, double angle) {
     final amount = math.sin(angle).abs();
-    if (amount < .05) return;
     final dir = math.sin(angle).sign;
-    for (var i = 0; i < 3; i++) {
-      final p = Offset((-.42 + i * .38) * dir, -.26 + i * .27);
-      final w = size.width * (.035 + i * .008) * amount;
-      final h = size.height * (.022 + i * .006) * amount;
-      final c = Offset(center.dx + p.dx * size.width, center.dy + p.dy * size.height);
-      final shadow = Path()..addOval(Rect.fromCenter(center: c.translate(-dir * size.width * .008, size.height * .012), width: w * 2.2, height: h * 1.8));
-      canvas.drawPath(shadow, Paint()..color = const Color(0x66000103));
-      final island = Path()..moveTo(c.dx-w,c.dy)..quadraticBezierTo(c.dx,c.dy-h,c.dx+w,c.dy-h*.1)..quadraticBezierTo(c.dx+w*.3,c.dy+h,c.dx-w,c.dy);
-      canvas.drawPath(island, Paint()..color = const Color(0xFF30453C));
-      canvas.drawPath(island, Paint()..style=PaintingStyle.stroke..strokeWidth=size.width*.0025..color=const Color(0x557E8A78));
+    final front = math.max(0.0, math.sin(angle));
+    final back = math.max(0.0, -math.sin(angle));
+
+    final islands = [
+      (Offset(-.42, -.26), .050, .032, .72),
+      (Offset(-.08, -.04), .075, .040, .88),
+      (Offset(.30, .18), .060, .035, .78),
+    ];
+
+    for (var i = 0; i < islands.length; i++) {
+      final item = islands[i];
+      final reveal = .35 + amount * item.$4;
+      final x = item.$1.dx + dir * (.055 + i * .012) * amount;
+      final y = item.$1.dy + (front - back) * (.028 + i * .010);
+      final c = Offset(center.dx + x * size.width, center.dy + y * size.height);
+      final w = size.width * item.$2 * reveal;
+      final h = size.height * item.$3 * reveal;
+
+      final depth = size.height * (.014 + amount * (.010 + i * .004));
+      final side = Path()
+        ..moveTo(c.dx - w, c.dy)
+        ..quadraticBezierTo(c.dx, c.dy - h, c.dx + w, c.dy - h * .10)
+        ..quadraticBezierTo(c.dx + w * .35, c.dy + h, c.dx - w, c.dy);
+
+      canvas.drawPath(
+        side.shift(Offset(-dir * size.width * .010, depth)),
+        Paint()..color = const Color(0x99000103),
+      );
+
+      final top = Path()
+        ..moveTo(c.dx - w, c.dy - depth)
+        ..quadraticBezierTo(c.dx, c.dy - h - depth, c.dx + w, c.dy - h * .10 - depth)
+        ..quadraticBezierTo(c.dx + w * .35, c.dy + h - depth, c.dx - w, c.dy - depth);
+
+      canvas.drawPath(
+        top,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: const [
+              Color(0xFF536258),
+              Color(0xFF35463E),
+              Color(0xFF202F2B),
+            ],
+          ).createShader(Rect.fromCenter(center: c, width: w * 2, height: h * 2)),
+      );
+
+      canvas.drawPath(
+        top,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = size.width * .0025
+          ..color = const Color(0x66858C79),
+      );
     }
   }
 
@@ -616,23 +660,48 @@ class _GameWorldPainter extends CustomPainter {
 
   void _drawNearTerrainLayers(Canvas canvas, Size size, Offset center, double angle) {
     final amount = math.sin(angle).abs();
-    if (amount < .04) return;
+    if (amount < .03) return;
     final dir = math.sin(angle).sign;
     final layers = [
       (Offset(-.11, -.12), .11, .050, .028),
       (Offset(.08, -.02), .095, .045, .024),
       (Offset(.01, .14), .13, .055, .032),
     ];
+
     for (var i = 0; i < layers.length; i++) {
       final item = layers[i];
-      final p = Offset(center.dx + item.$1.dx * size.width, center.dy + item.$1.dy * size.height);
+      final p = Offset(
+        center.dx + (item.$1.dx - dir * (.006 + amount * .010)) * size.width,
+        center.dy + (item.$1.dy + amount * (.008 + i * .004)) * size.height,
+      );
       final w = size.width * item.$2;
       final h = size.height * item.$3;
-      final offset = Offset(-dir * size.width * (item.$4 + amount * .010), size.height * (.010 + amount * .018));
-      final shadowRect = Rect.fromCenter(center: p + offset, width: w * 2.0, height: h * 1.7);
-      canvas.drawOval(shadowRect, Paint()..color=const Color(0x65000103));
-      final top = Rect.fromCenter(center: p + Offset(-dir * size.width * .004, -size.height * amount * .008), width: w * 2.0, height: h * 1.7);
-      canvas.drawOval(top, Paint()..shader=LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:const[Color(0x527D7A68),Color(0x303E5147),Color(0x18202D27)]).createShader(top));
+      final lift = size.height * (.008 + amount * (.016 + i * .006));
+
+      final base = Path()
+        ..moveTo(p.dx - w, p.dy)
+        ..quadraticBezierTo(p.dx - w * .45, p.dy - h, p.dx + w, p.dy - h * .12)
+        ..quadraticBezierTo(p.dx + w * .40, p.dy + h, p.dx - w, p.dy);
+
+      canvas.drawPath(
+        base.shift(Offset(-dir * size.width * (.012 + amount * .006), lift)),
+        Paint()..color = const Color(0x88000103),
+      );
+
+      final top = base.shift(Offset(-dir * size.width * .004, -lift * .15));
+      canvas.drawPath(
+        top,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: const [
+              Color(0x657B7967),
+              Color(0x453F5148),
+              Color(0x2425312B),
+            ],
+          ).createShader(Rect.fromCenter(center: p, width: w * 2, height: h * 2)),
+      );
     }
   }
 
