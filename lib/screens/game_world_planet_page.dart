@@ -581,6 +581,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawOrbitalLandmassSilhouette(canvas, size, center, angle);
     _drawOrbitalLandFaces(canvas, size, center, angle);
     _drawMainLandmass(canvas, size, center);
+    _drawOrbitalTerrainVolumes(canvas, size, center, angle);
     _drawNearTerrainLayers(canvas, size, center, angle);
     _drawCoastalInlets(canvas, size, center);
     _drawCoastalShelves(canvas, size, center);
@@ -938,14 +939,14 @@ class _GameWorldPainter extends CustomPainter {
       final item = islands[i];
       // Far islands compress and retreat during an orbit instead of
       // behaving like cards sliding around.
-      final reveal = .78 - amount * .28 + (1.0 - facing) * .04;
+      final reveal = .82 - amount * .38 + (1.0 - facing) * .03;
       final x = item.$1.dx + dir * (.055 + i * .012) * amount;
       final y = item.$1.dy + (front - back) * (.028 + i * .010);
       final c = Offset(center.dx + x * size.width, center.dy + y * size.height);
       final w = size.width * item.$2 * reveal;
       final h = size.height * item.$3 * reveal * (.84 + .16 * facing);
 
-      final depth = size.height * (.016 + amount * (.016 + i * .005));
+      final depth = size.height * (.018 + amount * (.022 + i * .006));
       final side = Path()
         ..moveTo(c.dx - w, c.dy)
         ..quadraticBezierTo(c.dx, c.dy - h, c.dx + w, c.dy - h * .10)
@@ -1558,6 +1559,53 @@ class _GameWorldPainter extends CustomPainter {
           ..strokeWidth = size.width * (.0035 + i * .0004)
           ..color = const Color(0x357E866F),
       );
+    }
+  }
+
+  void _drawOrbitalTerrainVolumes(Canvas canvas, Size size, Offset center, double angle) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+    if (amount < .035) return;
+    final dir = yaw.sign;
+
+    final masses = [
+      [Offset(-.09, -.12), .095, .052],
+      [Offset(.08, -.08), .082, .046],
+      [Offset(.02, .10), .115, .055],
+      [Offset(.16, .16), .072, .040],
+    ];
+
+    for (var i = 0; i < masses.length; i++) {
+      final m = masses[i];
+      final p = m[0] as Offset;
+      final w = m[1] as double;
+      final h = m[2] as double;
+      final c = Offset(
+        center.dx + (p.dx - dir * amount * .012) * size.width,
+        center.dy + (p.dy + amount * .010) * size.height,
+      );
+      final faceDepth = size.height * (.008 + amount * (.018 + i * .002));
+      final face = Path()
+        ..moveTo(c.dx - size.width * w, c.dy + size.height * h * .18)
+        ..quadraticBezierTo(c.dx, c.dy + size.height * h * .12,
+            c.dx + size.width * w, c.dy - size.height * h * .08)
+        ..lineTo(c.dx + size.width * w - dir * size.width * amount * .012,
+            c.dy - size.height * h * .08 + faceDepth)
+        ..quadraticBezierTo(c.dx, c.dy + size.height * h * .12 + faceDepth,
+            c.dx - size.width * w - dir * size.width * amount * .012,
+            c.dy + size.height * h * .18 + faceDepth)
+        ..close();
+
+      canvas.drawPath(face, Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: const [Color(0x5A34443B), Color(0x8B18231F), Color(0xA00A1110)],
+        ).createShader(face.getBounds()));
+      canvas.drawPath(face, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * (.0025 + amount * .002)
+        ..color = const Color(0x3E58685A));
     }
   }
 
