@@ -522,10 +522,11 @@ class _GameWorldPainter extends CustomPainter {
     canvas.save();
     final yaw = math.sin(angle);
     final facing = math.cos(angle).abs();
-    final depthX = .72 + .28 * facing;
-    final depthY = .86 + .14 * facing;
-    final cameraShiftX = yaw * size.width * .045;
-    final cameraShiftY = math.sin(angle) * size.height * .018;
+    final turn = math.sin(angle);
+    final depthX = .68 + .32 * facing;
+    final depthY = .82 + .18 * facing;
+    final cameraShiftX = yaw * size.width * .065;
+    final cameraShiftY = turn * size.height * .025;
 
     // Lightweight pseudo-perspective: the world compresses toward its
     // far side while the near side gains a little vertical separation.
@@ -534,12 +535,12 @@ class _GameWorldPainter extends CustomPainter {
     canvas.translate(-center.dx, -center.dy);
     _drawOceanContours(canvas, size, center);
     _drawRotatedFarIslands(canvas, size, center, angle);
+    _drawSecondaryIslands(canvas, size, center);
     _drawMainLandmassDepth(canvas, size, center, angle);
     _drawMainLandmass(canvas, size, center);
     _drawNearTerrainLayers(canvas, size, center, angle);
     _drawCoastalInlets(canvas, size, center);
     _drawCoastalShelves(canvas, size, center);
-    _drawSecondaryIslands(canvas, size, center);
     _drawIslandMaterial(canvas, size, center);
     _drawCoastalDepth(canvas, size, center);
     _drawTerrainContours(canvas, size, center);
@@ -550,6 +551,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawWaterReflections(canvas, size, center);
     _drawWorldRoutes(canvas, size, center);
     _drawLandmarks(canvas, size, center);
+    _drawSpatialDepthFog(canvas, size, center, angle);
     _drawWorldMist(canvas, size, center);
     _drawWorldLightSweep(canvas, size, center);
 
@@ -674,12 +676,34 @@ class _GameWorldPainter extends CustomPainter {
 
   void _drawMainLandmassDepth(Canvas canvas, Size size, Offset center, double angle) {
     final amount = math.sin(angle).abs();
-    if (amount < .02) return;
+    if (amount < .015) return;
     final base = _landPath(size, center);
     final dir = math.sin(angle).sign;
-    final lift = size.height * (.016 + amount * .035);
-    canvas.drawPath(base.shift(Offset(-dir * size.width * .014, lift)), Paint()..color=const Color(0x88000103));
-    canvas.drawPath(base.shift(Offset(-dir * size.width * .007, lift*.35)), Paint()..style=PaintingStyle.stroke..strokeWidth=size.width*.012..color=const Color(0x304D756D));
+    final lift = size.height * (.018 + amount * .045);
+
+    // Deep lower shelf.
+    canvas.drawPath(
+      base.shift(Offset(-dir * size.width * (.014 + amount * .010), lift)),
+      Paint()..color = const Color(0xA8000103),
+    );
+
+    // Exposed vertical face.
+    canvas.drawPath(
+      base.shift(Offset(-dir * size.width * (.008 + amount * .006), lift * .48)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * (.015 + amount * .010)
+        ..color = const Color(0x3E1C2D2A),
+    );
+
+    // Thin upper shelf catches the light when the camera turns.
+    canvas.drawPath(
+      base.shift(Offset(-dir * size.width * .004, lift * .12)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * (.007 + amount * .004)
+        ..color = const Color(0x477A8775),
+    );
   }
 
   void _drawNearTerrainLayers(Canvas canvas, Size size, Offset center, double angle) {
@@ -849,7 +873,10 @@ class _GameWorldPainter extends CustomPainter {
       final x = base.dx + dir * amount * (.018 + seed * .002);
       final y = base.dy + math.sin(angle) * (.010 + seed * .002);
       final c = Offset(center.dx + x * size.width, center.dy + y * size.height);
-      final depth = size.height * (.010 + amount * (.012 + seed * .001));
+      final depthFactor = .82 + .18 * (1.0 - ((y + .5).clamp(0.0, 1.0)));
+      final wDepth = w * depthFactor;
+      final hDepth = h * depthFactor;
+      final depth = size.height * (.012 + amount * (.014 + seed * .001));
       final random = math.Random(seed * 173);
       final path = Path();
       const count = 18;
@@ -857,8 +884,8 @@ class _GameWorldPainter extends CustomPainter {
         final a = math.pi * 2 * i / count;
         final jitter = .82 + random.nextDouble() * .18;
         final point = Offset(
-          c.dx + math.cos(a) * size.width * w * jitter,
-          c.dy + math.sin(a) * size.height * h * jitter,
+          c.dx + math.cos(a) * size.width * wDepth * jitter,
+          c.dy + math.sin(a) * size.height * hDepth * jitter,
         );
         if (i == 0) path.moveTo(point.dx, point.dy);
         else path.lineTo(point.dx, point.dy);
@@ -1214,6 +1241,22 @@ class _GameWorldPainter extends CustomPainter {
       }
       canvas.drawPath(path, route);
     }
+  }
+
+  void _drawSpatialDepthFog(Canvas canvas, Size size, Offset center, double angle) {
+    final turn = math.sin(angle);
+    final far = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          const Color(0x183C5660).withValues(alpha: .18 + math.max(0.0, -turn) * .10),
+          Colors.transparent,
+          const Color(0x10263D42).withValues(alpha: .12 + math.max(0.0, turn) * .08),
+        ],
+        stops: const [.0, .46, 1.0],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, far);
   }
 
   void _drawWorldMist(Canvas canvas, Size size, Offset center) {
