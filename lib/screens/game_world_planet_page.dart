@@ -71,7 +71,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
                           _dragStartAngle = _worldAngle;
                         },
                         onDragUpdate: (x) {
-                          setState(() => _worldAngle = (_dragStartAngle + (x - _dragStartX) / 420).clamp(-1.0, 1.0));
+                          setState(() => _worldAngle = (_dragStartAngle + (x - _dragStartX) / 360).clamp(-1.18, 1.18));
                         },
                       )
                     : _GamePlanetView(
@@ -228,7 +228,7 @@ class _DeepSpacePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DeepSpacePainter oldDelegate) => oldDelegate.phase != phase || oldDelegate.angle != angle;
+  bool shouldRepaint(covariant _DeepSpacePainter oldDelegate) => oldDelegate.phase != phase;
 }
 
 class _GamePlanetPainter extends CustomPainter {
@@ -536,20 +536,25 @@ class _GameWorldPainter extends CustomPainter {
     final yaw = math.sin(angle);
     final facing = math.cos(angle).abs();
     final turn = math.sin(angle);
-    final depthX = .68 + .32 * facing;
-    final depthY = .82 + .18 * facing;
-    final cameraShiftX = yaw * size.width * .065;
-    final cameraShiftY = turn * size.height * .025;
+    final orbit = angle.abs();
+    final depthX = .60 + .40 * facing;
+    final depthY = .76 + .24 * facing;
+    final cameraShiftX = yaw * size.width * .075;
+    final cameraShiftY = turn * size.height * .035;
+    final shear = yaw * .055;
 
-    // Lightweight pseudo-perspective: the world compresses toward its
-    // far side while the near side gains a little vertical separation.
+    // Lightweight orbital camera: horizontal drag changes yaw, compresses
+    // the far side and shifts the near side so the land reads as a volume.
     canvas.translate(center.dx + cameraShiftX, center.dy + cameraShiftY);
     canvas.scale(depthX, depthY);
+    canvas.transform(Matrix4.identity()..setEntry(0, 1, shear).storage);
+    canvas.translate(-center.dx, -center.dy);
     canvas.translate(-center.dx, -center.dy);
     _drawOceanContours(canvas, size, center);
     _drawOceanDepthBands(canvas, size, center, angle);
     _drawRotatedFarIslands(canvas, size, center, angle);
     _drawSecondaryIslands(canvas, size, center);
+    _drawFarHorizonMist(canvas, size, center, angle);
     _drawMainLandmassDepth(canvas, size, center, angle);
     _drawMainLandmass(canvas, size, center);
     _drawNearTerrainLayers(canvas, size, center, angle);
@@ -562,12 +567,13 @@ class _GameWorldPainter extends CustomPainter {
     _drawTerrainMasses(canvas, size, center);
     _drawTerrainHighlights(canvas, size, center);
     _drawTerrainShadows(canvas, size, center);
+    _drawRaisedCliffs(canvas, size, center, angle);
     _drawWaterReflections(canvas, size, center);
-    _drawWorldRoutes(canvas, size, center);
-    _drawLandmarks(canvas, size, center);
+    _drawSpatialOcclusion(canvas, size, center, angle);
     _drawSpatialDepthFog(canvas, size, center, angle);
     _drawWorldMist(canvas, size, center);
     _drawWorldLightSweep(canvas, size, center);
+    _drawNearForeground(canvas, size, center, angle);
 
     // A restrained near/far atmosphere layer sells the camera height
     // without turning the world into a flat map or HUD.
@@ -594,6 +600,84 @@ class _GameWorldPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, atmosphere);
 
+  }
+
+  void _drawFarHorizonMist(Canvas canvas, Size size, Offset center, double angle) {
+    final far = math.max(0.0, math.sin(angle));
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0x3A6B8B8D).withValues(alpha: .18 + far * .12),
+          Colors.transparent,
+        ],
+        stops: const [.0, .42],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, paint);
+  }
+
+  void _drawRaisedCliffs(Canvas canvas, Size size, Offset center, double angle) {
+    final yaw = math.sin(angle);
+    final near = yaw >= 0 ? 1.0 : -1.0;
+    final main = _landPath(size, center);
+    final cliff = Paint()..color = const Color(0x8A17211D);
+    final rock = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .018
+      ..color = const Color(0x554D5B50);
+
+    // A broad lower face makes the main island read as lifted terrain.
+    canvas.drawPath(
+      main.shift(Offset(near * size.width * .010, size.height * .026)),
+      cliff,
+    );
+    canvas.drawPath(
+      main.shift(Offset(near * size.width * .004, size.height * .012)),
+      rock,
+    );
+  }
+
+  void _drawSpatialOcclusion(Canvas canvas, Size size, Offset center, double angle) {
+    final yaw = math.sin(angle);
+    final edge = yaw.abs();
+    final side = yaw >= 0 ? 1.0 : -1.0;
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: side > 0
+            ? [Colors.transparent, const Color(0x16000608)]
+            : [const Color(0x16000608), Colors.transparent],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, paint);
+
+    if (edge > .28) {
+      final veil = Paint()..color = const Color(0x1802080B).withValues(alpha: edge * .22);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: center.translate(-side * size.width * .22, size.height * .01),
+          width: size.width * .34,
+          height: size.height * .52,
+        ),
+        veil,
+      );
+    }
+  }
+
+  void _drawNearForeground(Canvas canvas, Size size, Offset center, double angle) {
+    final side = math.sin(angle);
+    final alpha = .10 + side.abs() * .08;
+    final foreground = Paint()
+      ..shader = RadialGradient(
+        center: Alignment(side * .62, .92),
+        radius: 1.0,
+        colors: [
+          Color(0x264B7072).withValues(alpha: alpha),
+          Colors.transparent,
+        ],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, foreground);
   }
 
   Path _landPath(Size size, Offset center) {
@@ -1402,5 +1486,5 @@ class _GameWorldPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GameWorldPainter oldDelegate) =>
-      oldDelegate.phase != phase;
+      oldDelegate.phase != phase || oldDelegate.angle != angle;
 }
