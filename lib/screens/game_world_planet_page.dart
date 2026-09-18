@@ -355,6 +355,19 @@ class _GamePlanetPainter extends CustomPainter {
       rimLight,
     );
 
+    final physicalGlow = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-.48, -.44),
+        radius: 1.0,
+        colors: const [
+          Color(0x1EAFB4D0),
+          Color(0x0A6D7195),
+          Colors.transparent,
+        ],
+        stops: const [.0, .58, 1],
+      ).createShader(Rect.fromCircle(center: c, radius: r * 1.08));
+    canvas.drawCircle(c, r * 1.03, physicalGlow);
+
     final arc = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = r * .012
@@ -534,6 +547,7 @@ class _GameWorldPainter extends CustomPainter {
     canvas.scale(depthX, depthY);
     canvas.translate(-center.dx, -center.dy);
     _drawOceanContours(canvas, size, center);
+    _drawOceanDepthBands(canvas, size, center, angle);
     _drawRotatedFarIslands(canvas, size, center, angle);
     _drawSecondaryIslands(canvas, size, center);
     _drawMainLandmassDepth(canvas, size, center, angle);
@@ -1126,53 +1140,72 @@ class _GameWorldPainter extends CustomPainter {
 
   void _drawTerrainMasses(Canvas canvas, Size size, Offset center) {
     final masses = [
-      [Offset(-.09, -.12), .095, .052, 0.12],
-      [Offset(.08, -.08), .082, .046, 0.08],
-      [Offset(.02, .10), .115, .055, 0.10],
-      [Offset(.16, .16), .072, .040, 0.06],
+      [Offset(-.09, -.12), .095, .052, .12],
+      [Offset(.08, -.08), .082, .046, .08],
+      [Offset(.02, .10), .115, .055, .10],
+      [Offset(.16, .16), .072, .040, .06],
     ];
 
-    for (final m in masses) {
+    for (var i = 0; i < masses.length; i++) {
+      final m = masses[i];
       final p = m[0] as Offset;
       final w = m[1] as double;
       final h = m[2] as double;
       final lift = m[3] as double;
+
       final c = Offset(
         center.dx + p.dx * size.width,
         center.dy + p.dy * size.height - size.height * lift * .08,
       );
 
-      final base = Paint()..color = const Color(0x2B111B17);
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: c.translate(size.width * .006, size.height * .010),
-          width: size.width * w * 2.2,
-          height: size.height * h * 2.2,
-        ),
-        base,
+      final shadow = Path()
+        ..moveTo(c.dx - size.width * w, c.dy)
+        ..quadraticBezierTo(
+          c.dx,
+          c.dy - size.height * h,
+          c.dx + size.width * w,
+          c.dy - size.height * h * .10,
+        )
+        ..quadraticBezierTo(
+          c.dx + size.width * w * .38,
+          c.dy + size.height * h,
+          c.dx - size.width * w,
+          c.dy,
+        );
+
+      // Each terrain mass gets a visible lower face instead of only a flat oval.
+      canvas.drawPath(
+        shadow.shift(Offset(size.width * .004, size.height * .012)),
+        Paint()..color = const Color(0x50111B17),
       );
 
-      final face = Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: const [
-            Color(0x456F705E),
-            Color(0x28484F43),
-            Color(0x18222F2A),
-          ],
-        ).createShader(Rect.fromCenter(
-          center: c,
-          width: size.width * w * 2.2,
-          height: size.height * h * 2.2,
-        ));
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: c,
-          width: size.width * w * 2.2,
-          height: size.height * h * 2.2,
-        ),
-        face,
+      final top = shadow.shift(Offset(0, -size.height * (.006 + i * .002)));
+      canvas.drawPath(
+        top,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: const [
+              Color(0x5A7D7C68),
+              Color(0x394E584A),
+              Color(0x1E27342D),
+            ],
+          ).createShader(Rect.fromCenter(
+            center: c,
+            width: size.width * w * 2.2,
+            height: size.height * h * 2.2,
+          )),
+      );
+
+      // Small upper shelf: gives the terrain a readable raised plateau.
+      final shelf = top.shift(Offset(-size.width * .003, -size.height * .006));
+      canvas.drawPath(
+        shelf,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = size.width * (.0035 + i * .0004)
+          ..color = const Color(0x357E866F),
       );
     }
   }
