@@ -76,6 +76,25 @@ class _GamePlanetView extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: InkWell(
+                onTap: onBack,
+                child: const Text(
+                  '‹',
+                  style: TextStyle(
+                    color: Color(0xAFCBD2D9),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         Center(
           child: LayoutBuilder(
             builder: (context, box) {
@@ -354,7 +373,9 @@ class _GameWorldPainter extends CustomPainter {
     _drawOceanContours(canvas, size, center);
     _drawMainLandmass(canvas, size, center);
     _drawSecondaryIslands(canvas, size, center);
+    _drawCoastalDepth(canvas, size, center);
     _drawTerrainContours(canvas, size, center);
+    _drawElevationRidges(canvas, size, center);
     _drawWorldRoutes(canvas, size, center);
     _drawLandmarks(canvas, size, center);
 
@@ -512,6 +533,99 @@ class _GameWorldPainter extends CustomPainter {
         height: size.height * (.22 + ring * .11),
       );
       canvas.drawOval(rect, paint);
+    }
+  }
+
+  void _drawCoastalDepth(Canvas canvas, Size size, Offset center) {
+    final coastGlow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .022
+      ..color = const Color(0x304D8584);
+
+    final innerCoast = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .006
+      ..color = const Color(0x668C9A82);
+
+    final main = _landPath(size, center);
+    canvas.drawPath(main.shift(Offset(0, size.height * .010)), coastGlow);
+    canvas.drawPath(main.shift(Offset(0, -size.height * .003)), innerCoast);
+
+    final shallow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .010
+      ..color = const Color(0x244E9A9B);
+
+    for (final offset in [
+      Offset(-.02, .01),
+      Offset(.01, -.012),
+      Offset(.035, .018),
+    ]) {
+      canvas.drawPath(
+        main.shift(Offset(size.width * offset.dx, size.height * offset.dy)),
+        shallow,
+      );
+    }
+  }
+
+  void _drawElevationRidges(Canvas canvas, Size size, Offset center) {
+    final ridge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .003
+      ..color = const Color(0x3F8D8B78);
+
+    final ridges = [
+      [
+        Offset(-.18, -.16), Offset(-.09, -.21), Offset(.01, -.18),
+        Offset(.09, -.12), Offset(.17, -.15),
+      ],
+      [
+        Offset(-.12, .03), Offset(-.03, -.02), Offset(.07, .01),
+        Offset(.14, .07), Offset(.23, .05),
+      ],
+      [
+        Offset(-.02, .18), Offset(.06, .14), Offset(.14, .17),
+        Offset(.20, .23),
+      ],
+    ];
+
+    for (final points in ridges) {
+      final path = Path();
+      for (var i = 0; i < points.length; i++) {
+        final p = Offset(
+          center.dx + points[i].dx * size.width,
+          center.dy + points[i].dy * size.height,
+        );
+        if (i == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.quadraticBezierTo(
+            (path.getBounds().left + p.dx) / 2,
+            p.dy,
+            p.dx,
+            p.dy,
+          );
+        }
+      }
+      canvas.drawPath(path, ridge);
+    }
+
+    final peak = Paint()..color = const Color(0x466D6B5C);
+    for (final p in [
+      Offset(-.08, -.12),
+      Offset(.10, -.04),
+      Offset(.04, .13),
+    ]) {
+      final point = Offset(
+        center.dx + p.dx * size.width,
+        center.dy + p.dy * size.height,
+      );
+      canvas.drawCircle(point, size.width * .012, peak);
+      canvas.drawCircle(
+        point.translate(size.width * .008, -size.height * .006),
+        size.width * .006,
+        Paint()..color = const Color(0x4C9B987F),
+      );
     }
   }
 
