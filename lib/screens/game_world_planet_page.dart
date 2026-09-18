@@ -1167,6 +1167,7 @@ class _GameWorldPainter extends CustomPainter {
     final angle = _currentAngle;
     final amount = math.sin(angle).abs();
     final dir = math.sin(angle).sign;
+    final facing = math.cos(angle).abs();
     final islands = [
       [Offset(.47, -.31), .13, .09, 1],
       [Offset(.39, .38), .14, .10, 2],
@@ -1175,7 +1176,15 @@ class _GameWorldPainter extends CustomPainter {
       [Offset(.03, .46), .10, .06, 5],
     ];
 
-    for (final data in islands) {
+    // Paint far islands first and near islands last. Their depth order
+    // changes with the camera angle, so the orbit can reveal real overlap.
+    final ordered = [...islands]..sort((a, b) {
+      final ay = (a[0] as Offset).dy + math.sin(angle) * .06;
+      final by = (b[0] as Offset).dy + math.sin(angle) * .06;
+      return ay.compareTo(by);
+    });
+
+    for (final data in ordered) {
       final base = data[0] as Offset;
       final w = data[1] as double;
       final h = data[2] as double;
