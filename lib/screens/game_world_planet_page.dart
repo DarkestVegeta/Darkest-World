@@ -576,6 +576,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawOceanDepthBands(canvas, size, center, angle);
     _drawOrbitalWorldHorizon(canvas, size, center, angle);
     _drawRotatedFarIslands(canvas, size, center, angle);
+    _drawOrbitalIslandShadowPlane(canvas, size, center, angle);
     _drawSecondaryIslands(canvas, size, center);
     _drawFarHorizonMist(canvas, size, center, angle);
     _drawMainLandmassDepth(canvas, size, center, angle);
@@ -585,6 +586,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawOrbitalMainIslandFace(canvas, size, center, angle);
     _drawOrbitalTerrainVolumes(canvas, size, center, angle);
     _drawNearTerrainLayers(canvas, size, center, angle);
+    _drawOrbitalTerrainParallax(canvas, size, center, angle);
     _drawCoastalInlets(canvas, size, center);
     _drawCoastalShelves(canvas, size, center);
     _drawIslandMaterial(canvas, size, center);
@@ -604,6 +606,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawWorldLightSweep(canvas, size, center);
     _drawNearForeground(canvas, size, center, angle);
     _drawWorldForegroundShelf(canvas, size, center, angle);
+    _drawOrbitalLightDirection(canvas, size, center, angle);
 
     // A restrained near/far atmosphere layer sells the camera height
     // without turning the world into a flat map or HUD.
@@ -990,6 +993,167 @@ class _GameWorldPainter extends CustomPainter {
     }
   }
 
+
+
+  void _drawOrbitalIslandShadowPlane(
+    Canvas canvas,
+    Size size,
+    Offset center,
+    double angle,
+  ) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+    final dir = yaw.sign;
+
+    // Soft contact shadows move sideways with the camera. This gives the
+    // islands a common ground plane and makes the orbit easier to read.
+    final shadow = Paint()
+      ..shader = RadialGradient(
+        center: Alignment(-dir * .30, .0),
+        radius: .75,
+        colors: const [
+          Color(0x26000406),
+          Color(0x12000406),
+          Colors.transparent,
+        ],
+        stops: const [.0, .52, 1],
+      ).createShader(Offset.zero & size);
+
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(
+          center.dx + dir * amount * size.width * .035,
+          center.dy + size.height * .155,
+        ),
+        width: size.width * (.72 + amount * .06),
+        height: size.height * (.25 + amount * .025),
+      ),
+      shadow,
+    );
+  }
+
+  void _drawOrbitalTerrainParallax(
+    Canvas canvas,
+    Size size,
+    Offset center,
+    double angle,
+  ) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+    if (amount < .04) return;
+
+    final dir = yaw.sign;
+    final near = math.max(0.0, yaw);
+    final far = math.max(0.0, -yaw);
+
+    // Foreground terrain advances while the opposite side retreats. The
+    // movement is deliberately small so the scene stays grounded.
+    final features = [
+      [Offset(-.08, -.12), .090, .045],
+      [Offset(.10, -.07), .075, .040],
+      [Offset(.03, .11), .105, .050],
+      [Offset(.15, .16), .062, .035],
+    ];
+
+    for (var i = 0; i < features.length; i++) {
+      final f = features[i];
+      final p = f[0] as Offset;
+      final w = f[1] as double;
+      final h = f[2] as double;
+      final frontFactor = .70 + near * .42 - far * .16;
+      final c = Offset(
+        center.dx + (p.dx - dir * amount * (.010 + i * .002)) * size.width,
+        center.dy + (p.dy + amount * (.010 + i * .002)) * size.height,
+      );
+
+      final rx = size.width * w * frontFactor;
+      final ry = size.height * h * (1.0 + near * .10);
+      final lift = size.height * (.010 + amount * (.018 + i * .003));
+
+      final path = Path()
+        ..moveTo(c.dx - rx, c.dy)
+        ..quadraticBezierTo(
+          c.dx - rx * .38,
+          c.dy - ry,
+          c.dx + rx,
+          c.dy - ry * .08,
+        )
+        ..quadraticBezierTo(
+          c.dx + rx * .35,
+          c.dy + ry,
+          c.dx - rx,
+          c.dy,
+        )
+        ..close();
+
+      final lower = path.shift(
+        Offset(-dir * size.width * (.004 + amount * .008), lift),
+      );
+      canvas.drawPath(
+        lower,
+        Paint()..color = const Color(0x3E050B09),
+      );
+
+      canvas.drawPath(
+        path,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: const [
+              Color(0x3A92937B),
+              Color(0x243E5146),
+              Color(0x15202D28),
+            ],
+          ).createShader(path.getBounds()),
+      );
+    }
+  }
+
+  void _drawOrbitalLightDirection(
+    Canvas canvas,
+    Size size,
+    Offset center,
+    double angle,
+  ) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+    final dir = yaw.sign;
+
+    // One broad moving light/shadow relationship ties water, island and
+    // terrain together while the camera turns.
+    final light = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment(-.85 - dir * amount * .35, -.75),
+        end: Alignment(.80 - dir * amount * .10, .70),
+        colors: const [
+          Color(0x1B9EAA98),
+          Color(0x080B1613),
+          Color(0x24000405),
+        ],
+        stops: const [.0, .54, 1.0],
+      ).createShader(Offset.zero & size);
+
+    canvas.drawRect(
+      Offset.zero & size,
+      light,
+    );
+
+    final rim = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * (.003 + amount * .002)
+      ..color = const Color(0x1C7B9A92);
+
+    final arcRect = Rect.fromCenter(
+      center: Offset(
+        center.dx - dir * amount * size.width * .03,
+        center.dy + size.height * .05,
+      ),
+      width: size.width * (.74 + amount * .06),
+      height: size.height * (.40 + amount * .04),
+    );
+    canvas.drawArc(arcRect, math.pi * .18, math.pi * .64, false, rim);
+  }
 
   void _drawOrbitalWorldHorizon(
     Canvas canvas,
