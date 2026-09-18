@@ -41,9 +41,22 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
             children: [
               CustomPaint(painter: _DeepSpacePainter(_clock.value)),
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 850),
+                duration: const Duration(milliseconds: 1100),
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final curved = CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  );
+                  return FadeTransition(
+                    opacity: curved,
+                    child: ScaleTransition(
+                      scale: Tween<double>(begin: .965, end: 1).animate(curved),
+                      child: child,
+                    ),
+                  );
+                },
                 child: _insideWorld
                     ? _GameWorldView(
                         key: const ValueKey('world'),
@@ -403,9 +416,11 @@ class _GameWorldPainter extends CustomPainter {
     _drawOceanContours(canvas, size, center);
     _drawMainLandmass(canvas, size, center);
     _drawSecondaryIslands(canvas, size, center);
+    _drawIslandMaterial(canvas, size, center);
     _drawCoastalDepth(canvas, size, center);
     _drawTerrainContours(canvas, size, center);
     _drawElevationRidges(canvas, size, center);
+    _drawTerrainHighlights(canvas, size, center);
     _drawTerrainShadows(canvas, size, center);
     _drawWaterReflections(canvas, size, center);
     _drawWorldRoutes(canvas, size, center);
@@ -568,6 +583,55 @@ class _GameWorldPainter extends CustomPainter {
     }
   }
 
+  void _drawIslandMaterial(Canvas canvas, Size size, Offset center) {
+    final main = _landPath(size, center);
+    canvas.save();
+    canvas.clipPath(main);
+
+    final light = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-.42, -.45),
+        radius: .95,
+        colors: const [
+          Color(0x3FBBB08B),
+          Color(0x163D5147),
+          Colors.transparent,
+        ],
+        stops: [.0, .48, 1],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, light);
+
+    final dark = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: const [
+          Colors.transparent,
+          Color(0x1C000807),
+          Color(0x4B000607),
+        ],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, dark);
+
+    final soil = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .0022
+      ..color = const Color(0x305D675B);
+
+    for (var i = 0; i < 12; i++) {
+      final y = center.dy - size.height * .25 + i * size.height * .043;
+      final path = Path()..moveTo(center.dx - size.width * .40, y);
+      for (var j = 1; j <= 9; j++) {
+        final x = center.dx - size.width * .40 + j * size.width * .09;
+        final wave = math.sin(i * .8 + j * 1.17) * size.height * .010;
+        path.lineTo(x, y + wave);
+      }
+      canvas.drawPath(path, soil);
+    }
+
+    canvas.restore();
+  }
+
   void _drawCoastalDepth(Canvas canvas, Size size, Offset center) {
     final coastGlow = Paint()
       ..style = PaintingStyle.stroke
@@ -715,6 +779,39 @@ class _GameWorldPainter extends CustomPainter {
         path.lineTo(x,y+wave);
       }
       canvas.drawPath(path,reflection);
+    }
+  }
+
+  void _drawTerrainHighlights(Canvas canvas, Size size, Offset center) {
+    final highlight = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = size.width * .004
+      ..color = const Color(0x4B9A947B);
+
+    for (final points in [
+      [Offset(-.23, -.13), Offset(-.11, -.18), Offset(.02, -.14), Offset(.12, -.07)],
+      [Offset(-.10, .08), Offset(.00, .04), Offset(.10, .08), Offset(.19, .15)],
+      [Offset(-.18, .20), Offset(-.07, .24), Offset(.03, .20)],
+    ]) {
+      final path = Path();
+      for (var i = 0; i < points.length; i++) {
+        final p = Offset(
+          center.dx + points[i].dx * size.width,
+          center.dy + points[i].dy * size.height,
+        );
+        if (i == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.quadraticBezierTo(
+            (p.dx + path.getBounds().center.dx) / 2,
+            p.dy,
+            p.dx,
+            p.dy,
+          );
+        }
+      }
+      canvas.drawPath(path, highlight);
     }
   }
 
