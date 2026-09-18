@@ -526,8 +526,9 @@ class _GameWorldPainter extends CustomPainter {
     canvas.translate(-center.dx, -center.dy);
     _drawOceanContours(canvas, size, center);
     _drawRotatedFarIslands(canvas, size, center, angle);
-    _drawMainLandmass(canvas, size, center);
     _drawMainLandmassDepth(canvas, size, center, angle);
+    _drawMainLandmass(canvas, size, center);
+    _drawNearTerrainLayers(canvas, size, center, angle);
     _drawCoastalInlets(canvas, size, center);
     _drawCoastalShelves(canvas, size, center);
     _drawSecondaryIslands(canvas, size, center);
@@ -611,6 +612,28 @@ class _GameWorldPainter extends CustomPainter {
     final lift = size.height * (.016 + amount * .035);
     canvas.drawPath(base.shift(Offset(-dir * size.width * .014, lift)), Paint()..color=const Color(0x88000103));
     canvas.drawPath(base.shift(Offset(-dir * size.width * .007, lift*.35)), Paint()..style=PaintingStyle.stroke..strokeWidth=size.width*.012..color=const Color(0x304D756D));
+  }
+
+  void _drawNearTerrainLayers(Canvas canvas, Size size, Offset center, double angle) {
+    final amount = math.sin(angle).abs();
+    if (amount < .04) return;
+    final dir = math.sin(angle).sign;
+    final layers = [
+      (Offset(-.11, -.12), .11, .050, .028),
+      (Offset(.08, -.02), .095, .045, .024),
+      (Offset(.01, .14), .13, .055, .032),
+    ];
+    for (var i = 0; i < layers.length; i++) {
+      final item = layers[i];
+      final p = Offset(center.dx + item.$1.dx * size.width, center.dy + item.$1.dy * size.height);
+      final w = size.width * item.$2;
+      final h = size.height * item.$3;
+      final offset = Offset(-dir * size.width * (item.$4 + amount * .010), size.height * (.010 + amount * .018));
+      final shadowRect = Rect.fromCenter(center: p + offset, width: w * 2.0, height: h * 1.7);
+      canvas.drawOval(shadowRect, Paint()..color=const Color(0x65000103));
+      final top = Rect.fromCenter(center: p + Offset(-dir * size.width * .004, -size.height * amount * .008), width: w * 2.0, height: h * 1.7);
+      canvas.drawOval(top, Paint()..shader=LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:const[Color(0x527D7A68),Color(0x303E5147),Color(0x18202D27)]).createShader(top));
+    }
   }
 
   void _drawMainLandmass(Canvas canvas, Size size, Offset center) {
