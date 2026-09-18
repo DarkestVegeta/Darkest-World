@@ -560,11 +560,11 @@ class _GameWorldPainter extends CustomPainter {
     final yaw = math.sin(angle);
     final facing = math.cos(angle).abs();
     final turn = math.sin(angle);
-    final depthX = .62 + .38 * facing;
-    final depthY = .70 + .30 * facing;
-    final cameraShiftX = yaw * size.width * .145;
-    final cameraShiftY = turn * size.height * .060;
-    final shear = yaw * .105;
+    final depthX = .66 + .34 * facing;
+    final depthY = .72 + .28 * facing;
+    final cameraShiftX = yaw * size.width * .125;
+    final cameraShiftY = turn * size.height * .052;
+    final shear = yaw * .090;
 
     // Lightweight orbital camera: horizontal drag changes yaw, compresses
     // the far side and shifts the near side so the land reads as a volume.
@@ -946,7 +946,7 @@ class _GameWorldPainter extends CustomPainter {
       final item = islands[i];
       // Far islands compress and retreat during an orbit instead of
       // behaving like cards sliding around.
-      final reveal = .82 - amount * .38 + (1.0 - facing) * .03;
+      final reveal = .82 - amount * .48 + (1.0 - facing) * .02;
       final x = item.$1.dx + dir * (.055 + i * .012) * amount;
       final y = item.$1.dy + (front - back) * (.028 + i * .010);
       final c = Offset(center.dx + x * size.width, center.dy + y * size.height);
@@ -1203,7 +1203,7 @@ class _GameWorldPainter extends CustomPainter {
 
     final dir = yaw.sign;
     final base = _landPath(size, center);
-    final sideDepth = size.height * (.018 + amount * .065);
+    final sideDepth = size.height * (.022 + amount * .082);
     final sideShift = Offset(
       -dir * size.width * (.014 + amount * .028),
       sideDepth,
@@ -1349,7 +1349,7 @@ class _GameWorldPainter extends CustomPainter {
         center.dx + (item.$1.dx - dir * (.006 + amount * .010)) * size.width,
         center.dy + (item.$1.dy + amount * (.008 + i * .004)) * size.height,
       );
-      final nearScale = 1.0 + amount * (.12 + i * .02);
+      final nearScale = 1.0 + amount * (.16 + i * .025);
       final w = size.width * item.$2 * nearScale;
       final h = size.height * item.$3 * (1.0 + amount * .10);
       final lift = size.height * (.012 + amount * (.032 + i * .008));
@@ -1900,7 +1900,7 @@ class _GameWorldPainter extends CustomPainter {
         center.dx + (p.dx - dir * amount * .012) * size.width,
         center.dy + (p.dy + amount * .010) * size.height,
       );
-      final faceDepth = size.height * (.008 + amount * (.018 + i * .002));
+      final faceDepth = size.height * (.010 + amount * (.024 + i * .003));
       final face = Path()
         ..moveTo(c.dx - size.width * w, c.dy + size.height * h * .18)
         ..quadraticBezierTo(c.dx, c.dy + size.height * h * .12,
