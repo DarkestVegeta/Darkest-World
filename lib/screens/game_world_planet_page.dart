@@ -489,6 +489,7 @@ class _GamePlanetPainter extends CustomPainter {
 class _GameWorldPainter extends CustomPainter {
   final double phase;
   final double angle;
+  double get _currentAngle => angle;
   const _GameWorldPainter(this.phase, this.angle);
 
   @override
@@ -806,6 +807,9 @@ class _GameWorldPainter extends CustomPainter {
   }
 
   void _drawSecondaryIslands(Canvas canvas, Size size, Offset center) {
+    final angle = _currentAngle;
+    final amount = math.sin(angle).abs();
+    final dir = math.sin(angle).sign;
     final islands = [
       [Offset(.47, -.31), .13, .09, 1],
       [Offset(.39, .38), .14, .10, 2],
@@ -815,14 +819,14 @@ class _GameWorldPainter extends CustomPainter {
     ];
 
     for (final data in islands) {
-      final p = data[0] as Offset;
+      final base = data[0] as Offset;
       final w = data[1] as double;
       final h = data[2] as double;
       final seed = data[3] as int;
-      final c = Offset(
-        center.dx + p.dx * size.width,
-        center.dy + p.dy * size.height,
-      );
+      final x = base.dx + dir * amount * (.018 + seed * .002);
+      final y = base.dy + math.sin(angle) * (.010 + seed * .002);
+      final c = Offset(center.dx + x * size.width, center.dy + y * size.height);
+      final depth = size.height * (.010 + amount * (.012 + seed * .001));
       final random = math.Random(seed * 173);
       final path = Path();
       const count = 18;
@@ -839,59 +843,35 @@ class _GameWorldPainter extends CustomPainter {
       path.close();
 
       canvas.drawPath(
-        path.shift(Offset(0, size.height * .012)),
-        Paint()..color = const Color(0x77000305),
+        path.shift(Offset(-dir * size.width * (.006 + amount * .010), depth)),
+        Paint()..color = const Color(0x88000305),
       );
+
       canvas.drawPath(
-        path.shift(Offset(0, size.height * .004)),
-        Paint()..color = const Color(0xFF283B35),
+        path.shift(Offset(-dir * size.width * .003, -depth * .12)),
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: const [
+              Color(0xFF566257),
+              Color(0xFF35463D),
+              Color(0xFF26352F),
+            ],
+          ).createShader(Rect.fromCenter(
+            center: c,
+            width: size.width * w * 2.2,
+            height: size.height * h * 2.2,
+          )),
       );
-      canvas.drawPath(path, Paint()..color = const Color(0xFF46544A));
+
       canvas.drawPath(
         path,
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = size.width * .004
+          ..strokeWidth = size.width * .003
           ..color = const Color(0x668E947F),
       );
-    }
-  }
-
-  void _drawOceanContours(Canvas canvas, Size size, Offset center) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .0013
-      ..color = const Color(0x385B8991);
-    for (var ring = 0; ring < 5; ring++) {
-      final rect = Rect.fromCenter(
-        center: center.translate(
-          math.sin(phase * math.pi * 2 + ring) * size.width * .003,
-          0,
-        ),
-        width: size.width * (.30 + ring * .12),
-        height: size.height * (.22 + ring * .11),
-      );
-      canvas.drawOval(rect, paint);
-    }
-  }
-
-  void _drawCoastalInlets(Canvas canvas, Size size, Offset center) {
-    final waterCut = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .018
-      ..color = const Color(0x3A07171B);
-    final paths = [
-      [Offset(-.31, -.02), Offset(-.25, -.07), Offset(-.20, -.11)],
-      [Offset(.28, -.18), Offset(.34, -.12), Offset(.39, -.07)],
-      [Offset(.20, .23), Offset(.27, .20), Offset(.32, .15)],
-    ];
-    for (final points in paths) {
-      final path=Path();
-      for(var i=0;i<points.length;i++){
-        final p=Offset(center.dx+points[i].dx*size.width,center.dy+points[i].dy*size.height);
-        if(i==0) path.moveTo(p.dx,p.dy); else path.quadraticBezierTo(p.dx,p.dy,p.dx,p.dy);
-      }
-      canvas.drawPath(path,waterCut);
     }
   }
 
