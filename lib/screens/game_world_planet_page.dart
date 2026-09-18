@@ -415,6 +415,7 @@ class _GameWorldPainter extends CustomPainter {
 
     _drawOceanContours(canvas, size, center);
     _drawMainLandmass(canvas, size, center);
+    _drawCoastalInlets(canvas, size, center);
     _drawSecondaryIslands(canvas, size, center);
     _drawIslandMaterial(canvas, size, center);
     _drawCoastalDepth(canvas, size, center);
@@ -425,6 +426,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawWaterReflections(canvas, size, center);
     _drawWorldRoutes(canvas, size, center);
     _drawLandmarks(canvas, size, center);
+    _drawWorldMist(canvas, size, center);
 
     final atmosphere = Paint()
       ..shader = RadialGradient(
@@ -580,6 +582,26 @@ class _GameWorldPainter extends CustomPainter {
         height: size.height * (.22 + ring * .11),
       );
       canvas.drawOval(rect, paint);
+    }
+  }
+
+  void _drawCoastalInlets(Canvas canvas, Size size, Offset center) {
+    final waterCut = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .018
+      ..color = const Color(0x3A07171B);
+    final paths = [
+      [Offset(-.31, -.02), Offset(-.25, -.07), Offset(-.20, -.11)],
+      [Offset(.28, -.18), Offset(.34, -.12), Offset(.39, -.07)],
+      [Offset(.20, .23), Offset(.27, .20), Offset(.32, .15)],
+    ];
+    for (final points in paths) {
+      final path=Path();
+      for(var i=0;i<points.length;i++){
+        final p=Offset(center.dx+points[i].dx*size.width,center.dy+points[i].dy*size.height);
+        if(i==0) path.moveTo(p.dx,p.dy); else path.quadraticBezierTo(p.dx,p.dy,p.dx,p.dy);
+      }
+      canvas.drawPath(path,waterCut);
     }
   }
 
@@ -845,6 +867,37 @@ class _GameWorldPainter extends CustomPainter {
         else path.lineTo(p.dx, p.dy);
       }
       canvas.drawPath(path, route);
+    }
+  }
+
+  void _drawWorldMist(Canvas canvas, Size size, Offset center) {
+    final mist = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-.15, -.10),
+        radius: .82,
+        colors: const [
+          Color(0x00000000),
+          Color(0x123B5960),
+          Color(0x25040B0F),
+        ],
+        stops: const [.35, .72, 1],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, mist);
+
+    final veil = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .010
+      ..color = const Color(0x143F7276);
+    for (var i = 0; i < 4; i++) {
+      final y = center.dy - size.height * .28 + i * size.height * .18;
+      final path = Path()..moveTo(-size.width * .05, y);
+      for (var j = 1; j <= 8; j++) {
+        final x = size.width * j / 8;
+        final wave = math.sin(i * 1.4 + j * .72 + phase * math.pi * 2) *
+            size.height * .018;
+        path.lineTo(x, y + wave);
+      }
+      canvas.drawPath(path, veil);
     }
   }
 
