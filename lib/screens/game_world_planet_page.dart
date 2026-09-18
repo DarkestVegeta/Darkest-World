@@ -703,6 +703,7 @@ class _GameWorldPainter extends CustomPainter {
   void _drawOrbitalLandFaces(Canvas canvas, Size size, Offset center, double angle) {
     final yaw = math.sin(angle);
     final amount = yaw.abs();
+    final orbitSide = yaw.sign;
     if (amount < .035) return;
 
     final dir = yaw.sign;
