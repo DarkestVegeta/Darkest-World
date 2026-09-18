@@ -547,7 +547,7 @@ class _GameWorldPainter extends CustomPainter {
     // the far side and shifts the near side so the land reads as a volume.
     canvas.translate(center.dx + cameraShiftX, center.dy + cameraShiftY);
     canvas.scale(depthX, depthY);
-    canvas.transform(Matrix4.identity()..setEntry(0, 1, shear).storage);
+    canvas.skew(shear, 0);
     canvas.translate(-center.dx, -center.dy);
     canvas.translate(-center.dx, -center.dy);
     _drawOceanContours(canvas, size, center);
