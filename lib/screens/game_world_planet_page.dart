@@ -19,6 +19,9 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
   )..repeat();
 
   bool _insideWorld = false;
+  double _worldAngle = 0;
+  double _dragStartAngle = 0;
+  double _dragStartX = 0;
 
   @override
   void dispose() {
@@ -61,7 +64,15 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
                     ? _GameWorldView(
                         key: const ValueKey('world'),
                         phase: _clock.value,
+                        angle: _worldAngle,
                         onBack: _leaveWorld,
+                        onDragStart: (x) {
+                          _dragStartX = x;
+                          _dragStartAngle = _worldAngle;
+                        },
+                        onDragUpdate: (x) {
+                          setState(() => _worldAngle = (_dragStartAngle + (x - _dragStartX) / 420).clamp(-1.0, 1.0));
+                        },
                       )
                     : _GamePlanetView(
                         key: const ValueKey('planet'),
@@ -115,9 +126,12 @@ class _GamePlanetView extends StatelessWidget {
 
 class _GameWorldView extends StatelessWidget {
   final double phase;
+  final double angle;
   final VoidCallback onBack;
+  final ValueChanged<double> onDragStart;
+  final ValueChanged<double> onDragUpdate;
 
-  const _GameWorldView({super.key, required this.phase, required this.onBack});
+  const _GameWorldView({super.key, required this.phase, required this.angle, required this.onBack, required this.onDragStart, required this.onDragUpdate});
 
   @override
   Widget build(BuildContext context) {
@@ -151,11 +165,14 @@ class _GameWorldView extends StatelessWidget {
                 box.maxWidth * (compact ? .94 : .82),
                 box.maxHeight * (compact ? .72 : .82),
               );
-              return SizedBox(
-                width: width,
-                height: width * .72,
-                child: CustomPaint(
-                  painter: _GameWorldPainter(phase),
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragStart: (d) => onDragStart(d.globalPosition.dx),
+                onHorizontalDragUpdate: (d) => onDragUpdate(d.globalPosition.dx),
+                child: SizedBox(
+                  width: width,
+                  height: width * .72,
+                  child: CustomPaint(painter: _GameWorldPainter(phase, angle)),
                 ),
               );
             },
@@ -211,7 +228,7 @@ class _DeepSpacePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DeepSpacePainter oldDelegate) => oldDelegate.phase != phase;
+  bool shouldRepaint(covariant _DeepSpacePainter oldDelegate) => oldDelegate.phase != phase || oldDelegate.angle != angle;
 }
 
 class _GamePlanetPainter extends CustomPainter {
@@ -471,7 +488,8 @@ class _GamePlanetPainter extends CustomPainter {
 
 class _GameWorldPainter extends CustomPainter {
   final double phase;
-  const _GameWorldPainter(this.phase);
+  final double angle;
+  const _GameWorldPainter(this.phase, this.angle);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -500,8 +518,16 @@ class _GameWorldPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, ocean);
 
+    canvas.save();
+    final yaw = math.sin(angle);
+    final depth = .72 + .28 * math.cos(angle).abs();
+    canvas.translate(center.dx + yaw * size.width * .035, center.dy);
+    canvas.scale(depth, 1.0);
+    canvas.translate(-center.dx, -center.dy);
     _drawOceanContours(canvas, size, center);
+    _drawRotatedFarIslands(canvas, size, center, angle);
     _drawMainLandmass(canvas, size, center);
+    _drawMainLandmassDepth(canvas, size, center, angle);
     _drawCoastalInlets(canvas, size, center);
     _drawCoastalShelves(canvas, size, center);
     _drawSecondaryIslands(canvas, size, center);
@@ -518,6 +544,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawWorldMist(canvas, size, center);
     _drawWorldLightSweep(canvas, size, center);
     _drawWorldSurfaceFrame(canvas, size, center);
+    canvas.restore();
 
     final atmosphere = Paint()
       ..shader = RadialGradient(
@@ -557,6 +584,33 @@ class _GameWorldPainter extends CustomPainter {
     path.quadraticBezierTo(first.dx, first.dy, first.dx, first.dy);
     path.close();
     return path;
+  }
+
+  void _drawRotatedFarIslands(Canvas canvas, Size size, Offset center, double angle) {
+    final amount = math.sin(angle).abs();
+    if (amount < .05) return;
+    final dir = math.sin(angle).sign;
+    for (var i = 0; i < 3; i++) {
+      final p = Offset((-.42 + i * .38) * dir, -.26 + i * .27);
+      final w = size.width * (.035 + i * .008) * amount;
+      final h = size.height * (.022 + i * .006) * amount;
+      final c = Offset(center.dx + p.dx * size.width, center.dy + p.dy * size.height);
+      final shadow = Path()..addOval(Rect.fromCenter(center: c.translate(-dir * size.width * .008, size.height * .012), width: w * 2.2, height: h * 1.8));
+      canvas.drawPath(shadow, Paint()..color = const Color(0x66000103));
+      final island = Path()..moveTo(c.dx-w,c.dy)..quadraticBezierTo(c.dx,c.dy-h,c.dx+w,c.dy-h*.1)..quadraticBezierTo(c.dx+w*.3,c.dy+h,c.dx-w,c.dy);
+      canvas.drawPath(island, Paint()..color = const Color(0xFF30453C));
+      canvas.drawPath(island, Paint()..style=PaintingStyle.stroke..strokeWidth=size.width*.0025..color=const Color(0x557E8A78));
+    }
+  }
+
+  void _drawMainLandmassDepth(Canvas canvas, Size size, Offset center, double angle) {
+    final amount = math.sin(angle).abs();
+    if (amount < .02) return;
+    final base = _landPath(size, center);
+    final dir = math.sin(angle).sign;
+    final lift = size.height * (.016 + amount * .035);
+    canvas.drawPath(base.shift(Offset(-dir * size.width * .014, lift)), Paint()..color=const Color(0x88000103));
+    canvas.drawPath(base.shift(Offset(-dir * size.width * .007, lift*.35)), Paint()..style=PaintingStyle.stroke..strokeWidth=size.width*.012..color=const Color(0x304D756D));
   }
 
   void _drawMainLandmass(Canvas canvas, Size size, Offset center) {
