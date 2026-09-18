@@ -275,11 +275,20 @@ class _GamePlanetPainter extends CustomPainter {
         ).createShader(sphere),
     );
 
-    final land = Paint()..color = const Color(0xB27B7188);
+    final land = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: const [
+          Color(0xC58D8796),
+          Color(0x9E5E6178),
+          Color(0x633A4058),
+        ],
+      ).createShader(sphere);
     final coast = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = r * .012
-      ..color = const Color(0x6C9A94B2);
+      ..strokeWidth = r * .009
+      ..color = const Color(0x4AABA5BD);
 
     final continents = <List<Offset>>[
       [Offset(.18, .31), Offset(.27, .23), Offset(.39, .27), Offset(.44, .39), Offset(.35, .47), Offset(.22, .43), Offset(.16, .36)],
@@ -329,6 +338,21 @@ class _GamePlanetPainter extends CustomPainter {
         stops: [.28, .62, 1],
       ).createShader(sphere);
     canvas.drawCircle(c, r, night);
+
+    // Soft surface relief keeps the continents visually seated on the sphere.
+    final relief = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-.38, -.36),
+        radius: .86,
+        colors: const [
+          Color(0x1EFFFFFF),
+          Color(0x0CFFFFFF),
+          Colors.transparent,
+        ],
+        stops: const [.0, .48, 1],
+      ).createShader(sphere);
+    canvas.drawCircle(c, r, relief);
+
     _drawPlanetSurfaceMaterial(canvas, sphere, c, r, phase);
     _drawPlanetSurfaceZones(canvas, sphere, c, r);
     _drawPlanetAtmosphere(canvas, sphere, c, r, phase);
@@ -573,21 +597,40 @@ class _GameWorldPainter extends CustomPainter {
     _drawWorldMist(canvas, size, center);
     _drawWorldLightSweep(canvas, size, center);
     _drawNearForeground(canvas, size, center, angle);
+    _drawWorldForegroundShelf(canvas, size, center, angle);
 
     // A restrained near/far atmosphere layer sells the camera height
     // without turning the world into a flat map or HUD.
     final nearGlow = Paint()
       ..shader = RadialGradient(
-        center: Alignment(0, .92),
+        center: Alignment(yaw * .10, .92),
         radius: 1.15,
         colors: const [
-          Color(0x183B6870),
-          Color(0x08233B43),
+          Color(0x1B3B6870),
+          Color(0x09233B43),
           Colors.transparent,
         ],
         stops: const [.0, .48, 1],
       ).createShader(rect);
     canvas.drawRect(rect, nearGlow);
+
+    // Curved horizon haze: the world should read as a place with a horizon,
+    // not a flat board viewed from above.
+    final horizonArc = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * (.010 + facing * .004)
+      ..color = Color(0x223F7375).withValues(alpha: .55 + facing * .25);
+    canvas.drawArc(
+      Rect.fromCenter(
+        center: center.translate(yaw * size.width * .025, size.height * .075),
+        width: size.width * (.82 + facing * .08),
+        height: size.height * (.42 + facing * .10),
+      ),
+      math.pi * .10,
+      math.pi * .80,
+      false,
+      horizonArc,
+    );
 
     _drawWorldAtmosphericDepth(canvas, size, center, angle);
     canvas.restore();
@@ -694,6 +737,48 @@ class _GameWorldPainter extends CustomPainter {
         veil,
       );
     }
+  }
+
+  void _drawWorldForegroundShelf(Canvas canvas, Size size, Offset center, double angle) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+
+    final shelf = Path()
+      ..moveTo(center.dx - size.width * .46, center.dy + size.height * .27)
+      ..cubicTo(
+        center.dx - size.width * .28, center.dy + size.height * (.34 + amount * .03),
+        center.dx + size.width * .16, center.dy + size.height * (.36 + amount * .02),
+        center.dx + size.width * .48, center.dy + size.height * .25,
+      )
+      ..cubicTo(
+        center.dx + size.width * .38, center.dy + size.height * .34,
+        center.dx - size.width * .27, center.dy + size.height * .36,
+        center.dx - size.width * .46, center.dy + size.height * .27,
+      );
+
+    canvas.drawPath(
+      shelf.shift(Offset(-yaw * size.width * .018, size.height * .018)),
+      Paint()..color = const Color(0x5A020A0D),
+    );
+    canvas.drawPath(
+      shelf,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: const [
+            Color(0x2D48625C),
+            Color(0x180F2729),
+            Colors.transparent,
+          ],
+        ).createShader(Offset.zero & size),
+    );
+
+    final edge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .004
+      ..color = const Color(0x254C7B78);
+    canvas.drawPath(shelf, edge);
   }
 
   void _drawNearForeground(Canvas canvas, Size size, Offset center, double angle) {
@@ -1001,13 +1086,15 @@ class _GameWorldPainter extends CustomPainter {
       final w = data[1] as double;
       final h = data[2] as double;
       final seed = data[3] as int;
-      final x = base.dx + dir * amount * (.018 + seed * .002);
-      final y = base.dy + math.sin(angle) * (.010 + seed * .002);
+      final x = base.dx + dir * amount * (.028 + seed * .003);
+      final y = base.dy + math.sin(angle) * (.014 + seed * .002);
+      final verticalDepth = (1.0 - ((y + .5).clamp(0.0, 1.0)));
+      final depthFactor = .70 + .30 * verticalDepth;
+      final orbitFactor = .82 + .18 * facing;
+      final wDepth = w * depthFactor * orbitFactor;
+      final hDepth = h * depthFactor * (.86 + .14 * facing);
       final c = Offset(center.dx + x * size.width, center.dy + y * size.height);
-      final depthFactor = .82 + .18 * (1.0 - ((y + .5).clamp(0.0, 1.0)));
-      final wDepth = w * depthFactor;
-      final hDepth = h * depthFactor;
-      final depth = size.height * (.012 + amount * (.014 + seed * .001));
+      final depth = size.height * (.014 + amount * (.018 + seed * .001));
       final random = math.Random(seed * 173);
       final path = Path();
       const count = 18;
