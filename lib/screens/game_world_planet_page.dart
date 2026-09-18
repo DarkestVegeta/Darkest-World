@@ -71,7 +71,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
                           _dragStartAngle = _worldAngle;
                         },
                         onDragUpdate: (x) {
-                          setState(() => _worldAngle = (_dragStartAngle + (x - _dragStartX) / 360).clamp(-1.18, 1.18));
+                          setState(() => _worldAngle = (_dragStartAngle + (x - _dragStartX) / 300).clamp(-1.35, 1.35));
                         },
                       )
                     : _GamePlanetView(
@@ -560,11 +560,11 @@ class _GameWorldPainter extends CustomPainter {
     final yaw = math.sin(angle);
     final facing = math.cos(angle).abs();
     final turn = math.sin(angle);
-    final depthX = .68 + .32 * facing;
-    final depthY = .72 + .28 * facing;
-    final cameraShiftX = yaw * size.width * .12;
-    final cameraShiftY = turn * size.height * .055;
-    final shear = yaw * .10;
+    final depthX = .58 + .42 * facing;
+    final depthY = .68 + .32 * facing;
+    final cameraShiftX = yaw * size.width * .16;
+    final cameraShiftY = turn * size.height * .075;
+    final shear = yaw * .14;
 
     // Lightweight orbital camera: horizontal drag changes yaw, compresses
     // the far side and shifts the near side so the land reads as a volume.
@@ -578,6 +578,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawSecondaryIslands(canvas, size, center);
     _drawFarHorizonMist(canvas, size, center, angle);
     _drawMainLandmassDepth(canvas, size, center, angle);
+    _drawOrbitalLandmassSilhouette(canvas, size, center, angle);
     _drawOrbitalLandFaces(canvas, size, center, angle);
     _drawMainLandmass(canvas, size, center);
     _drawNearTerrainLayers(canvas, size, center, angle);
@@ -1163,6 +1164,46 @@ class _GameWorldPainter extends CustomPainter {
     }
   }
 
+  void _drawOrbitalLandmassSilhouette(Canvas canvas, Size size, Offset center, double angle) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+    if (amount < .025) return;
+
+    final dir = yaw.sign;
+    final coast = _landPath(size, center);
+
+    // Extruded lower rim: the top remains the same landmass, while the
+    // offset face becomes visible during orbit.
+    final extrusionX = -dir * size.width * (.012 + amount * .045);
+    final extrusionY = size.height * (.014 + amount * .038);
+
+    final face = coast.shift(Offset(extrusionX, extrusionY));
+    canvas.drawPath(
+      face,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: const [
+            Color(0x8A25332E),
+            Color(0xA0131E1B),
+            Color(0xC20A1010),
+          ],
+        ).createShader(Offset.zero & size),
+    );
+
+    final shelf = coast.shift(
+      Offset(extrusionX * .55, extrusionY * .52),
+    );
+    canvas.drawPath(
+      shelf,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * (.012 + amount * .010)
+        ..color = const Color(0x4C53665B),
+    );
+  }
+
   void _drawSecondaryIslands(Canvas canvas, Size size, Offset center) {
     final angle = _currentAngle;
     final amount = math.sin(angle).abs();
@@ -1179,8 +1220,10 @@ class _GameWorldPainter extends CustomPainter {
     // Paint far islands first and near islands last. Their depth order
     // changes with the camera angle, so the orbit can reveal real overlap.
     final ordered = [...islands]..sort((a, b) {
-      final ay = (a[0] as Offset).dy + math.sin(angle) * .06;
-      final by = (b[0] as Offset).dy + math.sin(angle) * .06;
+      final ao = a[0] as Offset;
+      final bo = b[0] as Offset;
+      final ay = ao.dy + ao.dx * math.sin(angle) * .34;
+      final by = bo.dy + bo.dx * math.sin(angle) * .34;
       return ay.compareTo(by);
     });
 
@@ -1197,7 +1240,7 @@ class _GameWorldPainter extends CustomPainter {
       final wDepth = w * depthFactor * orbitFactor;
       final hDepth = h * depthFactor * (.86 + .14 * facing);
       final c = Offset(center.dx + x * size.width, center.dy + y * size.height);
-      final depth = size.height * (.014 + amount * (.018 + seed * .001));
+      final depth = size.height * (.014 + amount * (.024 + seed * .0015));
       final random = math.Random(seed * 173);
       final path = Path();
       const count = 18;
@@ -1213,9 +1256,10 @@ class _GameWorldPainter extends CustomPainter {
       }
       path.close();
 
+      final farFade = .72 + .28 * facing;
       canvas.drawPath(
         path.shift(Offset(-dir * size.width * (.006 + amount * .010), depth)),
-        Paint()..color = const Color(0x88000305),
+        Paint()..color = const Color(0x88000305).withValues(alpha: .53 + .35 * farFade),
       );
 
       canvas.drawPath(
