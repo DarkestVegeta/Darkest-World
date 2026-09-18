@@ -1,1 +1,2 @@
-Trigger GitHub Pages deployment after restoring the valid Flutter web content browser.
+Trigger GitHub Pages deployment for the current Darkest-World Flutter web build.
+Deployment check: 2026-09-18.
