@@ -501,7 +501,7 @@ class _GameWorldPainter extends CustomPainter {
         x: 0,
         d: 0.02,
         scale: 1.0,
-        height: .19,
+        height: .17,
         seed: 7,
         main: true,
         points: const [
@@ -512,21 +512,21 @@ class _GameWorldPainter extends CustomPainter {
           Offset(-.39, .32), Offset(-.50, .13),
         ],
       ),
-      _WorldIsland(x: -.56, d: -.34, scale: .42, height: .12, seed: 11, points: const [
+      _WorldIsland(x: -.56, d: -.34, scale: .42, height: .105, seed: 11, points: const [
         Offset(-.52, -.12), Offset(-.25, -.36), Offset(.10, -.31),
         Offset(.40, -.12), Offset(.48, .12), Offset(.20, .33),
         Offset(-.18, .30), Offset(-.46, .17),
       ]),
-      _WorldIsland(x: .57, d: -.28, scale: .34, height: .105, seed: 19, points: const [
+      _WorldIsland(x: .57, d: -.28, scale: .34, height: .095, seed: 19, points: const [
         Offset(-.50, -.10), Offset(-.20, -.34), Offset(.22, -.28),
         Offset(.46, -.02), Offset(.35, .25), Offset(.02, .35),
         Offset(-.34, .25),
       ]),
-      _WorldIsland(x: -.54, d: .42, scale: .31, height: .085, seed: 23, points: const [
+      _WorldIsland(x: -.54, d: .42, scale: .31, height: .070, seed: 23, points: const [
         Offset(-.46, -.10), Offset(-.12, -.30), Offset(.31, -.20),
         Offset(.43, .08), Offset(.20, .29), Offset(-.28, .26),
       ]),
-      _WorldIsland(x: .50, d: .47, scale: .27, height: .078, seed: 31, points: const [
+      _WorldIsland(x: .50, d: .47, scale: .27, height: .064, seed: 31, points: const [
         Offset(-.45, -.08), Offset(-.10, -.26), Offset(.32, -.16),
         Offset(.42, .10), Offset(.12, .27), Offset(-.30, .20),
       ]),
@@ -574,12 +574,12 @@ class _GameWorldPainter extends CustomPainter {
     // angles the far land compresses and the exposed cliff faces become
     // visibly taller, so the world reads as a volume rather than a map.
     final orbit = sy.abs();
-    final pitch = .31 + orbit * .18;
-    final depthScale = (1.0 - rd * perspective).clamp(.68, 1.28);
+    final pitch = .34 + orbit * .17;
+    final depthScale = (1.0 - rd * perspective).clamp(.66, 1.30);
     final px = c.dx + rx * size.width * (.46 + orbit * .035) * depthScale;
     final py = c.dy
         + rd * size.height * pitch * depthScale
-        - h * size.height * (1.08 + orbit * .22) * depthScale;
+        - h * size.height * (1.10 + orbit * .24) * depthScale;
     return Offset(px, py);
   }
 
@@ -589,9 +589,9 @@ class _GameWorldPainter extends CustomPainter {
         center: Alignment(.0, -.12),
         radius: 1.0,
         colors: const [
-          Color(0xFF18404A),
-          Color(0xFF0B2932),
-          Color(0xFF06151C),
+          Color(0xFF18343D),
+          Color(0xFF0B2029),
+          Color(0xFF040B11),
         ],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, deep);
@@ -837,12 +837,17 @@ class _GameWorldPainter extends CustomPainter {
     canvas.save();
     canvas.clipPath(topPath);
 
-    final terrain = <_TerrainMass>[
-      _TerrainMass(-.18, -.15, .17, .09, .055),
-      _TerrainMass(.06, -.08, .14, .08, .045),
-      _TerrainMass(.18, .10, .13, .10, .050),
-      _TerrainMass(-.10, .18, .12, .07, .038),
-    ];
+    final terrain = island.main
+        ? const [
+            _TerrainMass(-.18, -.10, .24, .11, .085),
+            _TerrainMass(.12, -.04, .19, .09, .070),
+            _TerrainMass(.20, .16, .16, .075, .055),
+            _TerrainMass(-.12, .20, .15, .065, .045),
+          ]
+        : const [
+            _TerrainMass(0, 0, .18, .07, .040),
+            _TerrainMass(.10, .10, .11, .05, .030),
+          ];
 
     if (island.main) {
       _drawRaisedTerrainVolume(canvas, size, c, island, yaw,
@@ -869,7 +874,7 @@ class _GameWorldPainter extends CustomPainter {
       );
 
       final w = size.width * t.w * island.scale;
-      final h = size.height * t.h * .42;
+      final h = size.height * t.h * .65;
       final hill = Path()
         ..moveTo(center.dx - w, center.dy + h * .35)
         ..quadraticBezierTo(center.dx - w * .55, center.dy - h,
@@ -890,7 +895,7 @@ class _GameWorldPainter extends CustomPainter {
             center: const Alignment(-.38, -.55),
             radius: 1,
             colors: const [
-              Color(0x765E6D5B),
+              Color(0x87687965),
               Color(0x3D394A3E),
               Color(0x10202D27),
             ],
@@ -898,39 +903,7 @@ class _GameWorldPainter extends CustomPainter {
       );
     }
 
-    // One broad natural highland mass gives the main island a real
-    // elevated center without turning it into a map full of lines.
-    if (island.main) {
-      final highland = Path()
-        ..moveTo(c.dx - size.width * .13, c.dy - size.height * .07)
-        ..quadraticBezierTo(
-          c.dx - size.width * .02, c.dy - size.height * .17,
-          c.dx + size.width * .12, c.dy - size.height * .08,
-        )
-        ..quadraticBezierTo(
-          c.dx + size.width * .16, c.dy + size.height * .02,
-          c.dx + size.width * .03, c.dy + size.height * .08,
-        )
-        ..quadraticBezierTo(
-          c.dx - size.width * .11, c.dy + size.height * .05,
-          c.dx - size.width * .13, c.dy - size.height * .07,
-        )
-        ..close();
-      canvas.drawPath(
-        highland,
-        Paint()
-          ..shader = RadialGradient(
-            center: const Alignment(-.35, -.55),
-            radius: 1,
-            colors: const [
-              Color(0x405E6D59),
-              Color(0x1C34463B),
-              Colors.transparent,
-            ],
-          ).createShader(highland.getBounds()),
-      );
-    }
-
+    // The raised terrain volumes above provide the island's main elevation.
     // Terrain depth is carried by actual raised volumes above; no contour-map overlay.
     canvas.restore();
   }
