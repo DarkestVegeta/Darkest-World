@@ -521,9 +521,16 @@ class _GameWorldPainter extends CustomPainter {
 
     canvas.save();
     final yaw = math.sin(angle);
-    final depth = .72 + .28 * math.cos(angle).abs();
-    canvas.translate(center.dx + yaw * size.width * .035, center.dy);
-    canvas.scale(depth, 1.0);
+    final facing = math.cos(angle).abs();
+    final depthX = .72 + .28 * facing;
+    final depthY = .86 + .14 * facing;
+    final cameraShiftX = yaw * size.width * .045;
+    final cameraShiftY = math.sin(angle) * size.height * .018;
+
+    // Lightweight pseudo-perspective: the world compresses toward its
+    // far side while the near side gains a little vertical separation.
+    canvas.translate(center.dx + cameraShiftX, center.dy + cameraShiftY);
+    canvas.scale(depthX, depthY);
     canvas.translate(-center.dx, -center.dy);
     _drawOceanContours(canvas, size, center);
     _drawRotatedFarIslands(canvas, size, center, angle);
@@ -545,6 +552,22 @@ class _GameWorldPainter extends CustomPainter {
     _drawLandmarks(canvas, size, center);
     _drawWorldMist(canvas, size, center);
     _drawWorldLightSweep(canvas, size, center);
+
+    // A restrained near/far atmosphere layer sells the camera height
+    // without turning the world into a flat map or HUD.
+    final nearGlow = Paint()
+      ..shader = RadialGradient(
+        center: Alignment(0, .92),
+        radius: 1.15,
+        colors: const [
+          Color(0x183B6870),
+          Color(0x08233B43),
+          Colors.transparent,
+        ],
+        stops: const [.0, .48, 1],
+      ).createShader(rect);
+    canvas.drawRect(rect, nearGlow);
+
     _drawWorldSurfaceFrame(canvas, size, center);
     canvas.restore();
 
