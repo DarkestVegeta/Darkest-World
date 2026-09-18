@@ -631,12 +631,12 @@ class _GameWorldPainter extends CustomPainter {
     // angles the far land compresses and the exposed cliff faces become
     // visibly taller, so the world reads as a volume rather than a map.
     final orbit = sy.abs();
-    final pitch = .28 + orbit * .13;
+    final pitch = .31 + orbit * .18;
     final depthScale = (1.0 - rd * perspective).clamp(.68, 1.28);
     final px = c.dx + rx * size.width * (.46 + orbit * .035) * depthScale;
     final py = c.dy
         + rd * size.height * pitch * depthScale
-        - h * size.height * (1.02 + orbit * .16) * depthScale;
+        - h * size.height * (1.08 + orbit * .22) * depthScale;
     return Offset(px, py);
   }
 
@@ -795,6 +795,94 @@ class _GameWorldPainter extends CustomPainter {
     _drawIslandTerrain(canvas, size, c, island, yaw, topPath);
   }
 
+  void _drawRaisedTerrainVolume(
+    Canvas canvas,
+    Size size,
+    Offset c,
+    _WorldIsland island,
+    double yaw,
+    Offset localCenter,
+    double radiusX,
+    double radiusD,
+    double lift,
+  ) {
+    final top = <Offset>[];
+    final bottom = <Offset>[];
+    const steps = 10;
+    for (var i = 0; i < steps; i++) {
+      final a = (math.pi * 2 * i) / steps;
+      final wobble = 1 + .08 * math.sin(a * 3 + island.seed);
+      final lx = localCenter.dx + math.cos(a) * radiusX * wobble;
+      final ld = localCenter.dy + math.sin(a) * radiusD * wobble;
+      top.add(_project(
+        size, c,
+        island.x + lx * island.scale,
+        island.d + ld * island.scale,
+        island.height + lift,
+        yaw,
+        perspective: .24,
+      ));
+      bottom.add(_project(
+        size, c,
+        island.x + lx * island.scale,
+        island.d + ld * island.scale,
+        island.height + lift * .20,
+        yaw,
+        perspective: .24,
+      ));
+    }
+
+    final face = Path();
+    for (var i = 0; i < steps; i++) {
+      final n = (i + 1) % steps;
+      final p = top[i];
+      final q = top[n];
+      final depth = _depthOf(
+        island,
+        yaw,
+      ) + math.sin((i + .5) * math.pi * 2 / steps) * .08;
+      if (depth > -.03) {
+        face.moveTo(p.dx, p.dy);
+        face.lineTo(q.dx, q.dy);
+        face.lineTo(bottom[n].dx, bottom[n].dy);
+        face.lineTo(bottom[i].dx, bottom[i].dy);
+        face.close();
+      }
+    }
+    canvas.drawPath(
+      face,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: const [
+            Color(0x554B5D4D),
+            Color(0x8A17231F),
+            Color(0xA5080F0E),
+          ],
+        ).createShader(face.getBounds()),
+    );
+
+    final plateau = Path()..moveTo(top.first.dx, top.first.dy);
+    for (var i = 1; i < top.length; i++) {
+      plateau.lineTo(top[i].dx, top[i].dy);
+    }
+    plateau.close();
+    canvas.drawPath(
+      plateau,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-.35, -.45),
+          radius: 1,
+          colors: const [
+            Color(0x806C7B68),
+            Color(0x4A48594C),
+            Color(0x17304338),
+          ],
+        ).createShader(plateau.getBounds()),
+    );
+  }
+
   void _drawIslandTerrain(
     Canvas canvas,
     Size size,
@@ -813,7 +901,17 @@ class _GameWorldPainter extends CustomPainter {
       _TerrainMass(-.10, .18, .12, .07, .038),
     ];
 
-    final maxCount = island.main ? 4 : 2;
+    if (island.main) {
+      _drawRaisedTerrainVolume(canvas, size, c, island, yaw,
+          const Offset(-.16, -.08), .24, .18, .095);
+      _drawRaisedTerrainVolume(canvas, size, c, island, yaw,
+          const Offset(.15, .11), .18, .14, .072);
+    } else {
+      _drawRaisedTerrainVolume(canvas, size, c, island, yaw,
+          const Offset(0, 0), .19, .15, .045);
+    }
+
+    final maxCount = island.main ? 2 : 1;
     for (var i = 0; i < maxCount; i++) {
       final t = terrain[i];
       final localX = t.x * island.scale;
@@ -890,47 +988,7 @@ class _GameWorldPainter extends CustomPainter {
       );
     }
 
-    // A few natural ridge planes; no dense map-like contour system.
-    if (island.main) {
-      final ridge = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * .0028
-        ..strokeCap = StrokeCap.round
-        ..color = const Color(0x426E7968);
-
-      final ridgeSets = [
-        [Offset(-.25, -.13), Offset(-.08, -.20), Offset(.10, -.15)],
-        [Offset(-.16, .08), Offset(.02, .01), Offset(.19, .08)],
-        [Offset(-.04, .23), Offset(.09, .18), Offset(.20, .22)],
-      ];
-
-      for (final set in ridgeSets) {
-        final path = Path();
-        for (var i = 0; i < set.length; i++) {
-          final p = set[i];
-          final q = _project(
-            size,
-            c,
-            island.x + p.dx * island.scale,
-            island.d + p.dy * island.scale,
-            island.height + .012,
-            yaw,
-          );
-          if (i == 0) {
-            path.moveTo(q.dx, q.dy);
-          } else {
-            path.quadraticBezierTo(
-              (q.dx + path.getBounds().center.dx) / 2,
-              q.dy,
-              q.dx,
-              q.dy,
-            );
-          }
-        }
-        canvas.drawPath(path, ridge);
-      }
-    }
-
+    // Terrain depth is carried by actual raised volumes above; no contour-map overlay.
     canvas.restore();
   }
 
