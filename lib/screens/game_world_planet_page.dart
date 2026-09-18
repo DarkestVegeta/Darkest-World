@@ -560,11 +560,11 @@ class _GameWorldPainter extends CustomPainter {
     final yaw = math.sin(angle);
     final facing = math.cos(angle).abs();
     final turn = math.sin(angle);
-    final depthX = .56 + .44 * facing;
-    final depthY = .68 + .32 * facing;
-    final cameraShiftX = yaw * size.width * .095;
-    final cameraShiftY = turn * size.height * .045;
-    final shear = yaw * .075;
+    final depthX = .68 + .32 * facing;
+    final depthY = .72 + .28 * facing;
+    final cameraShiftX = yaw * size.width * .12;
+    final cameraShiftY = turn * size.height * .055;
+    final shear = yaw * .10;
 
     // Lightweight orbital camera: horizontal drag changes yaw, compresses
     // the far side and shifts the near side so the land reads as a volume.
@@ -578,6 +578,7 @@ class _GameWorldPainter extends CustomPainter {
     _drawSecondaryIslands(canvas, size, center);
     _drawFarHorizonMist(canvas, size, center, angle);
     _drawMainLandmassDepth(canvas, size, center, angle);
+    _drawOrbitalLandFaces(canvas, size, center, angle);
     _drawMainLandmass(canvas, size, center);
     _drawNearTerrainLayers(canvas, size, center, angle);
     _drawCoastalInlets(canvas, size, center);
@@ -689,6 +690,99 @@ class _GameWorldPainter extends CustomPainter {
         stops: const [.0, .42],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, paint);
+  }
+
+  void _drawOrbitalLandFaces(Canvas canvas, Size size, Offset center, double angle) {
+    final yaw = math.sin(angle);
+    final amount = yaw.abs();
+    if (amount < .035) return;
+
+    final dir = yaw.sign;
+    final main = _landPath(size, center);
+
+    // Draw the exposed side before the normal landmass: the silhouette now
+    // behaves like lifted terrain instead of a flat shape sliding on water.
+    final lowerFace = Paint()..color = const Color(0x7A101A17);
+    final lowerEdge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * (.006 + amount * .010)
+      ..color = const Color(0x52627262);
+
+    for (var i = 3; i >= 1; i--) {
+      final t = i / 3;
+      canvas.drawPath(
+        main.shift(Offset(
+          dir * size.width * (.008 + amount * .020) * t,
+          size.height * (.012 + amount * .030) * t,
+        )),
+        Paint()..color = Color(0x2A101713).withValues(alpha: .42 + t * .12),
+      );
+    }
+
+    canvas.drawPath(
+      main.shift(Offset(
+        dir * size.width * (.014 + amount * .024),
+        size.height * (.018 + amount * .040),
+      )),
+      lowerFace,
+    );
+    canvas.drawPath(
+      main.shift(Offset(
+        dir * size.width * (.010 + amount * .014),
+        size.height * (.012 + amount * .024),
+      )),
+      lowerEdge,
+    );
+
+    // Raised interior terrain gets the same orbital side-face treatment.
+    final masses = [
+      [Offset(-.09, -.12), .095, .052],
+      [Offset(.08, -.08), .082, .046],
+      [Offset(.02, .10), .115, .055],
+      [Offset(.16, .16), .072, .040],
+    ];
+
+    for (var i = 0; i < masses.length; i++) {
+      final m = masses[i];
+      final p = m[0] as Offset;
+      final w = m[1] as double;
+      final h = m[2] as double;
+      final c = Offset(
+        center.dx + p.dx * size.width,
+        center.dy + p.dy * size.height,
+      );
+      final oval = Path()
+        ..moveTo(c.dx - size.width * w, c.dy)
+        ..quadraticBezierTo(
+          c.dx,
+          c.dy - size.height * h,
+          c.dx + size.width * w,
+          c.dy - size.height * h * .10,
+        )
+        ..quadraticBezierTo(
+          c.dx + size.width * w * .38,
+          c.dy + size.height * h,
+          c.dx - size.width * w,
+          c.dy,
+        )
+        ..close();
+
+      final sideShift = Offset(
+        dir * size.width * (.008 + amount * (.010 + i * .002)),
+        size.height * (.012 + amount * .012),
+      );
+      canvas.drawPath(oval.shift(sideShift), Paint()..color = const Color(0x5C17211C));
+      canvas.drawPath(
+        oval.shift(Offset(
+          dir * size.width * (.004 + amount * .006),
+          size.height * (.006 + amount * .006),
+        )),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = size.width * .003
+          ..color = const Color(0x3F647064),
+      );
+    }
   }
 
   void _drawRaisedCliffs(Canvas canvas, Size size, Offset center, double angle) {
