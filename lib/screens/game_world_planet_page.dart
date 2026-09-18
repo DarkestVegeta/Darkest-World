@@ -560,11 +560,11 @@ class _GameWorldPainter extends CustomPainter {
     final yaw = math.sin(angle);
     final facing = math.cos(angle).abs();
     final turn = math.sin(angle);
-    final depthX = .66 + .34 * facing;
-    final depthY = .72 + .28 * facing;
-    final cameraShiftX = yaw * size.width * .125;
-    final cameraShiftY = turn * size.height * .052;
-    final shear = yaw * .090;
+    final depthX = .62 + .38 * facing;
+    final depthY = .68 + .32 * facing;
+    final cameraShiftX = yaw * size.width * .145;
+    final cameraShiftY = turn * size.height * .072;
+    final shear = yaw * .115;
 
     // Lightweight orbital camera: horizontal drag changes yaw, compresses
     // the far side and shifts the near side so the land reads as a volume.
