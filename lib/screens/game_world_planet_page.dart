@@ -299,6 +299,7 @@ class _GamePlanetPainter extends CustomPainter {
         stops: [.28, .62, 1],
       ).createShader(sphere);
     canvas.drawCircle(c, r, night);
+    _drawPlanetAtmosphere(canvas, sphere, c, r, phase);
     canvas.restore();
 
     canvas.drawCircle(
@@ -332,6 +333,35 @@ class _GamePlanetPainter extends CustomPainter {
       math.pi * .82,
       false,
       arc,
+    );
+  }
+
+  void _drawPlanetAtmosphere(Canvas canvas, Rect sphere, Offset c, double r, double phase) {
+    final cloud = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = r * .018
+      ..color = const Color(0x255E6790);
+    for (var i = 0; i < 5; i++) {
+      final y = sphere.top + sphere.height * (.25 + i * .13);
+      final path = Path()..moveTo(sphere.left - r * .08, y);
+      for (var j = 1; j <= 8; j++) {
+        final x = sphere.left + sphere.width * j / 8;
+        final wave = math.sin(i * 1.2 + j * .9 + phase * math.pi * 2) * r * .014;
+        path.lineTo(x, y + wave);
+      }
+      canvas.drawPath(path, cloud);
+    }
+
+    final atmosphericEdge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = r * .035
+      ..color = const Color(0x2D6D6E9A);
+    canvas.drawArc(
+      Rect.fromCircle(center: c, radius: r * 1.025),
+      math.pi * 1.05,
+      math.pi * .78,
+      false,
+      atmosphericEdge,
     );
   }
 
@@ -376,6 +406,8 @@ class _GameWorldPainter extends CustomPainter {
     _drawCoastalDepth(canvas, size, center);
     _drawTerrainContours(canvas, size, center);
     _drawElevationRidges(canvas, size, center);
+    _drawTerrainShadows(canvas, size, center);
+    _drawWaterReflections(canvas, size, center);
     _drawWorldRoutes(canvas, size, center);
     _drawLandmarks(canvas, size, center);
 
@@ -644,6 +676,45 @@ class _GameWorldPainter extends CustomPainter {
         path.lineTo(x, y + wave);
       }
       canvas.drawPath(path, contour);
+    }
+  }
+
+  void _drawTerrainShadows(Canvas canvas, Size size, Offset center) {
+    final shadow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = size.width * .018
+      ..color = const Color(0x26000608);
+
+    for (final points in [
+      [Offset(-.18, -.20), Offset(-.04, -.27), Offset(.12, -.20)],
+      [Offset(-.16, .05), Offset(-.02, -.02), Offset(.13, .01), Offset(.24, -.05)],
+      [Offset(-.10, .22), Offset(.02, .17), Offset(.16, .21)],
+    ]) {
+      final path=Path();
+      for(var i=0;i<points.length;i++){
+        final p=Offset(center.dx+points[i].dx*size.width,center.dy+points[i].dy*size.height);
+        if(i==0) path.moveTo(p.dx,p.dy); else path.lineTo(p.dx,p.dy);
+      }
+      canvas.drawPath(path,shadow);
+    }
+  }
+
+  void _drawWaterReflections(Canvas canvas, Size size, Offset center) {
+    final reflection = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = size.width * .0018
+      ..color = const Color(0x315F9AA0);
+    for (var i=0;i<12;i++) {
+      final y=center.dy-size.height*.31+i*size.height*.052;
+      final path=Path()..moveTo(center.dx-size.width*.43,y);
+      for(var j=1;j<=9;j++){
+        final x=center.dx-size.width*.43+j*size.width*.095;
+        final wave=math.sin(j*.72+i*.65+phase*math.pi*2)*size.height*.006;
+        path.lineTo(x,y+wave);
+      }
+      canvas.drawPath(path,reflection);
     }
   }
 
