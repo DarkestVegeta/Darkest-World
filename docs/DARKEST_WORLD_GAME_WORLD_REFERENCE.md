@@ -8,15 +8,15 @@ These two chat-supplied images are the canonical visual references for the Game 
 - Role: the Game World planet seen before entering the world.
 - Visual target: dark realistic sphere, purple/violet and deep-blue surface, organic luminous terrain, turquoise/violet atmospheric accents, cinematic space.
 - Source filename in the original chat: `Schermafbeelding 2026-09-19 024115(1).png`
-- Original dimensions: 292 × 724 RGBA
-- SHA-256: `a601f16f633190a8d35fa4208d81879221aa4bf50270078fc97cd950d94cdb5c`
+- Original dimensions: 292 × 724 RGBA- Original dimensions: 292 × 724 RGBA
+- SHA-256: `a601f16f6331900a8d35fa4208d81879221aa4bf50270078fc97cd950d94cdb5c`- SHA-256: `a601f16f633190a8d35fa4208d81879221aa4bf50270078fc97cd950d94cdb5c`
 
 ### REF-GAME-ISLANDS
 - Role: the environment revealed when entering Game World.
 - Visual target: large floating islands in a dark atmospheric sky/ocean space; cinematic depth; each island has its own terrain identity.
 - Source filename in the original chat: `downloaden (3)(1).png`
 - Original dimensions: 1294 × 722 RGBA
-- SHA-256: `a601f16f6331900a8d35fa4208d81879221aa4bf50270078fc97cd950d94cdb5c`
+- SHA-256: `8df2a3a3e43f5a61d4b850a133cb4023226f8eb4dccbf2ae223c10be705fa916`
 
 ## Fixed design rules
 
