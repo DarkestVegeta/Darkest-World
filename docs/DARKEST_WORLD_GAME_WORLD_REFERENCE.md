@@ -16,7 +16,7 @@ These two chat-supplied images are the canonical visual references for the Game 
 - Visual target: large floating islands in a dark atmospheric sky/ocean space; cinematic depth; each island has its own terrain identity.
 - Source filename in the original chat: `downloaden (3)(1).png`
 - Original dimensions: 1294 × 722 RGBA
-- SHA-256: `8df2a3a3e43f5a61d4b850a133cb4023226f8eb4dccbf2ae223c10be705fa916`
+- SHA-256: `a601f16f6331900a8d35fa4208d81879221aa4bf50270078fc97cd950d94cdb5c`
 
 ## Fixed design rules
 
