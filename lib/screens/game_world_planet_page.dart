@@ -181,7 +181,7 @@ class _GamePlanetView extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 760;
-    final diameter = math.min(size.width * (compact ? .78 : .50), size.height * .68);
+    final diameter = math.min(size.width * (compact ? .84 : .62), size.height * .78);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -247,8 +247,8 @@ class _IslandAtlas extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 850;
-    final sceneW = math.min(size.width * (compact ? .98 : .94), 1500.0);
-    final sceneH = math.min(size.height * (compact ? .76 : .82), 860.0);
+    final sceneW = math.min(size.width * (compact ? 1.00 : .98), 1700.0);
+    final sceneH = math.min(size.height * (compact ? .82 : .90), 980.0);
 
     return Stack(
       fit: StackFit.expand,
@@ -326,7 +326,7 @@ class _IslandAtlas extends StatelessWidget {
           right: compact ? 16 : 30,
           bottom: compact ? 18 : 30,
           child: Text(
-            'DRAG / EXPLORE · SELECT / ENTER',
+            'SELECT ISLAND · ENTER REALM',
             style: TextStyle(fontSize: 6.5, letterSpacing: 2, color: Colors.white.withValues(alpha: .22)),
           ),
         ),
@@ -441,8 +441,8 @@ class _IslandAtlasPainter extends CustomPainter {
       c.dx + island.x * size.width * .48,
       c.dy + island.d * size.height * .40,
     );
-    final w = size.width * .30 * island.scale;
-    final h = size.height * .20 * island.scale;
+    final w = size.width * .38 * island.scale;
+    final h = size.height * .25 * island.scale;
     final points = <Offset>[];
     final random = math.Random(island.seed);
 
