@@ -52,134 +52,112 @@ class _RealmHit extends StatelessWidget{
   final GamePlatform platform; final int index,total; final bool selected; final Size size; final double phase; final VoidCallback onTap,onOpen;
   const _RealmHit({required this.platform,required this.index,required this.total,required this.selected,required this.size,required this.phase,required this.onTap,required this.onOpen});
   @override Widget build(BuildContext context){
-    final p=_pos(index,total,size,phase),d=math.max(92,size.width*.12);
-    return Positioned(left:p.dx-d*.55,top:p.dy-d*.38,width:d*1.1,height:d*.76,child:MouseRegion(cursor:SystemMouseCursors.click,child:GestureDetector(onTap:onTap,onDoubleTap:onOpen,child:CustomPaint(painter:_MiniRealm(seed:index,active:selected,label:platform.name)))));
+    final p=_pos(index,total,size,phase);
+    final d=math.max(150,size.width*.235);
+    return Positioned(left:p.dx-d*.50,top:p.dy-d*.36,width:d,height:d*.78,child:MouseRegion(
+      cursor:SystemMouseCursors.click,
+      child:GestureDetector(onTap:onTap,onDoubleTap:onOpen,child:CustomPaint(painter:_MiniRealm(seed:index,active:selected,label:platform.name,phase:phase))),
+    ));
   }
 }
 Offset _pos(int i,int total,Size s,double phase){
-  final cols=math.min(5,math.max(3,total)),row=i~/cols,col=i%cols,rows=(total+cols-1)~/cols;
-  return Offset(s.width*(.13+col*(.74/math.max(1,cols-1))),s.height*(.28+row*(.46/math.max(1,rows-1)))+math.sin(phase*math.pi*2+i)*7);
+  const positions=[
+    Offset(.20,.42),Offset(.50,.31),Offset(.80,.43),Offset(.34,.70),Offset(.68,.72),
+    Offset(.18,.69),Offset(.83,.70),Offset(.50,.73)
+  ];
+  final p=positions[i%positions.length];
+  return Offset(s.width*p.dx,s.height*p.dy+math.sin(phase*math.pi*2+i*.9)*4);
 }
 
 class _MiniRealm extends CustomPainter{
-  final int seed; final bool active; final String label;
-  const _MiniRealm({required this.seed,required this.active,required this.label});
+  final int seed; final bool active; final String label; final double phase;
+  const _MiniRealm({required this.seed,required this.active,required this.label,required this.phase});
+
   @override void paint(Canvas c,Size s){
-    final center=Offset(s.width*.5,s.height*.42);
+    final center=Offset(s.width*.5,s.height*.40);
     final rnd=math.Random(900+seed*71);
-    final w=s.width*.94,h=s.height*.62;
+    final w=s.width*.98,h=s.height*.70;
     final pts=<Offset>[];
-    for(var i=0;i<24;i++){
-      final ang=i*math.pi*2/24;
-      final q=.74+rnd.nextDouble()*.26+math.sin(ang*3+seed)*.045;
-      pts.add(center+Offset(math.cos(ang)*w*.5*q,math.sin(ang)*h*.5*q));
+    for(var i=0;i<30;i++){
+      final a=i*math.pi*2/30;
+      final noise=.82+rnd.nextDouble()*.18+math.sin(a*2.7+seed)*.055+math.sin(a*5.0+seed*.4)*.025;
+      pts.add(center+Offset(math.cos(a)*w*.5*noise,math.sin(a)*h*.5*noise));
     }
-    final top=Path()..moveTo(pts[0].dx,pts[0].dy);
-    for(final p in pts.skip(1)) top.lineTo(p.dx,p.dy);
-    top.close();
-    final underside=top.shift(Offset(0,h*.27));
-    c.drawPath(underside,Paint()..color=const Color(0xF0071015));
-    c.drawPath(Path.combine(PathOperation.difference,underside,top),Paint()..color=const Color(0xAA18242A));
-    c.drawPath(top,Paint()..shader=LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:_palette(seed)).createShader(top.getBounds()));
-    for(var k=0;k<5;k++){
-      final p=Path(); final scale=1-k*.105;
-      for(var i=0;i<pts.length;i++){final q=center+(pts[i]-center)*scale;if(i==0)p.moveTo(q.dx,q.dy);else p.lineTo(q.dx,q.dy);}
-      p.close();
-      c.drawPath(p,Paint()..style=PaintingStyle.stroke..strokeWidth=active?1.25:.65..color=Colors.white.withValues(alpha:active?.11:.045));
+    final top=_closed(pts);
+    final body=top.shift(Offset(0,h*.24));
+    // Massive rock underside — the island must have physical volume.
+    c.drawPath(body,Paint()..color=const Color(0xF0081116));
+    for(var layer=0;layer<5;layer++){
+      final t=layer/5;
+      final lower=top.shift(Offset(0,h*(.08+.18*t)));
+      c.drawPath(lower,Paint()..style=PaintingStyle.stroke..strokeWidth=math.max(1,s.width*.006*(1-t))..color=Color.lerp(const Color(0xAA26383B),const Color(0x0010181D),t)!);
     }
-    for(var i=0;i<6;i++){
-      final x=center.dx+(-.30+i*.12)*w;
-      final y=center.dy+math.sin(seed+i*1.7)*.06*h;
-      final m=Path()..moveTo(x-w*.10,y+h*.10)..lineTo(x-w*.03,y-h*(.12+.025*(i%3)))..lineTo(x+w*.035,y-h*(.025+.04*(i%2)))..lineTo(x+w*.12,y+h*.10)..close();
-      c.drawPath(m,Paint()..color=Colors.white.withValues(alpha:.045));
+
+    final bounds=top.getBounds();
+    c.drawPath(top,Paint()..shader=LinearGradient(begin:Alignment(-.8,-1),end:Alignment(.8,1),colors:_palette(seed)).createShader(bounds));
+
+    // Real terrain relief: broad plateaus, valleys, ridges and vegetation masses.
+    for(var layer=1;layer<=6;layer++){
+      final shrink=1-layer*.105;
+      final inner=Path();
+      for(var i=0;i<pts.length;i++){
+        final q=center+(pts[i]-center)*shrink;
+        if(i==0)inner.moveTo(q.dx,q.dy);else inner.lineTo(q.dx,q.dy);
+      }
+      inner.close();
+      c.drawPath(inner,Paint()..style=PaintingStyle.stroke..strokeWidth=math.max(.7,s.width*.004)..color=Colors.white.withValues(alpha:(active?.105:.045)*(1-layer*.08)));
     }
-    final ridge=Paint()..style=PaintingStyle.stroke..strokeWidth=1..color=Colors.white.withValues(alpha:.065);
-    for(var i=0;i<4;i++){
-      final p=Path()..moveTo(center.dx-w*.30,center.dy+(i-2)*h*.07);
-      p.cubicTo(center.dx-w*.12,center.dy-h*.12+i*2,center.dx+w*.08,center.dy+h*.10-i*3,center.dx+w*.31,center.dy-h*.01+i*3);
-      c.drawPath(p,ridge);
+
+    final ridge=Paint()..style=PaintingStyle.stroke..strokeCap=StrokeCap.round..strokeWidth=math.max(1,s.width*.006)..color=Colors.white.withValues(alpha:.095);
+    for(var i=0;i<5;i++){
+      final yy=center.dy+h*(i-2)*.045;
+      final path=Path()..moveTo(center.dx-w*.36,yy+h*.02);
+      path.cubicTo(center.dx-w*.20,yy-h*.16,center.dx-w*.03,yy+h*.12,center.dx+w*.08,yy-h*.10);
+      path.cubicTo(center.dx+w*.18,yy-h*.18,center.dx+w*.28,yy+h*.08,center.dx+w*.37,yy-h*.01);
+      c.drawPath(path,ridge);
     }
+
+    // Mountain silhouettes sit inside the landmass, giving actual elevation rather than a flat blob.
+    final mountain=Paint()..color=Colors.white.withValues(alpha:.105);
+    for(var i=0;i<5;i++){
+      final x=center.dx+(-.30+i*.15)*w;
+      final base=center.dy+h*.13;
+      final peak=base-h*(.17+.04*((seed+i)%3));
+      final path=Path()..moveTo(x-w*.10,base)..lineTo(x,peak)..lineTo(x+w*.11,base)..close();
+      c.drawPath(path,mountain);
+      c.drawPath(Path()..moveTo(x,peak)..lineTo(x+w*.035,base)..lineTo(x+w*.11,base),Paint()..color=Colors.black.withValues(alpha:.12));
+    }
+
+    // Platform identity comes from environmental accents, never mascots or famous scenes.
     final accent=_accent(seed);
-    c.drawCircle(center,w*.13,Paint()..shader=RadialGradient(colors:[accent.withValues(alpha:active?.16:.055),Colors.transparent]).createShader(Rect.fromCircle(center:center,radius:w*.36)));
-    final tp=TextPainter(text:TextSpan(text:label.toUpperCase(),style:TextStyle(color:Colors.white.withValues(alpha:active?.98:.64),fontSize:math.max(7,w*.048),letterSpacing:1.35)),textDirection:TextDirection.ltr)..layout(maxWidth:s.width);
-    tp.paint(c,Offset(center.dx-tp.width/2,center.dy+h*.66));
-    if(active)c.drawPath(top,Paint()..style=PaintingStyle.stroke..strokeWidth=1.8..color=Colors.white.withValues(alpha:.18));
+    final beacon=Offset(center.dx+math.sin(phase*math.pi*2+seed)*w*.16,center.dy-h*.035);
+    c.drawCircle(beacon,w*.08,Paint()..shader=RadialGradient(colors:[accent.withValues(alpha:active?.28:.10),Colors.transparent]).createShader(Rect.fromCircle(center:beacon,radius:w*.28)));
+    c.drawCircle(beacon,w*.018,Paint()..color=accent.withValues(alpha:active?.65:.22));
+
+    // Foreground terrain shadow creates separation from the atmospheric background.
+    final shadow=Paint()..shader=RadialGradient(colors:[Colors.black.withValues(alpha:.32),Colors.transparent]).createShader(Rect.fromCenter(center:Offset(center.dx,center.dy+h*.30),width:w*.95,height:h*.34));
+    c.drawOval(Rect.fromCenter(center:Offset(center.dx,center.dy+h*.30),width:w*.95,height:h*.34),shadow);
+
+    final tp=TextPainter(text:TextSpan(text:label.toUpperCase(),style:TextStyle(color:Colors.white.withValues(alpha:active?.96:.58),fontSize:math.max(8,s.width*.054),letterSpacing:1.5,fontWeight:FontWeight.w400)),textDirection:TextDirection.ltr)..layout(maxWidth:s.width*1.2);
+    tp.paint(c,Offset(center.dx-tp.width/2,center.dy+h*.67));
+    if(active){
+      c.drawPath(top,Paint()..style=PaintingStyle.stroke..strokeWidth=math.max(1.5,s.width*.009)..color=Colors.white.withValues(alpha:.20));
+    }
   }
+
+  Path _closed(List<Offset> pts){final p=Path()..moveTo(pts.first.dx,pts.first.dy);for(final q in pts.skip(1))p.lineTo(q.dx,q.dy);p.close();return p;}
+
   List<Color> _palette(int i)=>const[
-    [Color(0xFF526A58),Color(0xFF314A3E),Color(0xFF17292A)],
-    [Color(0xFF806B55),Color(0xFF55483E),Color(0xFF252B2A)],
-    [Color(0xFF657285),Color(0xFF3E4A5D),Color(0xFF202938)],
-    [Color(0xFF4B7169),Color(0xFF294B49),Color(0xFF162B31)],
-    [Color(0xFF615C73),Color(0xFF3B374B),Color(0xFF202031)],
-    [Color(0xFF6E7974),Color(0xFF3F4B48),Color(0xFF22292B)],
+    [Color(0xFF627C63),Color(0xFF3A5745),Color(0xFF1E3430)],
+    [Color(0xFF92775B),Color(0xFF5B4B40),Color(0xFF29302E)],
+    [Color(0xFF718096),Color(0xFF465467),Color(0xFF252D3A)],
+    [Color(0xFF568079),Color(0xFF2D5551),Color(0xFF172E34)],
+    [Color(0xFF69627C),Color(0xFF403A52),Color(0xFF222336)],
+    [Color(0xFF77827C),Color(0xFF45514D),Color(0xFF242D2F)],
   ][i%6];
+
   Color _accent(int i)=>const[Color(0xFFB9D69D),Color(0xFFD4A66B),Color(0xFFAEBCE0),Color(0xFF6BC2B1),Color(0xFFA58CDA),Color(0xFF9EB5AC)][i%6];
-  @override bool shouldRepaint(covariant _MiniRealm o)=>o.seed!=seed||o.active!=active;
-}
-
-class _RealmAtlas extends CustomPainter {
-  final double phase;
-  const _RealmAtlas(this.phase);
-
-  @override
-  void paint(Canvas c, Size s) {
-    final r = Offset.zero & s;
-    _background(c, s);
-    _distantLayers(c, s);
-    _groundMist(c, s);
-  }
-
-  void _background(Canvas c, Size s) {
-    final r = Offset.zero & s;
-    c.drawRect(r, Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFF030714), Color(0xFF07151E), Color(0xFF02060B)],
-      ).createShader(r));
-    final glow = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(0, -.18), radius: 1.0,
-        colors: const [Color(0x244E6B8A), Color(0x101B3150), Colors.transparent],
-      ).createShader(r);
-    c.drawRect(r, glow);
-    final rnd = math.Random(5512);
-    for (var i = 0; i < 170; i++) {
-      final p = Offset(rnd.nextDouble()*s.width, rnd.nextDouble()*s.height*.68);
-      final a = .018 + rnd.nextDouble()*.045;
-      c.drawCircle(p, .35+rnd.nextDouble()*.8, Paint()..color=Colors.white.withValues(alpha:a));
-    }
-  }
-
-  void _distantLayers(Canvas c, Size s) {
-    final far = Paint()..color=const Color(0x251B3035);
-    final mid = Paint()..color=const Color(0x3515252B);
-    _ridge(c,s,.22,.055,far,1.6);
-    _ridge(c,s,.34,.085,mid,2.0);
-    _ridge(c,s,.47,.105,Paint()..color=const Color(0x45101C20),2.4);
-  }
-
-  void _ridge(Canvas c, Size s, double base, double amp, Paint p, double seed) {
-    final path=Path()..moveTo(0,s.height*base);
-    for(var i=0;i<=18;i++){
-      final x=s.width*i/18;
-      final y=s.height*(base-amp*(.25+.75*((math.sin(i*1.17+seed)+1)/2)));
-      path.lineTo(x,y);
-    }
-    path.lineTo(s.width,s.height*.63); path.lineTo(0,s.height*.63); path.close();
-    c.drawPath(path,p);
-  }
-
-  void _groundMist(Canvas c, Size s) {
-    for(var i=0;i<8;i++){
-      final y=s.height*(.52+i*.045);
-      c.drawOval(
-        Rect.fromCenter(center:Offset(s.width*(.15+i*.11),y),width:s.width*.32,height:s.height*.07),
-        Paint()..color=const Color(0x0EBCD2D3),
-      );
-    }
-  }
-
-  @override bool shouldRepaint(covariant _RealmAtlas oldDelegate)=>oldDelegate.phase!=phase;
+  @override bool shouldRepaint(covariant _MiniRealm o)=>o.seed!=seed||o.active!=active||o.phase!=phase;
 }
 
 class _RealmPanel extends StatelessWidget{
