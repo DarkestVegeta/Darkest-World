@@ -94,6 +94,7 @@ class _RealmAtlas extends CustomPainter {
   }
 
   void _background(Canvas c, Size s) {
+    final r = Offset.zero & s;
     c.drawRect(r, Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter, end: Alignment.bottomCenter,
