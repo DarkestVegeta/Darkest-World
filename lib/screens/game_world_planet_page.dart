@@ -378,10 +378,26 @@ class _IslandAtlasPainter extends CustomPainter {
       _drawIsland(canvas, size, c, islands[i], i, selected == i);
     }
 
+    // Multi-distance atmospheric veil: distant land fades, foreground stays readable.
+    for (var layer = 0; layer < 5; layer++) {
+      final t = layer / 4;
+      final veil = Paint()
+        ..shader = RadialGradient(
+          center: Alignment(0, -.10 + t * .15),
+          radius: .95,
+          colors: [
+            const Color(0x00000000),
+            Color.fromARGB((10 + layer * 5), 88, 91, 128),
+            const Color(0x0002060B),
+          ],
+          stops: const [.48, .78, 1],
+        ).createShader(rect);
+      canvas.drawRect(rect, veil);
+    }
     final glow = Paint()
       ..shader = RadialGradient(
-        colors: [const Color(0x1C9E9CFF), const Color(0x071D5060), Colors.transparent],
-      ).createShader(Rect.fromCircle(center: c, radius: size.shortestSide * .58));
+        colors: [const Color(0x209E9CFF), const Color(0x061D5060), Colors.transparent],
+      ).createShader(Rect.fromCircle(center: c, radius: size.shortestSide * .62));
     canvas.drawRect(rect, glow);
 
     canvas.drawRect(
@@ -441,8 +457,9 @@ class _IslandAtlasPainter extends CustomPainter {
       c.dx + island.x * size.width * .48,
       c.dy + island.d * size.height * .40,
     );
-    final w = size.width * .38 * island.scale;
-    final h = size.height * .25 * island.scale;
+    final depthScale = .88 + (island.d + .50) * .30;
+    final w = size.width * .38 * island.scale * depthScale;
+    final h = size.height * .25 * island.scale * depthScale;
     final points = <Offset>[];
     final random = math.Random(island.seed);
 
@@ -524,7 +541,42 @@ class _IslandAtlasPainter extends CustomPainter {
       canvas.drawPath(p, ridge);
     }
 
-    // Platform identity is atmospheric/architectural, not a famous game.
+    // Physical terrain relief: mountain chains, valleys and a dark underside.
+    final mountainPaint = Paint()..color = Colors.white.withValues(alpha: .075);
+    for (var m = 0; m < 6; m++) {
+      final mx = center.dx + (-.34 + m * .13) * w;
+      final base = center.dy + h * (.10 + (m % 2) * .035);
+      final peak = base - h * (.18 + ((island.seed + m) % 3) * .035);
+      final mountain = Path()
+        ..moveTo(mx - w * .10, base)
+        ..lineTo(mx, peak)
+        ..lineTo(mx + w * .12, base)
+        ..close();
+      canvas.drawPath(mountain, mountainPaint);
+      canvas.drawPath(
+        Path()
+          ..moveTo(mx, peak)
+          ..lineTo(mx + w * .055, base)
+          ..lineTo(mx + w * .12, base),
+        Paint()..color = Colors.black.withValues(alpha: .12),
+      );
+    }
+
+    // Atmospheric depth cuts the rear edge into the world instead of making a flat map.
+    final edgeMist = Paint()
+      ..shader = RadialGradient(
+        colors: [Colors.transparent, const Color(0x401B3C49)],
+      ).createShader(Rect.fromCenter(
+        center: Offset(center.dx, center.dy - h * .05),
+        width: w * 1.30,
+        height: h * .90,
+      ));
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(center.dx, center.dy - h * .03), width: w * 1.18, height: h * .82),
+      edgeMist,
+    );
+
+    // Platform identity is atmospheric/architectural, never a famous game scene.
     _drawIdentityMarker(canvas, center, w, h, index, phase);
 
     final label = TextPainter(
