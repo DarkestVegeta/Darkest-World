@@ -65,18 +65,54 @@ class _MiniRealm extends CustomPainter{
   final int seed; final bool active; final String label;
   const _MiniRealm({required this.seed,required this.active,required this.label});
   @override void paint(Canvas c,Size s){
-    final center=Offset(s.width*.5,s.height*.42),w=s.width*.84,h=s.height*.48,rnd=math.Random(900+seed*71);
-    final pts=<Offset>[];for(var i=0;i<14;i++){final a=i*math.pi*2/14,q=.82+rnd.nextDouble()*.18;pts.add(center+Offset(math.cos(a)*w*.5*q,math.sin(a)*h*.5*q));}
-    final top=Path()..moveTo(pts[0].dx,pts[0].dy);for(final p in pts.skip(1)){top.lineTo(p.dx,p.dy);}top.close();
-    c.drawPath(top.shift(Offset(0,h*.28)),Paint()..color=const Color(0xD0081118));
+    final center=Offset(s.width*.5,s.height*.42);
+    final rnd=math.Random(900+seed*71);
+    final w=s.width*.94,h=s.height*.62;
+    final pts=<Offset>[];
+    for(var i=0;i<24;i++){
+      final ang=i*math.pi*2/24;
+      final q=.74+rnd.nextDouble()*.26+math.sin(ang*3+seed)*.045;
+      pts.add(center+Offset(math.cos(ang)*w*.5*q,math.sin(ang)*h*.5*q));
+    }
+    final top=Path()..moveTo(pts[0].dx,pts[0].dy);
+    for(final p in pts.skip(1)) top.lineTo(p.dx,p.dy);
+    top.close();
+    final underside=top.shift(Offset(0,h*.27));
+    c.drawPath(underside,Paint()..color=const Color(0xF0071015));
+    c.drawPath(Path.combine(PathOperation.difference,underside,top),Paint()..color=const Color(0xAA18242A));
     c.drawPath(top,Paint()..shader=LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:_palette(seed)).createShader(top.getBounds()));
-    for(var k=1;k<4;k++){final path=Path();for(var i=0;i<pts.length;i++){final p=center+(pts[i]-center)*(1-k*.12);if(i==0)path.moveTo(p.dx,p.dy);else path.lineTo(p.dx,p.dy);}path.close();c.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=active?1.2:.6..color=Colors.white.withValues(alpha:active?.13:.055));}
-    c.drawCircle(center,w*.13,Paint()..shader=RadialGradient(colors:[_accent(seed).withValues(alpha:active?.28:.10),Colors.transparent]).createShader(Rect.fromCircle(center:center,radius:w*.38)));
-    c.drawCircle(center,w*.035,Paint()..color=_accent(seed).withValues(alpha:.75));
-    final tp=TextPainter(text:TextSpan(text:label.toUpperCase(),style:TextStyle(color:Colors.white.withValues(alpha:active?.98:.62),fontSize:math.max(7,w*.065),letterSpacing:1.3)),textDirection:TextDirection.ltr)..layout(maxWidth:s.width);
-    tp.paint(c,Offset(center.dx-tp.width/2,center.dy+h*.63));
+    for(var k=0;k<5;k++){
+      final p=Path(); final scale=1-k*.105;
+      for(var i=0;i<pts.length;i++){final q=center+(pts[i]-center)*scale;if(i==0)p.moveTo(q.dx,q.dy);else p.lineTo(q.dx,q.dy);}
+      p.close();
+      c.drawPath(p,Paint()..style=PaintingStyle.stroke..strokeWidth=active?1.25:.65..color=Colors.white.withValues(alpha:active?.11:.045));
+    }
+    for(var i=0;i<6;i++){
+      final x=center.dx+(-.30+i*.12)*w;
+      final y=center.dy+math.sin(seed+i*1.7)*.06*h;
+      final m=Path()..moveTo(x-w*.10,y+h*.10)..lineTo(x-w*.03,y-h*(.12+.025*(i%3)))..lineTo(x+w*.035,y-h*(.025+.04*(i%2)))..lineTo(x+w*.12,y+h*.10)..close();
+      c.drawPath(m,Paint()..color=Colors.white.withValues(alpha:.045));
+    }
+    final ridge=Paint()..style=PaintingStyle.stroke..strokeWidth=1..color=Colors.white.withValues(alpha:.065);
+    for(var i=0;i<4;i++){
+      final p=Path()..moveTo(center.dx-w*.30,center.dy+(i-2)*h*.07);
+      p.cubicTo(center.dx-w*.12,center.dy-h*.12+i*2,center.dx+w*.08,center.dy+h*.10-i*3,center.dx+w*.31,center.dy-h*.01+i*3);
+      c.drawPath(p,ridge);
+    }
+    final accent=_accent(seed);
+    c.drawCircle(center,w*.13,Paint()..shader=RadialGradient(colors:[accent.withValues(alpha:active?.16:.055),Colors.transparent]).createShader(Rect.fromCircle(center:center,radius:w*.36)));
+    final tp=TextPainter(text:TextSpan(text:label.toUpperCase(),style:TextStyle(color:Colors.white.withValues(alpha:active?.98:.64),fontSize:math.max(7,w*.048),letterSpacing:1.35)),textDirection:TextDirection.ltr)..layout(maxWidth:s.width);
+    tp.paint(c,Offset(center.dx-tp.width/2,center.dy+h*.66));
+    if(active)c.drawPath(top,Paint()..style=PaintingStyle.stroke..strokeWidth=1.8..color=Colors.white.withValues(alpha:.18));
   }
-  List<Color> _palette(int i)=>const[[Color(0xFF58735E),Color(0xFF263D34),Color(0xFF17282A)],[Color(0xFF80674F),Color(0xFF4D4038),Color(0xFF252A29)],[Color(0xFF69758D),Color(0xFF39475E),Color(0xFF202938)],[Color(0xFF4C756C),Color(0xFF284E4A),Color(0xFF162C32)],[Color(0xFF665E78),Color(0xFF3C354E),Color(0xFF202031)],[Color(0xFF78827C),Color(0xFF404B48),Color(0xFF22292B)]][i%6];
+  List<Color> _palette(int i)=>const[
+    [Color(0xFF526A58),Color(0xFF314A3E),Color(0xFF17292A)],
+    [Color(0xFF806B55),Color(0xFF55483E),Color(0xFF252B2A)],
+    [Color(0xFF657285),Color(0xFF3E4A5D),Color(0xFF202938)],
+    [Color(0xFF4B7169),Color(0xFF294B49),Color(0xFF162B31)],
+    [Color(0xFF615C73),Color(0xFF3B374B),Color(0xFF202031)],
+    [Color(0xFF6E7974),Color(0xFF3F4B48),Color(0xFF22292B)],
+  ][i%6];
   Color _accent(int i)=>const[Color(0xFFB9D69D),Color(0xFFD4A66B),Color(0xFFAEBCE0),Color(0xFF6BC2B1),Color(0xFFA58CDA),Color(0xFF9EB5AC)][i%6];
   @override bool shouldRepaint(covariant _MiniRealm o)=>o.seed!=seed||o.active!=active;
 }
