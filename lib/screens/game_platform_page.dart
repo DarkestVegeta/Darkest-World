@@ -128,6 +128,22 @@ class _MiniRealm extends CustomPainter{
       c.drawPath(Path()..moveTo(x,peak)..lineTo(x+w*.035,base)..lineTo(x+w*.11,base),Paint()..color=Colors.black.withValues(alpha:.12));
     }
 
+    // Deep environmental shadows: terrain masses should sit inside the world, not float as stickers.
+    final depthShadow = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, .8),
+        radius: 1,
+        colors: [Colors.black.withValues(alpha: .42), Colors.transparent],
+      ).createShader(Rect.fromCenter(
+        center: Offset(center.dx, center.dy + h * .30),
+        width: w * 1.05,
+        height: h * .55,
+      ));
+    c.drawOval(
+      Rect.fromCenter(center: Offset(center.dx, center.dy + h * .28), width: w * 1.05, height: h * .48),
+      depthShadow,
+    );
+
     // Platform identity comes from environmental accents, never mascots or famous scenes.
     final accent=_accent(seed);
     final beacon=Offset(center.dx+math.sin(phase*math.pi*2+seed)*w*.16,center.dy-h*.035);
