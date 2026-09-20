@@ -81,22 +81,70 @@ class _MiniRealm extends CustomPainter{
   @override bool shouldRepaint(covariant _MiniRealm o)=>o.seed!=seed||o.active!=active;
 }
 
-class _RealmAtlas extends CustomPainter{
-  final double phase;const _RealmAtlas(this.phase);
-  @override void paint(Canvas c,Size s){
-    final r=Offset.zero&s;c.drawRect(r,Paint()..shader=const RadialGradient(center:Alignment(0,-.25),radius:1.05,colors:[Color(0xFF172B32),Color(0xFF07131D),Color(0xFF02040A)]).createShader(r));
-    final rnd=math.Random(5512);for(var i=0;i<240;i++){final d=.2+rnd.nextDouble()*.8;c.drawCircle(Offset(rnd.nextDouble()*s.width,rnd.nextDouble()*s.height),.25+d*.8,Paint()..color=Colors.white.withValues(alpha:.018+d*.045));}
-    final horizon=Path()..moveTo(0,s.height*.64);for(var i=0;i<=12;i++){horizon.lineTo(s.width*i/12,s.height*(.60+.035*math.sin(i*1.4)));}horizon.lineTo(s.width,s.height);horizon.lineTo(0,s.height);horizon.close();c.drawPath(horizon,Paint()..color=const Color(0x25101C21));
-    final center=Offset(s.width*.5,s.height*.48);c.drawCircle(center,s.width*.12,Paint()..shader=RadialGradient(colors:const[Color(0x24A78BEA),Color(0x00000000)]).createShader(Rect.fromCircle(center:center,radius:s.width*.2)));
-    for(var i=0;i<5;i++){final rr=s.width*(.12+i*.10);c.drawOval(Rect.fromCenter(center:center,width:rr*2,height:rr*.48),Paint()..style=PaintingStyle.stroke..strokeWidth:.5..color=const Color(0x183E7480));}
+class _RealmAtlas extends CustomPainter {
+  final double phase;
+  const _RealmAtlas(this.phase);
+
+  @override
+  void paint(Canvas c, Size s) {
+    final r = Offset.zero & s;
+    _background(c, s);
+    _distantLayers(c, s);
+    _groundMist(c, s);
   }
-  @override bool shouldRepaint(covariant _RealmAtlas o)=>o.phase!=phase;
+
+  void _background(Canvas c, Size s) {
+    c.drawRect(r, Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF030714), Color(0xFF07151E), Color(0xFF02060B)],
+      ).createShader(r));
+    final glow = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, -.18), radius: 1.0,
+        colors: const [Color(0x244E6B8A), Color(0x101B3150), Colors.transparent],
+      ).createShader(r);
+    c.drawRect(r, glow);
+    final rnd = math.Random(5512);
+    for (var i = 0; i < 170; i++) {
+      final p = Offset(rnd.nextDouble()*s.width, rnd.nextDouble()*s.height*.68);
+      final a = .018 + rnd.nextDouble()*.045;
+      c.drawCircle(p, .35+rnd.nextDouble()*.8, Paint()..color=Colors.white.withValues(alpha:a));
+    }
+  }
+
+  void _distantLayers(Canvas c, Size s) {
+    final far = Paint()..color=const Color(0x251B3035);
+    final mid = Paint()..color=const Color(0x3515252B);
+    _ridge(c,s,.22,.055,far,1.6);
+    _ridge(c,s,.34,.085,mid,2.0);
+    _ridge(c,s,.47,.105,Paint()..color=const Color(0x45101C20),2.4);
+  }
+
+  void _ridge(Canvas c, Size s, double base, double amp, Paint p, double seed) {
+    final path=Path()..moveTo(0,s.height*base);
+    for(var i=0;i<=18;i++){
+      final x=s.width*i/18;
+      final y=s.height*(base-amp*(.25+.75*((math.sin(i*1.17+seed)+1)/2)));
+      path.lineTo(x,y);
+    }
+    path.lineTo(s.width,s.height*.63); path.lineTo(0,s.height*.63); path.close();
+    c.drawPath(path,p);
+  }
+
+  void _groundMist(Canvas c, Size s) {
+    for(var i=0;i<8;i++){
+      final y=s.height*(.52+i*.045);
+      c.drawOval(
+        Rect.fromCenter(center:Offset(s.width*(.15+i*.11),y),width:s.width*.32,height:s.height*.07),
+        Paint()..color=const Color(0x0EBCD2D3),
+      );
+    }
+  }
+
+  @override bool shouldRepaint(covariant _RealmAtlas oldDelegate)=>oldDelegate.phase!=phase;
 }
-class _RealmSpace extends CustomPainter{
-  final double phase;const _RealmSpace(this.phase);
-  @override void paint(Canvas c,Size s){c.drawRect(Offset.zero&s,Paint()..shader=const RadialGradient(center:Alignment(0,-.1),radius:1.1,colors:[Color(0xFF11182A),Color(0xFF040812),Color(0xFF010207)]).createShader(Offset.zero&s));}
-  @override bool shouldRepaint(covariant _RealmSpace o)=>o.phase!=phase;
-}
+
 class _RealmPanel extends StatelessWidget{
   final GamePlatform platform;final int index,total;final VoidCallback onClose,onOpen;
   const _RealmPanel({required this.platform,required this.index,required this.total,required this.onClose,required this.onOpen});
