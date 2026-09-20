@@ -494,6 +494,33 @@ class _IslandAtlasPainter extends CustomPainter {
         ).createShader(top.getBounds()),
     );
 
+    // Shoreline depth: a dark coastal shelf separates land from the atmospheric sea.
+    final shore = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .004
+      ..color = const Color(0x4C9CB4AE);
+    final coast = Path();
+    for (var i = 0; i < points.length; i++) {
+      final p = center + (points[i] - center) * .94;
+      if (i == 0) coast.moveTo(p.dx, p.dy); else coast.lineTo(p.dx, p.dy);
+    }
+    coast.close();
+    canvas.drawPath(coast, shore);
+
+    // Sparse vegetation/terrain clusters create scale without turning the atlas into a game map.
+    final vegetation = Paint()..color = const Color(0x2E9AB59A);
+    for (var v = 0; v < 13; v++) {
+      final a = v * 2.17 + island.seed;
+      final p = center + Offset(
+        math.cos(a) * w * (.08 + (v % 4) * .07),
+        math.sin(a * 1.37) * h * (.08 + (v % 3) * .06),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(center: p, width: w * (.018 + (v % 3) * .008), height: h * (.028 + (v % 2) * .012)),
+        vegetation,
+      );
+    }
+
     // Layered relief — abstract terrain only.
     for (var layer = 0; layer < 5; layer++) {
       final shrink = 1 - layer * .105;
