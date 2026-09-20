@@ -96,6 +96,28 @@ class _MiniRealm extends CustomPainter{
     final bounds=top.getBounds();
     c.drawPath(top,Paint()..shader=LinearGradient(begin:Alignment(-.8,-1),end:Alignment(.8,1),colors:_palette(seed)).createShader(bounds));
 
+    // Coastal shelf: a darker broken shoreline gives the landmass a natural boundary.
+    final coast = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1, s.width * .010)
+      ..color = const Color(0x4C9AB8B2);
+    final coastPath = _closed([
+      for (var i = 0; i < pts.length; i++)
+        center + (pts[i] - center) * .945,
+    ]);
+    c.drawPath(coastPath, coast);
+
+    // Uneven terrain/vegetation patches prevent the realm from reading as a single procedural blob.
+    final vegetation = Paint()..color = Colors.white.withValues(alpha: .045);
+    for(var i=0;i<18;i++){
+      final a=i*2.41+seed*.7;
+      final p=center+Offset(math.cos(a)*w*(.10+(i%5)*.065),math.sin(a*1.31)*h*(.09+(i%4)*.055));
+      c.drawOval(
+        Rect.fromCenter(center:p,width:w*(.018+(i%3)*.012),height:h*(.025+(i%2)*.014)),
+        vegetation,
+      );
+    }
+
     // Real terrain relief: broad plateaus, valleys, ridges and vegetation masses.
     for(var layer=1;layer<=6;layer++){
       final shrink=1-layer*.105;
