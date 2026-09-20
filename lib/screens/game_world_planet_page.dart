@@ -849,15 +849,27 @@ class _GamePlanetPainter extends CustomPainter {
       canvas.drawPath(land.shift(Offset(r*.008,r*.012)),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.006..color=const Color(0x244B7B79));
     }
 
-    // Slow atmospheric continent drift/vein layer.
-    for(var i=0;i<7;i++){
-      final p=Path()..moveTo(sphere.left-r*.03,c.dy+(i-3)*r*.20);
+    // Surface relief: continental shelves, mountain belts and deep ocean basins.
+    for(var i=0;i<11;i++){
+      final y=c.dy-r*.56+i*r*.105;
+      final p=Path()..moveTo(c.dx-r*.88,y);
       p.cubicTo(
-        c.dx-r*.50,c.dy+math.sin(phase*math.pi*2+i)*r*.14,
-        c.dx-r*.05,c.dy+math.cos(phase*math.pi*2+i)*r*.12,
-        c.dx+r*.42,c.dy+math.sin(phase*math.pi*2+i*1.7)*r*.09,
+        c.dx-r*.45,y-r*.055*math.sin(i+.8),
+        c.dx-r*.08,y+r*.075*math.cos(i*.7),
+        c.dx+r*.36,y-r*.05*math.sin(i*1.4),
       );
-      canvas.drawPath(p,Paint()..style=PaintingStyle.stroke..strokeWidth=r*(.006+i*.001)..color=(i.isEven?const Color(0x255A8AA2):const Color(0x243F5C9B)));
+      p.cubicTo(c.dx+r*.55,y-r*.025,c.dx+r*.72,y+r*.025,c.dx+r*.88,y);
+      canvas.drawPath(p,Paint()
+        ..style=PaintingStyle.stroke
+        ..strokeWidth=r*(.004+i*.0005)
+        ..color=const Color(0x1F8AA6B0));
+    }
+    // A restrained night-side city shimmer gives scale without turning the planet into a starfield.
+    for(var i=0;i<12;i++){
+      final a=(i*2.31)+.4;
+      final rr=r*(.30+(i%4)*.10);
+      final p=c+Offset(math.cos(a)*rr,math.sin(a)*rr*.64);
+      canvas.drawCircle(p,r*.006,Paint()..color=const Color(0x357D8ED0));
     }
 
     // Subtle surface lights: sparse, not a star field pasted on the planet.
@@ -878,10 +890,14 @@ class _GamePlanetPainter extends CustomPainter {
 
     canvas.restore();
 
-    // Fine atmospheric limb: light only where the sphere turns toward space.
+    // Fine atmospheric limb: broken, directional and volumetric rather than a neon ring.
     canvas.drawArc(
       Rect.fromCircle(center:c,radius:r*1.018),math.pi*1.03,math.pi*.88,false,
-      Paint()..style=PaintingStyle.stroke..strokeWidth=r*.018..color=const Color(0x9E9185D5),
+      Paint()..style=PaintingStyle.stroke..strokeWidth=r*.012..color=const Color(0x7E9185D5),
+    );
+    canvas.drawArc(
+      Rect.fromCircle(center:c,radius:r*1.035),math.pi*1.22,math.pi*.34,false,
+      Paint()..style=PaintingStyle.stroke..strokeWidth=r*.006..color=const Color(0x4C6E9DB7),
     );
     canvas.drawArc(
       Rect.fromCircle(center:c,radius:r*1.045),phase*math.pi*2+.3,math.pi*.42,false,
