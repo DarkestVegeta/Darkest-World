@@ -744,134 +744,98 @@ class _GamePlanetPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final c = Offset(size.width / 2, size.height / 2);
-    final r = size.shortestSide * .40;
-    final sphere = Rect.fromCircle(center: c, radius: r);
+    final c=Offset(size.width/2,size.height/2);
+    final r=size.shortestSide*.41;
+    final sphere=Rect.fromCircle(center:c,radius:r);
 
-    // Purple/blue living planet reference: luminous atmosphere, organic
-    // continents and no literal Earth geography.
-    canvas.drawCircle(
-      c,
-      r * 1.22,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [
-            const Color(0x668B6BFF).withValues(alpha: .34),
-            const Color(0x333B8DCC),
-            Colors.transparent,
-          ],
-          stops: const [0, .58, 1],
-        ).createShader(Rect.fromCircle(center: c, radius: r * 1.22)),
-    );
+    // Atmospheric volume: several restrained shells instead of a flat glow.
+    for(var i=5;i>=0;i--){
+      final rr=r*(1.03+i*.045);
+      canvas.drawCircle(c,rr,Paint()..shader=RadialGradient(
+        colors:[
+          const Color(0x3C7568B8).withValues(alpha:.16-i*.018),
+          const Color(0x183D83A1).withValues(alpha:.10-i*.012),
+          Colors.transparent,
+        ],
+        stops:const[0,.58,1],
+      ).createShader(Rect.fromCircle(center:c,radius:rr)));
+    }
 
     canvas.save();
     canvas.clipPath(Path()..addOval(sphere));
 
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-.42, -.48),
-          radius: 1.05,
-          colors: [
-            Color(0xFF5C4A86),
-            Color(0xFF30466F),
-            Color(0xFF192A48),
-            Color(0xFF090E1F),
-            Color(0xFF02040C),
-          ],
-          stops: [.0, .22, .48, .76, 1],
-        ).createShader(sphere),
-    );
+    // Strong spherical light falloff.
+    canvas.drawCircle(c,r,Paint()..shader=const RadialGradient(
+      center:Alignment(-.40,-.46),
+      radius:1.02,
+      colors:[
+        Color(0xFF76679A),Color(0xFF43577D),Color(0xFF253855),
+        Color(0xFF111B31),Color(0xFF030713),
+      ],
+      stops:[0,.19,.42,.72,1],
+    ).createShader(sphere));
 
-    final rnd = math.Random(2047);
-    for (var i = 0; i < 34; i++) {
-      final a = rnd.nextDouble() * math.pi * 2;
-      final rr = math.sqrt(rnd.nextDouble()) * r * .84;
-      final p = c + Offset(math.cos(a) * rr, math.sin(a) * rr);
-      final radius = r * (.018 + rnd.nextDouble() * .065);
-      final accent = i.isEven ? const Color(0xFF8E65E9) : const Color(0xFF4ED6C8);
-      canvas.drawCircle(
-        p,
-        radius,
-        Paint()..color = accent.withValues(alpha: .10 + rnd.nextDouble() * .10),
-      );
-    }
-
-    for (var i = 0; i < 8; i++) {
-      final y = sphere.top + sphere.height * (.16 + i * .10);
-      final p = Path()..moveTo(sphere.left, y);
-      for (var j = 1; j <= 8; j++) {
-        final x = sphere.left + sphere.width * j / 8;
-        p.lineTo(x, y + math.sin(i * 1.2 + j * .9 + phase * 6) * r * .012);
+    // Large organic continental masses.
+    final rnd=math.Random(4319);
+    for(var i=0;i<15;i++){
+      final a=rnd.nextDouble()*math.pi*2;
+      final rr=math.sqrt(rnd.nextDouble())*r*.74;
+      final p=c+Offset(math.cos(a)*rr,math.sin(a)*rr*.72);
+      final w=r*(.08+rnd.nextDouble()*.25);
+      final h=r*(.035+rnd.nextDouble()*.15);
+      final land=Path();
+      final n=11;
+      for(var j=0;j<n;j++){
+        final t=j*math.pi*2/n;
+        final wob=.76+rnd.nextDouble()*.35;
+        final q=Offset(math.cos(t)*w*.5*wob,math.sin(t)*h*.5*wob);
+        if(j==0)land.moveTo(p.dx+q.dx,p.dy+q.dy);else land.lineTo(p.dx+q.dx,p.dy+q.dy);
       }
-      canvas.drawPath(
-        p,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = r * .006
-          ..color = const Color(0x204F8AD0),
-      );
+      land.close();
+      final landColor=i%3==0?const Color(0x4B756B7B):const Color(0x43555D72);
+      canvas.drawPath(land,Paint()..color=landColor);
+      canvas.drawPath(land.shift(Offset(r*.008,r*.012)),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.006..color=const Color(0x244B7B79));
     }
 
-    // Moving aurora-like atmospheric veins.
-    for (var i = 0; i < 5; i++) {
-      final p = Path()..moveTo(sphere.left - r * .05, c.dy + (i - 2) * r * .20);
+    // Slow atmospheric continent drift/vein layer.
+    for(var i=0;i<7;i++){
+      final p=Path()..moveTo(sphere.left-r*.03,c.dy+(i-3)*r*.20);
       p.cubicTo(
-        c.dx - r * .50,
-        c.dy + math.sin(phase * 6 + i) * r * .10,
-        c.dx + r * .15,
-        c.dy + math.cos(phase * 5 + i) * r * .12,
-        sphere.right + r * .05,
-        c.dy + (i - 2) * r * .18,
+        c.dx-r*.50,c.dy+math.sin(phase*math.pi*2+i)*r*.14,
+        c.dx-r*.05,c.dy+math.cos(phase*math.pi*2+i)*r*.12,
+        c.dx+r*.42,c.dy+math.sin(phase*math.pi*2+i*1.7)*r*.09,
       );
-      canvas.drawPath(
-        p,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = r * .018
-          ..color = (i.isEven ? const Color(0x405F48D6) : const Color(0x3046CFC2)),
-      );
+      canvas.drawPath(p,Paint()..style=PaintingStyle.stroke..strokeWidth=r*(.006+i*.001)..color=(i.isEven?const Color(0x255A8AA2):const Color(0x243F5C9B)));
     }
 
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-.45, -.45),
-          radius: 1.1,
-          colors: [Colors.transparent, Color(0x12000010), Color(0xE6000209)],
-          stops: [.42, .65, 1],
-        ).createShader(sphere),
-    );
+    // Subtle surface lights: sparse, not a star field pasted on the planet.
+    for(var i=0;i<26;i++){
+      final a=rnd.nextDouble()*math.pi*2;
+      final rr=math.sqrt(rnd.nextDouble())*r*.78;
+      final p=c+Offset(math.cos(a)*rr,math.sin(a)*rr*.75);
+      canvas.drawCircle(p,r*.008+rnd.nextDouble()*r*.012,Paint()..color=const Color(0x258F83C6));
+    }
+
+    // Spherical shadow and terminator.
+    canvas.drawCircle(c,r,Paint()..shader=const RadialGradient(
+      center:Alignment(.54,.25),
+      radius:1.0,
+      colors:[Colors.transparent,Color(0x13020A14),Color(0xE900020A)],
+      stops:[.42,.67,1],
+    ).createShader(sphere));
 
     canvas.restore();
 
-    // Atmospheric limb.
+    // Fine atmospheric limb: light only where the sphere turns toward space.
     canvas.drawArc(
-      Rect.fromCircle(center: c, radius: r * 1.015),
-      math.pi * 1.02,
-      math.pi * .88,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = r * .018
-        ..color = const Color(0xA58E83E8),
+      Rect.fromCircle(center:c,radius:r*1.018),math.pi*1.03,math.pi*.88,false,
+      Paint()..style=PaintingStyle.stroke..strokeWidth=r*.018..color=const Color(0x9E9185D5),
     );
     canvas.drawArc(
-      Rect.fromCircle(center: c, radius: r * 1.055),
-      phase * math.pi * 2 + .2,
-      math.pi * .55,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = r * .012
-        ..color = const Color(0x7053C9D1),
+      Rect.fromCircle(center:c,radius:r*1.045),phase*math.pi*2+.3,math.pi*.42,false,
+      Paint()..style=PaintingStyle.stroke..strokeWidth=r*.009..color=const Color(0x555CB9C4),
     );
   }
 
-  @override
-  bool shouldRepaint(covariant _GamePlanetPainter oldDelegate) => oldDelegate.phase != phase;
+  @override bool shouldRepaint(covariant _GamePlanetPainter oldDelegate)=>oldDelegate.phase!=phase;
 }
