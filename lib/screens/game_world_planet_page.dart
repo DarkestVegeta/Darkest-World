@@ -26,11 +26,13 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
   int? _selectedIsland;
 
   static const _islands = <_GameIsland>[
-    _GameIsland('NINTENDO LAND', 'Forests · valleys · old stone · layered coast', -.18, -.06, 1.16, 7, _nintendo),
-    _GameIsland('SEGA REALM', 'Weathered ridges · dry plateaus · deep valleys', .25, -.18, 1.02, 19, _sega),
-    _GameIsland('PLAYSTATION GALAXY', 'Cliffs · mist · ruins · crystalline terrain', -.36, .23, 1.08, 31, _playstation),
-    _GameIsland('XBOX TERRITORY', 'Cold frontier · mineral shelves · distant lights', .27, .34, .94, 43, _xbox),
-    _GameIsland('PC DIMENSION', 'Dark highlands · strange geometry · open expanses', -.02, -.31, .92, 59, _pc),
+    // Scale hierarchy follows the reference-world feeling: one dominant landmass,
+    // several substantial neighboring continents, and distant land fading into haze.
+    _GameIsland('NINTENDO LAND', 'Forests · valleys · old stone · layered coast', -.18, .04, 1.28, 7, _nintendo),
+    _GameIsland('SEGA REALM', 'Weathered ridges · dry plateaus · deep valleys', .34, -.22, .88, 19, _sega),
+    _GameIsland('PLAYSTATION GALAXY', 'Cliffs · mist · ruins · crystalline terrain', -.42, .30, .92, 31, _playstation),
+    _GameIsland('XBOX TERRITORY', 'Cold frontier · mineral shelves · distant lights', .28, .42, .76, 43, _xbox),
+    _GameIsland('PC DIMENSION', 'Dark highlands · strange geometry · open expanses', .02, -.42, .70, 59, _pc),
   ];
 
   static const _nintendo = <GamePlatformGroup>[
@@ -368,7 +370,7 @@ class _IslandAtlasPainter extends CustomPainter {
         ..shader = const RadialGradient(
           center: Alignment(0, -.20),
           radius: 1.05,
-          colors: [Color(0xFF203D45), Color(0xFF0B1B25), Color(0xFF02060B)],
+          colors: [Color(0xFF172C3D), Color(0xFF0A1525), Color(0xFF02040B)],
         ).createShader(rect),
     );
 
@@ -419,14 +421,14 @@ class _IslandAtlasPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: const [Color(0xFF274E55), Color(0xFF0B2832), Color(0xFF06131B)],
+        colors: const [Color(0xFF172E45), Color(0xFF0B1B31), Color(0xFF050A16)],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, ocean);
 
     final mist = Paint()..color = const Color(0x20D8E8EA);
-    for (var i = 0; i < 10; i++) {
-      final x = size.width * (.08 + i * .105);
-      final y = size.height * (.18 + math.sin(phase * math.pi * 2 + i) * .025);
+    for (var i = 0; i < 8; i++) {
+      final x = size.width * (.05 + i * .105);
+      final y = size.height * (.16 + math.sin(phase * math.pi * 2 + i) * .018);
       canvas.drawOval(
         Rect.fromCenter(center: Offset(x, y), width: size.width * .18, height: size.height * .08),
         mist,
@@ -436,7 +438,7 @@ class _IslandAtlasPainter extends CustomPainter {
     final lines = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = size.width * .001
-      ..color = const Color(0x182F7781);
+      ..color = const Color(0x121E4C68);
     for (var i = 0; i < 9; i++) {
       final y = size.height * (.20 + i * .075);
       canvas.drawLine(Offset(size.width * .05, y), Offset(size.width * .95, y + math.sin(i + phase * 6) * 5), lines);
@@ -471,10 +473,11 @@ class _IslandAtlasPainter extends CustomPainter {
     // Multi-frequency coastline noise avoids the old UI/blob silhouette.
     for (var i = 0; i < 30; i++) {
       final a = i / 30 * math.pi * 2;
-      final n = .78 +
-          random.nextDouble() * .22 +
-          math.sin(a * 2.3 + island.seed) * .07 +
-          math.sin(a * 5.1 + island.seed * .7) * .035;
+      final n = .72 +
+          random.nextDouble() * .28 +
+          math.sin(a * 2.3 + island.seed) * .10 +
+          math.sin(a * 5.1 + island.seed * .7) * .055 +
+          math.sin(a * 9.7 + island.seed * .31) * .028;
       final asym = 1 + math.sin(a * 1.7 + island.seed) * .055;
       points.add(center + Offset(
         math.cos(a) * w * .5 * n * asym,
@@ -550,33 +553,14 @@ class _IslandAtlasPainter extends CustomPainter {
       );
     }
 
-    // Broad elevation contours, deliberately non-concentric.
-    final contour = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = math.max(1, size.width * .0022)
-      ..color = Colors.white.withValues(alpha: active ? .10 : .055);
-    for (var row = 0; row < 7; row++) {
-      final y = center.dy + (row - 3) * h * .065;
-      final p = Path()..moveTo(center.dx - w * .34, y);
-      p.cubicTo(
-        center.dx - w * .18, y - h * (.10 + row * .008),
-        center.dx - w * .03, y + h * .06,
-        center.dx + w * .10, y - h * .07,
-      );
-      p.cubicTo(
-        center.dx + w * .20, y - h * .12,
-        center.dx + w * .30, y + h * .05,
-        center.dx + w * .37, y - h * .015,
-      );
-      canvas.drawPath(p, contour);
-    }
+    // Terrain is read through broad natural relief rather than map-like contour lines.
+    // This keeps the image closer to a cinematic aerial environment than a strategy map.
 
-    // Mountain chains with shadowed faces, not triangular game icons.
-    for (var m = 0; m < 8; m++) {
-      final mx = center.dx + (-.34 + m * .095) * w;
+    // Mountain chains with irregular massing and directional shadow, not triangular game icons.
+    for (var m = 0; m < 9; m++) {
+      final mx = center.dx + (-.38 + m * .092) * w;
       final base = center.dy + h * (.12 + (m % 3) * .025);
-      final peak = base - h * (.16 + ((island.seed + m) % 4) * .028);
+      final peak = base - h * (.13 + ((island.seed + m) % 5) * .036);
       final left = mx - w * (.065 + (m % 2) * .018);
       final right = mx + w * (.075 + ((m + 1) % 2) * .018);
       final mountain = Path()
