@@ -336,20 +336,25 @@ class _IslandAtlas extends StatelessWidget {
     );
   }
 
+  // Interaction geometry is derived from the exact same normalized coordinates
+  // used by the painter. This prevents invisible hit zones drifting away from
+  // the visible landmasses as the aerial composition evolves.
   Offset _islandScreenPosition(int i) {
-    const positions = [
-      Offset(.41, .47),
-      Offset(.67, .36),
-      Offset(.29, .62),
-      Offset(.66, .68),
-      Offset(.49, .29),
-    ];
-    return positions[i];
+    final island = islands[i];
+    return Offset(
+      .50 + island.x * .50,
+      .50 + island.d * .39,
+    );
   }
 
-  double _islandHitWidth(int i) => .52 * islands[i].scale * (.92 + (islands[i].d + .50) * .34);
+  double _islandDepthScale(int i) =>
+      .92 + (islands[i].d + .50) * .34;
 
-  double _islandHitHeight(int i) => .38 * islands[i].scale * (.92 + (islands[i].d + .50) * .34);
+  double _islandHitWidth(int i) =>
+      .52 * islands[i].scale * _islandDepthScale(i);
+
+  double _islandHitHeight(int i) =>
+      .38 * islands[i].scale * _islandDepthScale(i);
 }
 
 class _IslandAtlasPainter extends CustomPainter {
