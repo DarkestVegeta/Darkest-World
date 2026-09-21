@@ -26,11 +26,11 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
   int? _selectedIsland;
 
   static const _islands = <_GameIsland>[
-    _GameIsland('NINTENDO LAND', 'Forests · valleys · old stone · layered coast', .17, -.10, 1.00, 7, _nintendo),
-    _GameIsland('SEGA REALM', 'Weathered ridges · dry plateaus · deep valleys', .48, -.18, .92, 19, _sega),
-    _GameIsland('PLAYSTATION GALAXY', 'Cliffs · mist · ruins · crystalline terrain', -.47, .25, .88, 31, _playstation),
-    _GameIsland('XBOX TERRITORY', 'Cold frontier · mineral shelves · distant lights', .35, .40, .82, 43, _xbox),
-    _GameIsland('PC DIMENSION', 'Dark highlands · strange geometry · open expanses', -.30, -.43, .76, 59, _pc),
+    _GameIsland('NINTENDO LAND', 'Forests · valleys · old stone · layered coast', -.18, -.06, 1.16, 7, _nintendo),
+    _GameIsland('SEGA REALM', 'Weathered ridges · dry plateaus · deep valleys', .25, -.18, 1.02, 19, _sega),
+    _GameIsland('PLAYSTATION GALAXY', 'Cliffs · mist · ruins · crystalline terrain', -.36, .23, 1.08, 31, _playstation),
+    _GameIsland('XBOX TERRITORY', 'Cold frontier · mineral shelves · distant lights', .27, .34, .94, 43, _xbox),
+    _GameIsland('PC DIMENSION', 'Dark highlands · strange geometry · open expanses', -.02, -.31, .92, 59, _pc),
   ];
 
   static const _nintendo = <GamePlatformGroup>[
@@ -181,14 +181,14 @@ class _GamePlanetView extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 760;
-    final diameter = math.min(size.width * (compact ? .84 : .62), size.height * .78);
+    final diameter = math.min(size.width * (compact ? .88 : .72), size.height * .84);
     return Stack(
       fit: StackFit.expand,
       children: [
         Positioned(
           top: compact ? 20 : 30,
           left: compact ? 18 : 34,
-          child: const _WorldHeader(title: 'GAME WORLD', eyebrow: 'LIVING WORLD · ORBITAL ARCHIVE'),
+          child: const _WorldHeader(title: 'GAME WORLD', eyebrow: 'LIVING WORLD · GAME ARCHIVE'),
         ),
         Center(
           child: MouseRegion(
@@ -293,10 +293,10 @@ class _IslandAtlas extends StatelessWidget {
                 children: [
                   for (var i = 0; i < islands.length; i++)
                     Positioned(
-                      left: box.maxWidth * _islandScreenPosition(i).dx - box.maxWidth * .14,
-                      top: box.maxHeight * _islandScreenPosition(i).dy - box.maxHeight * .13,
-                      width: box.maxWidth * .28,
-                      height: box.maxHeight * .26,
+                      left: box.maxWidth * _islandScreenPosition(i).dx - box.maxWidth * _islandHitWidth(i) / 2,
+                      top: box.maxHeight * _islandScreenPosition(i).dy - box.maxHeight * _islandHitHeight(i) / 2,
+                      width: box.maxWidth * _islandHitWidth(i),
+                      height: box.maxHeight * _islandHitHeight(i),
                       child: MouseRegion(
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
@@ -336,14 +336,18 @@ class _IslandAtlas extends StatelessWidget {
 
   Offset _islandScreenPosition(int i) {
     const positions = [
-      Offset(.48, .45),
-      Offset(.78, .30),
-      Offset(.22, .63),
-      Offset(.72, .69),
-      Offset(.25, .25),
+      Offset(.41, .47),
+      Offset(.67, .36),
+      Offset(.29, .62),
+      Offset(.66, .68),
+      Offset(.49, .29),
     ];
     return positions[i];
   }
+
+  double _islandHitWidth(int i) => .52 * islands[i].scale * (.92 + (islands[i].d + .50) * .34);
+
+  double _islandHitHeight(int i) => .38 * islands[i].scale * (.92 + (islands[i].d + .50) * .34);
 }
 
 class _IslandAtlasPainter extends CustomPainter {
@@ -456,11 +460,11 @@ class _IslandAtlasPainter extends CustomPainter {
     // Reference-faithful world plates: large, irregular natural landmasses.
     final center = Offset(
       c.dx + island.x * size.width * .50,
-      c.dy + island.d * size.height * .42,
+      c.dy + island.d * size.height * .39,
     );
     final depthScale = .92 + (island.d + .50) * .34;
-    final w = size.width * .47 * island.scale * depthScale;
-    final h = size.height * .34 * island.scale * depthScale;
+    final w = size.width * .52 * island.scale * depthScale;
+    final h = size.height * .38 * island.scale * depthScale;
     final random = math.Random(island.seed * 97 + 11);
     final points = <Offset>[];
 
@@ -635,23 +639,22 @@ class _IslandAtlasPainter extends CustomPainter {
       mist,
     );
 
-    _drawIdentityMarker(canvas, center, w, h, index, phase);
-
-    final label = TextPainter(
-      text: TextSpan(
-        text: island.name,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: active ? .98 : .62),
-          fontSize: math.max(8, size.width * .0085),
-          letterSpacing: 2.0,
-          fontWeight: FontWeight.w400,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: w * 1.5);
-    label.paint(canvas, Offset(center.dx - label.width / 2, center.dy + h * .64));
-
     if (active) {
+      _drawIdentityMarker(canvas, center, w, h, index, phase);
+
+      final label = TextPainter(
+        text: TextSpan(
+          text: island.name,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .92),
+            fontSize: math.max(8, size.width * .0085),
+            letterSpacing: 2.0,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: w * 1.5);
+      label.paint(canvas, Offset(center.dx - label.width / 2, center.dy + h * .64));
       canvas.drawPath(
         top,
         Paint()
@@ -819,7 +822,7 @@ class _DeepSpacePainter extends CustomPainter {
     );
 
     final stars = math.Random(913);
-    for (var i = 0; i < 320; i++) {
+    for (var i = 0; i < 190; i++) {
       final p = Offset(stars.nextDouble() * size.width, stars.nextDouble() * size.height);
       final pulse = .35 + .65 * math.sin(phase * math.pi * 2 + i * .41).abs();
       canvas.drawCircle(
@@ -855,7 +858,7 @@ class _GamePlanetPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final c=Offset(size.width/2,size.height/2);
-    final r=size.shortestSide*.41;
+    final r=size.shortestSide*.47;
     final sphere=Rect.fromCircle(center:c,radius:r);
 
     // Atmospheric volume: several restrained shells instead of a flat glow.
@@ -887,7 +890,7 @@ class _GamePlanetPainter extends CustomPainter {
 
     // Large organic continental masses.
     final rnd=math.Random(4319);
-    for(var i=0;i<15;i++){
+    for(var i=0;i<18;i++){
       final a=rnd.nextDouble()*math.pi*2;
       final rr=math.sqrt(rnd.nextDouble())*r*.74;
       final p=c+Offset(math.cos(a)*rr,math.sin(a)*rr*.72);
@@ -923,7 +926,7 @@ class _GamePlanetPainter extends CustomPainter {
         ..color=const Color(0x1F8AA6B0));
     }
     // A restrained night-side city shimmer gives scale without turning the planet into a starfield.
-    for(var i=0;i<12;i++){
+    for(var i=0;i<8;i++){
       final a=(i*2.31)+.4;
       final rr=r*(.30+(i%4)*.10);
       final p=c+Offset(math.cos(a)*rr,math.sin(a)*rr*.64);
@@ -931,7 +934,7 @@ class _GamePlanetPainter extends CustomPainter {
     }
 
     // Subtle surface lights: sparse, not a star field pasted on the planet.
-    for(var i=0;i<26;i++){
+    for(var i=0;i<16;i++){
       final a=rnd.nextDouble()*math.pi*2;
       final rr=math.sqrt(rnd.nextDouble())*r*.78;
       final p=c+Offset(math.cos(a)*rr,math.sin(a)*rr*.75);
