@@ -336,11 +336,11 @@ class _IslandAtlas extends StatelessWidget {
 
   Offset _islandScreenPosition(int i) {
     const positions = [
-      Offset(.50, .43),
-      Offset(.76, .31),
-      Offset(.25, .64),
-      Offset(.70, .70),
-      Offset(.27, .28),
+      Offset(.48, .45),
+      Offset(.78, .30),
+      Offset(.22, .63),
+      Offset(.72, .69),
+      Offset(.25, .25),
     ];
     return positions[i];
   }
@@ -453,180 +453,211 @@ class _IslandAtlasPainter extends CustomPainter {
   }
 
   void _drawIsland(Canvas canvas, Size size, Offset c, _GameIsland island, int index, bool active) {
+    // Reference-faithful world plates: large, irregular natural landmasses.
     final center = Offset(
-      c.dx + island.x * size.width * .48,
-      c.dy + island.d * size.height * .40,
+      c.dx + island.x * size.width * .50,
+      c.dy + island.d * size.height * .42,
     );
-    final depthScale = .88 + (island.d + .50) * .30;
-    final w = size.width * .38 * island.scale * depthScale;
-    final h = size.height * .25 * island.scale * depthScale;
+    final depthScale = .92 + (island.d + .50) * .34;
+    final w = size.width * .47 * island.scale * depthScale;
+    final h = size.height * .34 * island.scale * depthScale;
+    final random = math.Random(island.seed * 97 + 11);
     final points = <Offset>[];
-    final random = math.Random(island.seed);
 
-    for (var i = 0; i < 18; i++) {
-      final a = i / 18 * math.pi * 2;
-      final wobble = .88 + random.nextDouble() * .14 + math.sin(a * 3 + island.seed) * .035;
-      points.add(center + Offset(math.cos(a) * w * .5 * wobble, math.sin(a) * h * .5 * wobble));
+    // Multi-frequency coastline noise avoids the old UI/blob silhouette.
+    for (var i = 0; i < 30; i++) {
+      final a = i / 30 * math.pi * 2;
+      final n = .78 +
+          random.nextDouble() * .22 +
+          math.sin(a * 2.3 + island.seed) * .07 +
+          math.sin(a * 5.1 + island.seed * .7) * .035;
+      final asym = 1 + math.sin(a * 1.7 + island.seed) * .055;
+      points.add(center + Offset(
+        math.cos(a) * w * .5 * n * asym,
+        math.sin(a) * h * .5 * n,
+      ));
     }
 
-    final top = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final p in points.skip(1)) {
-      top.lineTo(p.dx, p.dy);
+    Path closed(List<Offset> ps) {
+      final p = Path()..moveTo(ps.first.dx, ps.first.dy);
+      for (final q in ps.skip(1)) p.lineTo(q.dx, q.dy);
+      p.close();
+      return p;
     }
-    top.close();
 
-    // Deep floating body: broad enough to read as a real island, not an icon.
-    final body = top.shift(Offset(0, h * .28));
-    canvas.drawPath(body, Paint()..color = const Color(0xD0061013));
-    canvas.drawPath(
-      Path.combine(PathOperation.difference, body, top),
-      Paint()..color = const Color(0xA51B2928),
-    );
+    final top = closed(points);
 
-    final terrainColors = _terrainPalette(index);
+    // Thick broken underside and visible cliff strata.
+    final body = top.shift(Offset(-w * .018, h * .30));
+    canvas.drawPath(body, Paint()..color = const Color(0xEE050C12));
+    for (var layer = 0; layer < 7; layer++) {
+      final t = layer / 7;
+      final shifted = top.shift(Offset(-w * (.008 + t * .012), h * (.07 + t * .25)));
+      canvas.drawPath(
+        shifted,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1, size.width * (.0045 - t * .00045))
+          ..color = Color.lerp(const Color(0xAA42504E), const Color(0x00141B1D), t)!,
+      );
+    }
+
+    final bounds = top.getBounds();
     canvas.drawPath(
       top,
       Paint()
         ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: terrainColors,
-        ).createShader(top.getBounds()),
+          begin: Alignment(-.75, -1),
+          end: Alignment(.85, .9),
+          colors: _terrainPalette(index),
+        ).createShader(bounds),
     );
 
-    // Shoreline depth: a dark coastal shelf separates land from the atmospheric sea.
+    // Dark water-facing coastal shelf.
     final shore = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .004
-      ..color = const Color(0x4C9CB4AE);
-    final coast = Path();
-    for (var i = 0; i < points.length; i++) {
-      final p = center + (points[i] - center) * .94;
-      if (i == 0) coast.moveTo(p.dx, p.dy); else coast.lineTo(p.dx, p.dy);
-    }
-    coast.close();
+      ..strokeWidth = math.max(1, size.width * .006)
+      ..color = const Color(0x5B9EB8B0);
+    final coast = closed([
+      for (final p in points) center + (p - center) * .965,
+    ]);
     canvas.drawPath(coast, shore);
 
-    // Sparse vegetation/terrain clusters create scale without turning the atlas into a game map.
-    final vegetation = Paint()..color = const Color(0x2E9AB59A);
-    for (var v = 0; v < 13; v++) {
+    // Large terrain regions: plateaus, valleys and mountain masses.
+    for (var region = 0; region < 9; region++) {
+      final a = region * 2.21 + island.seed * .8;
+      final rp = center + Offset(
+        math.cos(a) * w * (.05 + (region % 4) * .085),
+        math.sin(a * 1.19) * h * (.04 + (region % 3) * .075),
+      );
+      final rw = w * (.09 + (region % 3) * .045);
+      final rh = h * (.07 + (region % 4) * .028);
+      final path = Path();
+      for (var k = 0; k < 12; k++) {
+        final aa = k / 12 * math.pi * 2;
+        final nn = .78 + .18 * math.sin(aa * 3 + region);
+        final q = rp + Offset(math.cos(aa) * rw * nn, math.sin(aa) * rh * nn);
+        if (k == 0) path.moveTo(q.dx, q.dy); else path.lineTo(q.dx, q.dy);
+      }
+      path.close();
+      canvas.drawPath(
+        path,
+        Paint()..color = Colors.white.withValues(alpha: .025 + (region % 3) * .012),
+      );
+    }
+
+    // Broad elevation contours, deliberately non-concentric.
+    final contour = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(1, size.width * .0022)
+      ..color = Colors.white.withValues(alpha: active ? .10 : .055);
+    for (var row = 0; row < 7; row++) {
+      final y = center.dy + (row - 3) * h * .065;
+      final p = Path()..moveTo(center.dx - w * .34, y);
+      p.cubicTo(
+        center.dx - w * .18, y - h * (.10 + row * .008),
+        center.dx - w * .03, y + h * .06,
+        center.dx + w * .10, y - h * .07,
+      );
+      p.cubicTo(
+        center.dx + w * .20, y - h * .12,
+        center.dx + w * .30, y + h * .05,
+        center.dx + w * .37, y - h * .015,
+      );
+      canvas.drawPath(p, contour);
+    }
+
+    // Mountain chains with shadowed faces, not triangular game icons.
+    for (var m = 0; m < 8; m++) {
+      final mx = center.dx + (-.34 + m * .095) * w;
+      final base = center.dy + h * (.12 + (m % 3) * .025);
+      final peak = base - h * (.16 + ((island.seed + m) % 4) * .028);
+      final left = mx - w * (.065 + (m % 2) * .018);
+      final right = mx + w * (.075 + ((m + 1) % 2) * .018);
+      final mountain = Path()
+        ..moveTo(left, base)
+        ..quadraticBezierTo(mx - w * .018, peak + h * .035, mx, peak)
+        ..quadraticBezierTo(mx + w * .028, peak + h * .045, right, base)
+        ..close();
+      canvas.drawPath(mountain, Paint()..color = Colors.white.withValues(alpha: .055 + (m % 2) * .018));
+      canvas.drawPath(
+        Path()..moveTo(mx, peak)..lineTo(right, base)..lineTo(mx + w * .02, base - h * .01),
+        Paint()..color = Colors.black.withValues(alpha: .13),
+      );
+    }
+
+    // Vegetation/rock clusters are sparse and scale-bearing rather than decorative icons.
+    final vegetation = Paint()..color = const Color(0x3695AA91);
+    for (var v = 0; v < 30; v++) {
       final a = v * 2.17 + island.seed;
-      final p = center + Offset(
-        math.cos(a) * w * (.08 + (v % 4) * .07),
-        math.sin(a * 1.37) * h * (.08 + (v % 3) * .06),
+      final rp = center + Offset(
+        math.cos(a) * w * (.08 + (v % 6) * .055),
+        math.sin(a * 1.37) * h * (.07 + (v % 5) * .045),
       );
       canvas.drawOval(
-        Rect.fromCenter(center: p, width: w * (.018 + (v % 3) * .008), height: h * (.028 + (v % 2) * .012)),
+        Rect.fromCenter(
+          center: rp,
+          width: w * (.010 + (v % 4) * .008),
+          height: h * (.015 + (v % 3) * .010),
+        ),
         vegetation,
       );
     }
 
-    // Layered relief — abstract terrain only.
-    for (var layer = 0; layer < 5; layer++) {
-      final shrink = 1 - layer * .105;
-      final inner = Path();
-      for (var i = 0; i < points.length; i++) {
-        final p = center + (points[i] - center) * shrink;
-        if (i == 0) {
-          inner.moveTo(p.dx, p.dy);
-        } else {
-          inner.lineTo(p.dx, p.dy);
-        }
-      }
-      inner.close();
-      canvas.drawPath(
-        inner,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = size.width * (active ? .0024 : .0015)
-          ..color = Colors.white.withValues(alpha: active ? .16 : .07),
-      );
-    }
-
-    // Terrain masses, ridges and abstract structures.
-    final terrain = Paint()..color = Colors.white.withValues(alpha: .10);
-    for (var i = 0; i < 7; i++) {
-      final a = i * 1.73 + island.seed;
-      final p = center + Offset(math.cos(a) * w * .22, math.sin(a * 1.2) * h * .18);
-      canvas.drawOval(
-        Rect.fromCenter(center: p, width: w * (.10 + (i % 3) * .025), height: h * (.10 + (i % 2) * .025)),
-        terrain,
-      );
-    }
-
-    final ridge = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .0022
-      ..color = Colors.white.withValues(alpha: .075);
-    for (var i = 0; i < 4; i++) {
-      final p = Path()..moveTo(center.dx - w * .25, center.dy + (i - 1.5) * h * .08);
-      p.cubicTo(
-        center.dx - w * .06, center.dy - h * .14 + i * 5,
-        center.dx + w * .10, center.dy + h * .12,
-        center.dx + w * .28, center.dy - h * .03 + i * 4,
-      );
-      canvas.drawPath(p, ridge);
-    }
-
-    // Physical terrain relief: mountain chains, valleys and a dark underside.
-    final mountainPaint = Paint()..color = Colors.white.withValues(alpha: .075);
-    for (var m = 0; m < 6; m++) {
-      final mx = center.dx + (-.34 + m * .13) * w;
-      final base = center.dy + h * (.10 + (m % 2) * .035);
-      final peak = base - h * (.18 + ((island.seed + m) % 3) * .035);
-      final mountain = Path()
-        ..moveTo(mx - w * .10, base)
-        ..lineTo(mx, peak)
-        ..lineTo(mx + w * .12, base)
-        ..close();
-      canvas.drawPath(mountain, mountainPaint);
-      canvas.drawPath(
-        Path()
-          ..moveTo(mx, peak)
-          ..lineTo(mx + w * .055, base)
-          ..lineTo(mx + w * .12, base),
-        Paint()..color = Colors.black.withValues(alpha: .12),
-      );
-    }
-
-    // Atmospheric depth cuts the rear edge into the world instead of making a flat map.
-    final edgeMist = Paint()
+    // Directional environmental shadow makes the topography sit in the world.
+    final shadow = Paint()
       ..shader = RadialGradient(
-        colors: [Colors.transparent, const Color(0x401B3C49)],
+        center: const Alignment(.05, .65),
+        radius: 1,
+        colors: [Colors.black.withValues(alpha: .32), Colors.transparent],
       ).createShader(Rect.fromCenter(
-        center: Offset(center.dx, center.dy - h * .05),
-        width: w * 1.30,
-        height: h * .90,
+        center: Offset(center.dx, center.dy + h * .24),
+        width: w * 1.12,
+        height: h * .60,
       ));
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(center.dx, center.dy - h * .03), width: w * 1.18, height: h * .82),
-      edgeMist,
+      Rect.fromCenter(center: Offset(center.dx, center.dy + h * .24), width: w * 1.12, height: h * .60),
+      shadow,
     );
 
-    // Platform identity is atmospheric/architectural, never a famous game scene.
+    // Atmospheric edge mist softens the distant shore without flattening the land.
+    final mist = Paint()
+      ..shader = RadialGradient(
+        colors: [Colors.transparent, const Color(0x401C4050)],
+      ).createShader(Rect.fromCenter(
+        center: Offset(center.dx, center.dy - h * .05),
+        width: w * 1.22,
+        height: h * .92,
+      ));
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(center.dx, center.dy - h * .04), width: w * 1.18, height: h * .86),
+      mist,
+    );
+
     _drawIdentityMarker(canvas, center, w, h, index, phase);
 
     final label = TextPainter(
       text: TextSpan(
         text: island.name,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: active ? .98 : .68),
-          fontSize: math.max(8, size.width * .009),
+          color: Colors.white.withValues(alpha: active ? .98 : .62),
+          fontSize: math.max(8, size.width * .0085),
           letterSpacing: 2.0,
           fontWeight: FontWeight.w400,
         ),
       ),
       textDirection: TextDirection.ltr,
-    )..layout(maxWidth: w * 1.7);
-    label.paint(canvas, Offset(center.dx - label.width / 2, center.dy + h * .63));
+    )..layout(maxWidth: w * 1.5);
+    label.paint(canvas, Offset(center.dx - label.width / 2, center.dy + h * .64));
 
     if (active) {
-      canvas.drawOval(
-        Rect.fromCenter(center: center, width: w * 1.10, height: h * 1.18),
+      canvas.drawPath(
+        top,
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = size.width * .003
-          ..color = Colors.white.withValues(alpha: .20),
+          ..strokeWidth = math.max(1.5, size.width * .0028)
+          ..color = Colors.white.withValues(alpha: .18),
       );
     }
   }
