@@ -31,11 +31,13 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
     // Aerial composition: one dominant foreground landmass, four substantial
     // neighbors with real negative space between them. Scale comes from depth,
     // not five overlapping UI-sized blobs.
-    _GameIsland('NINTENDO LAND', 'Forests · valleys · old stone · layered coast', -.12, .20, 1.08, 7, _nintendo),
-    _GameIsland('SEGA REALM', 'Weathered ridges · dry plateaus · deep valleys', .42, -.22, .68, 19, _sega),
-    _GameIsland('PLAYSTATION GALAXY', 'Cliffs · mist · ruins · crystalline terrain', -.48, -.04, .72, 31, _playstation),
-    _GameIsland('XBOX TERRITORY', 'Cold frontier · mineral shelves · distant lights', .40, .46, .58, 43, _xbox),
-    _GameIsland('PC DIMENSION', 'Dark highlands · strange geometry · open expanses', .02, -.47, .54, 59, _pc),
+    // Perspective composition: one immense foreground continent anchors the scene;
+    // four smaller but still substantial realms recede into real atmospheric distance.
+    _GameIsland('NINTENDO LAND', 'Forests · valleys · old stone · layered coast', -.04, .34, 1.12, 7, _nintendo),
+    _GameIsland('SEGA REALM', 'Weathered ridges · dry plateaus · deep valleys', .50, -.30, .54, 19, _sega),
+    _GameIsland('PLAYSTATION GALAXY', 'Cliffs · mist · ruins · crystalline terrain', -.52, -.24, .57, 31, _playstation),
+    _GameIsland('XBOX TERRITORY', 'Cold frontier · mineral shelves · distant lights', .50, .17, .49, 43, _xbox),
+    _GameIsland('PC DIMENSION', 'Dark highlands · strange geometry · open expanses', -.45, .16, .46, 59, _pc),
   ];
 
   static const _nintendo = <GamePlatformGroup>[
@@ -351,13 +353,13 @@ class _IslandAtlas extends StatelessWidget {
   }
 
   double _islandDepthScale(int i) =>
-      .92 + (islands[i].d + .50) * .34;
+      .78 + (islands[i].d + .50) * .48;
 
   double _islandHitWidth(int i) =>
-      .52 * islands[i].scale * _islandDepthScale(i);
+      .50 * islands[i].scale * _islandDepthScale(i);
 
   double _islandHitHeight(int i) =>
-      .38 * islands[i].scale * _islandDepthScale(i);
+      .36 * islands[i].scale * _islandDepthScale(i);
 }
 
 class _IslandAtlasPainter extends CustomPainter {
@@ -448,16 +450,18 @@ class _IslandAtlasPainter extends CustomPainter {
   }
 
   void _drawDistantMountains(Canvas canvas, Size size, Offset c) {
-    final path = Path()..moveTo(0, size.height * .28);
-    for (var i = 0; i <= 12; i++) {
-      final x = size.width * i / 12;
-      final y = size.height * (.22 + .055 * math.sin(i * 1.7));
+    // Distant land is deliberately broad and soft: it supplies scale without
+    // becoming a second row of UI-shaped platforms.
+    final path = Path()..moveTo(0, size.height * .30);
+    for (var i = 0; i <= 18; i++) {
+      final x = size.width * i / 18;
+      final y = size.height * (.235 + .035 * math.sin(i * 1.23) + .018 * math.sin(i * 3.7));
       path.lineTo(x, y);
     }
-    path.lineTo(size.width, size.height * .39);
-    path.lineTo(0, size.height * .39);
+    path.lineTo(size.width, size.height * .40);
+    path.lineTo(0, size.height * .40);
     path.close();
-    canvas.drawPath(path, Paint()..color = const Color(0x24111F25));
+    canvas.drawPath(path, Paint()..color = const Color(0x1D20303A));
   }
 
   void _drawIsland(Canvas canvas, Size size, Offset c, _GameIsland island, int index, bool active) {
@@ -466,9 +470,11 @@ class _IslandAtlasPainter extends CustomPainter {
       c.dx + island.x * size.width * .50,
       c.dy + island.d * size.height * .39,
     );
-    final depthScale = .92 + (island.d + .50) * .34;
-    final w = size.width * .52 * island.scale * depthScale;
-    final h = size.height * .38 * island.scale * depthScale;
+    // Depth is deliberately stronger than before: distant realms shrink and
+    // lose contrast, while the foreground continent gains physical presence.
+    final depthScale = .78 + (island.d + .50) * .48;
+    final w = size.width * .50 * island.scale * depthScale;
+    final h = size.height * .36 * island.scale * depthScale;
     final random = math.Random(island.seed * 97 + 11);
     final points = <Offset>[];
 
@@ -512,13 +518,20 @@ class _IslandAtlasPainter extends CustomPainter {
     }
 
     final bounds = top.getBounds();
+    final distance = ((island.d + .50) / 1.0).clamp(0.0, 1.0);
+    final basePalette = _terrainPalette(index);
+    final fadedPalette = <Color>[
+      Color.lerp(basePalette[0], const Color(0xFF31414A), distance * .42)!,
+      Color.lerp(basePalette[1], const Color(0xFF1B2730), distance * .38)!,
+      Color.lerp(basePalette[2], const Color(0xFF101820), distance * .34)!,
+    ];
     canvas.drawPath(
       top,
       Paint()
         ..shader = LinearGradient(
           begin: Alignment(-.75, -1),
           end: Alignment(.85, .9),
-          colors: _terrainPalette(index),
+          colors: fadedPalette,
         ).createShader(bounds),
     );
 
@@ -596,11 +609,12 @@ class _IslandAtlasPainter extends CustomPainter {
     }
 
     // Directional environmental shadow makes the topography sit in the world.
+    final shadowStrength = .18 + (1.0 - distance) * .22;
     final shadow = Paint()
       ..shader = RadialGradient(
         center: const Alignment(.05, .65),
         radius: 1,
-        colors: [Colors.black.withValues(alpha: .32), Colors.transparent],
+        colors: [Colors.black.withValues(alpha: shadowStrength), Colors.transparent],
       ).createShader(Rect.fromCenter(
         center: Offset(center.dx, center.dy + h * .24),
         width: w * 1.12,
