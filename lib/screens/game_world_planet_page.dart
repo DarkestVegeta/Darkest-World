@@ -28,11 +28,14 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
   static const _islands = <_GameIsland>[
     // Scale hierarchy follows the reference-world feeling: one dominant landmass,
     // several substantial neighboring continents, and distant land fading into haze.
-    _GameIsland('NINTENDO LAND', 'Forests · valleys · old stone · layered coast', -.18, .04, 1.28, 7, _nintendo),
-    _GameIsland('SEGA REALM', 'Weathered ridges · dry plateaus · deep valleys', .34, -.22, .88, 19, _sega),
-    _GameIsland('PLAYSTATION GALAXY', 'Cliffs · mist · ruins · crystalline terrain', -.42, .30, .92, 31, _playstation),
-    _GameIsland('XBOX TERRITORY', 'Cold frontier · mineral shelves · distant lights', .28, .42, .76, 43, _xbox),
-    _GameIsland('PC DIMENSION', 'Dark highlands · strange geometry · open expanses', .02, -.42, .70, 59, _pc),
+    // Aerial composition: one dominant foreground landmass, four substantial
+    // neighbors with real negative space between them. Scale comes from depth,
+    // not five overlapping UI-sized blobs.
+    _GameIsland('NINTENDO LAND', 'Forests · valleys · old stone · layered coast', -.12, .20, 1.08, 7, _nintendo),
+    _GameIsland('SEGA REALM', 'Weathered ridges · dry plateaus · deep valleys', .42, -.22, .68, 19, _sega),
+    _GameIsland('PLAYSTATION GALAXY', 'Cliffs · mist · ruins · crystalline terrain', -.48, -.04, .72, 31, _playstation),
+    _GameIsland('XBOX TERRITORY', 'Cold frontier · mineral shelves · distant lights', .40, .46, .58, 43, _xbox),
+    _GameIsland('PC DIMENSION', 'Dark highlands · strange geometry · open expanses', .02, -.47, .54, 59, _pc),
   ];
 
   static const _nintendo = <GamePlatformGroup>[
@@ -440,14 +443,8 @@ class _IslandAtlasPainter extends CustomPainter {
       );
     }
 
-    final lines = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .001
-      ..color = const Color(0x121E4C68);
-    for (var i = 0; i < 9; i++) {
-      final y = size.height * (.20 + i * .075);
-      canvas.drawLine(Offset(size.width * .05, y), Offset(size.width * .95, y + math.sin(i + phase * 6) * 5), lines);
-    }
+    // No map/grid lines: the surface should read as an aerial world, not a
+    // strategy map. Motion is carried only by very subtle atmospheric mist.
   }
 
   void _drawDistantMountains(Canvas canvas, Size size, Offset c) {
@@ -457,10 +454,10 @@ class _IslandAtlasPainter extends CustomPainter {
       final y = size.height * (.22 + .055 * math.sin(i * 1.7));
       path.lineTo(x, y);
     }
-    path.lineTo(size.width, size.height * .43);
-    path.lineTo(0, size.height * .43);
+    path.lineTo(size.width, size.height * .39);
+    path.lineTo(0, size.height * .39);
     path.close();
-    canvas.drawPath(path, Paint()..color = const Color(0x38111F25));
+    canvas.drawPath(path, Paint()..color = const Color(0x24111F25));
   }
 
   void _drawIsland(Canvas canvas, Size size, Offset c, _GameIsland island, int index, bool active) {
