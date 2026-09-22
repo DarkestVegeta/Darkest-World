@@ -209,7 +209,19 @@ class _GamePlanetView extends StatelessWidget {
               onTap: onEnter,
               child: SizedBox.square(
                 dimension: diameter,
-                child: CustomPaint(painter: _GamePlanetPainter(phase)),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const RepaintBoundary(
+                      child: CustomPaint(painter: _GamePlanetStaticPainter()),
+                    ),
+                    IgnorePointer(
+                      child: CustomPaint(
+                        painter: _GamePlanetAtmospherePainter(phase),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -289,8 +301,20 @@ class _IslandAtlas extends StatelessWidget {
             child: SizedBox(
               width: sceneW,
               height: sceneH,
-              child: CustomPaint(
-                painter: _IslandAtlasPainter(phase, selected, islands),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _IslandAtlasPainter(selected, islands),
+                    ),
+                  ),
+                  IgnorePointer(
+                    child: CustomPaint(
+                      painter: _IslandAtmospherePainter(phase),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -368,11 +392,10 @@ class _IslandAtlas extends StatelessWidget {
 }
 
 class _IslandAtlasPainter extends CustomPainter {
-  final double phase;
   final int? selected;
   final List<_GameIsland> islands;
 
-  const _IslandAtlasPainter(this.phase, this.selected, this.islands);
+  const _IslandAtlasPainter(this.selected, this.islands);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -440,18 +463,11 @@ class _IslandAtlasPainter extends CustomPainter {
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, ocean);
 
-    final mist = Paint()..color = const Color(0x20D8E8EA);
-    for (var i = 0; i < 8; i++) {
-      final x = size.width * (.05 + i * .105);
-      final y = size.height * (.16 + math.sin(phase * math.pi * 2 + i) * .018);
-      canvas.drawOval(
-        Rect.fromCenter(center: Offset(x, y), width: size.width * .18, height: size.height * .08),
-        mist,
-      );
-    }
+    // Static ocean/background only. Animated atmospheric mist is rendered
+    // separately so expensive terrain geometry is not repainted every frame.
 
     // No map/grid lines: the surface should read as an aerial world, not a
-    // strategy map. Motion is carried only by very subtle atmospheric mist.
+    // strategy map.
   }
 
   void _drawDistantMountains(Canvas canvas, Size size, Offset c) {
@@ -721,7 +737,41 @@ class _IslandAtlasPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _IslandAtlasPainter oldDelegate) =>
-      oldDelegate.phase != phase || oldDelegate.selected != selected;
+      oldDelegate.selected != selected || oldDelegate.islands != islands;
+}
+
+class _IslandAtmospherePainter extends CustomPainter {
+  final double phase;
+  const _IslandAtmospherePainter(this.phase);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final mist = Paint()..color = const Color(0x20D8E8EA);
+    for (var i = 0; i < 8; i++) {
+      final x = size.width * (.05 + i * .105);
+      final y = size.height * (.16 + math.sin(phase * math.pi * 2 + i) * .018);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(x, y),
+          width: size.width * .18,
+          height: size.height * .08,
+        ),
+        mist,
+      );
+    }
+    final haze = Paint()
+      ..shader = RadialGradient(
+        center: Alignment(.05 + math.sin(phase * math.pi * 2) * .03, -.12),
+        radius: .92,
+        colors: const [Color(0x0A9E9CFF), Color(0x031D5060), Colors.transparent],
+      ).createShader(rect);
+    canvas.drawRect(rect, haze);
+  }
+
+  @override
+  bool shouldRepaint(covariant _IslandAtmospherePainter oldDelegate) =>
+      oldDelegate.phase != phase;
 }
 
 class _IslandPanel extends StatelessWidget {
@@ -856,9 +906,8 @@ class _DeepSpacePainter extends CustomPainter {
   bool shouldRepaint(covariant _DeepSpacePainter oldDelegate) => oldDelegate.phase != phase;
 }
 
-class _GamePlanetPainter extends CustomPainter {
-  final double phase;
-  const _GamePlanetPainter(this.phase);
+class _GamePlanetStaticPainter extends CustomPainter {
+  const _GamePlanetStaticPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -956,20 +1005,38 @@ class _GamePlanetPainter extends CustomPainter {
 
     canvas.restore();
 
-    // Fine atmospheric limb: broken, directional and volumetric rather than a neon ring.
+  }
+
+  @override
+  bool shouldRepaint(covariant _GamePlanetStaticPainter oldDelegate) => false;
+}
+
+class _GamePlanetAtmospherePainter extends CustomPainter {
+  final double phase;
+  const _GamePlanetAtmospherePainter(this.phase);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = size.shortestSide * .47;
     canvas.drawArc(
-      Rect.fromCircle(center:c,radius:r*1.018),math.pi*1.03,math.pi*.88,false,
-      Paint()..style=PaintingStyle.stroke..strokeWidth=r*.012..color=const Color(0x7E9185D5),
+      Rect.fromCircle(center: c, radius: r * 1.018),
+      math.pi * 1.03, math.pi * .88, false,
+      Paint()..style = PaintingStyle.stroke..strokeWidth = r * .012..color = const Color(0x7E9185D5),
     );
     canvas.drawArc(
-      Rect.fromCircle(center:c,radius:r*1.035),math.pi*1.22,math.pi*.34,false,
-      Paint()..style=PaintingStyle.stroke..strokeWidth=r*.006..color=const Color(0x4C6E9DB7),
+      Rect.fromCircle(center: c, radius: r * 1.035),
+      math.pi * 1.22, math.pi * .34, false,
+      Paint()..style = PaintingStyle.stroke..strokeWidth = r * .006..color = const Color(0x4C6E9DB7),
     );
     canvas.drawArc(
-      Rect.fromCircle(center:c,radius:r*1.045),phase*math.pi*2+.3,math.pi*.42,false,
-      Paint()..style=PaintingStyle.stroke..strokeWidth=r*.009..color=const Color(0x555CB9C4),
+      Rect.fromCircle(center: c, radius: r * 1.045),
+      phase * math.pi * 2 + .3, math.pi * .42, false,
+      Paint()..style = PaintingStyle.stroke..strokeWidth = r * .009..color = const Color(0x555CB9C4),
     );
   }
 
-  @override bool shouldRepaint(covariant _GamePlanetPainter oldDelegate)=>oldDelegate.phase!=phase;
+  @override
+  bool shouldRepaint(covariant _GamePlanetAtmospherePainter oldDelegate) =>
+      oldDelegate.phase != phase;
 }
