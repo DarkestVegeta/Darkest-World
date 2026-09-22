@@ -22,6 +22,11 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
     duration: const Duration(seconds: 90),
   )..repeat();
 
+  // Static geometry is painted from deterministic seeds; the clock is reserved
+  // for the very small amount of environmental motion that actually benefits
+  // the scene. This keeps the large world visually rich without forcing every
+  // terrain path to become a per-frame allocation hotspot.
+
   bool _insideWorld = false;
   int? _selectedIsland;
 
