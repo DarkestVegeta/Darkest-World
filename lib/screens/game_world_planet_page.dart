@@ -28,7 +28,6 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
   // terrain path to become a per-frame allocation hotspot.
 
   bool _insideWorld = false;
-  int? _selectedIsland;
 
   static const _islands = <_GameIsland>[
     // Scale hierarchy follows the reference-world feeling: one dominant landmass,
@@ -96,13 +95,11 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
 
   void _enterWorld() => setState(() {
         _insideWorld = true;
-        _selectedIsland = null;
       });
 
   void _leaveWorld() => setState(() {
         _insideWorld = false;
-        _selectedIsland = null;
-      });
+        });
 
   void _openIsland(int index) {
     final island = _islands[index];
@@ -151,9 +148,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
                   ? _IslandAtlas(
                       key: const ValueKey('game-world-atlas'),
                       phase: _clock.value,
-                      selected: _selectedIsland,
                       islands: _islands,
-                      onSelect: (i) => setState(() => _selectedIsland = _selectedIsland == i ? null : i),
                       onOpen: _openIsland,
                       onBack: _leaveWorld,
                     )
@@ -258,18 +253,14 @@ class _GamePlanetView extends StatelessWidget {
 
 class _IslandAtlas extends StatelessWidget {
   final double phase;
-  final int? selected;
   final List<_GameIsland> islands;
-  final ValueChanged<int> onSelect;
   final ValueChanged<int> onOpen;
   final VoidCallback onBack;
 
   const _IslandAtlas({
     super.key,
     required this.phase,
-    required this.selected,
     required this.islands,
-    required this.onSelect,
     required this.onOpen,
     required this.onBack,
   });
@@ -291,11 +282,11 @@ class _IslandAtlas extends StatelessWidget {
               children: [
                 _BackButton(onTap: onBack),
                 const SizedBox(width: 12),
-                const _WorldHeader(title: 'GAME WORLD', eyebrow: 'ISLAND ATLAS · SELECT A REALM'),
+                const _WorldHeader(title: 'GAME WORLD', eyebrow: 'LIVING TERRITORIES · TRAVEL TO A REALM'),
                 const Spacer(),
                 if (!compact)
                   Text(
-                    '5 WORLDS · NO ICONIC SCENES',
+                    '5 LIVING TERRITORIES · NO ICONIC SCENES',
                     style: TextStyle(fontSize: 7, letterSpacing: 2.2, color: Colors.white.withValues(alpha: .28)),
                   ),
               ],
@@ -313,7 +304,7 @@ class _IslandAtlas extends StatelessWidget {
                 children: [
                   RepaintBoundary(
                     child: CustomPaint(
-                      painter: _IslandAtlasPainter(selected, islands),
+                      painter: _IslandAtlasPainter(null, islands),
                     ),
                   ),
                   IgnorePointer(
@@ -343,7 +334,7 @@ class _IslandAtlas extends StatelessWidget {
                       child: MouseRegion(
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
-                          onTap: () => onSelect(i),
+                          onTap: () => onOpen(i),
                           child: const SizedBox.expand(),
                         ),
                       ),
@@ -353,23 +344,11 @@ class _IslandAtlas extends StatelessWidget {
             ),
           ),
         ),
-        if (selected != null)
-          Positioned(
-            left: compact ? 14 : 30,
-            right: compact ? 14 : null,
-            bottom: compact ? 14 : 30,
-            width: compact ? null : 350,
-            child: _IslandPanel(
-              island: islands[selected!],
-              onClose: () => onSelect(selected!),
-              onOpen: () => onOpen(selected!),
-            ),
-          ),
         Positioned(
           right: compact ? 16 : 30,
           bottom: compact ? 18 : 30,
           child: Text(
-            'SELECT ISLAND · ENTER REALM',
+            'TRAVEL TO A TERRITORY',
             style: TextStyle(fontSize: 6.5, letterSpacing: 2, color: Colors.white.withValues(alpha: .22)),
           ),
         ),
