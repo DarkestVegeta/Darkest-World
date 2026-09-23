@@ -125,7 +125,14 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
         builder: (context, _) => Stack(
           fit: StackFit.expand,
           children: [
-            CustomPaint(painter: _DeepSpacePainter(_clock.value)),
+            const RepaintBoundary(
+              child: CustomPaint(painter: _DeepSpaceStaticPainter()),
+            ),
+            IgnorePointer(
+              child: CustomPaint(
+                painter: _DeepSpaceAtmospherePainter(_clock.value),
+              ),
+            ),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 1250),
               switchInCurve: Curves.easeOutCubic,
@@ -193,7 +200,7 @@ class _GamePlanetView extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 760;
-    final diameter = math.min(size.width * (compact ? .88 : .72), size.height * .84);
+    final diameter = math.min(size.width * (compact ? .90 : .78), size.height * .92);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -999,9 +1006,8 @@ class _BackButton extends StatelessWidget {
       );
 }
 
-class _DeepSpacePainter extends CustomPainter {
-  final double phase;
-  const _DeepSpacePainter(this.phase);
+class _DeepSpaceStaticPainter extends CustomPainter {
+  const _DeepSpaceStaticPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1016,34 +1022,50 @@ class _DeepSpacePainter extends CustomPainter {
         ).createShader(rect),
     );
 
-    final stars = math.Random(913);
-    for (var i = 0; i < 190; i++) {
-      final p = Offset(stars.nextDouble() * size.width, stars.nextDouble() * size.height);
-      final pulse = .35 + .65 * math.sin(phase * math.pi * 2 + i * .41).abs();
-      canvas.drawCircle(
-        p,
-        .25 + stars.nextDouble() * .75,
-        Paint()..color = Colors.white.withValues(alpha: .025 + .07 * pulse),
-      );
-    }
-
     final nebula = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          const Color(0x2D7251A7),
-          const Color(0x122D4D91),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromCenter(
-        center: Offset(size.width * .52, size.height * .44),
-        width: size.width * .95,
-        height: size.height * .78,
-      ));
+      ..shader = const RadialGradient(
+        colors: [Color(0x2D7251A7), Color(0x122D4D91), Colors.transparent],
+      ).createShader(
+        Rect.fromCenter(
+          center: Offset(size.width * .52, size.height * .44),
+          width: size.width * .95,
+          height: size.height * .78,
+        ),
+      );
     canvas.drawRect(rect, nebula);
   }
 
   @override
-  bool shouldRepaint(covariant _DeepSpacePainter oldDelegate) => oldDelegate.phase != phase;
+  bool shouldRepaint(covariant _DeepSpaceStaticPainter oldDelegate) => false;
+}
+
+class _DeepSpaceAtmospherePainter extends CustomPainter {
+  final double phase;
+  const _DeepSpaceAtmospherePainter(this.phase);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stars = math.Random(913);
+    for (var i = 0; i < 190; i++) {
+      final p = Offset(
+        stars.nextDouble() * size.width,
+        stars.nextDouble() * size.height,
+      );
+      final pulse =
+          .35 + .65 * math.sin(phase * math.pi * 2 + i * .41).abs();
+      canvas.drawCircle(
+        p,
+        .25 + stars.nextDouble() * .75,
+        Paint()..color = Colors.white.withValues(
+          alpha: .025 + .07 * pulse,
+        ),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DeepSpaceAtmospherePainter oldDelegate) =>
+      oldDelegate.phase != phase;
 }
 
 class _GamePlanetStaticPainter extends CustomPainter {
