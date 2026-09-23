@@ -1104,6 +1104,42 @@ class _GamePlanetStaticPainter extends CustomPainter {
       canvas.drawPath(land.shift(Offset(r*.008,r*.012)),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.006..color=const Color(0x244B7B79));
     }
 
+    // Broad cloud bands and atmospheric weathering. These remain clipped to the
+    // sphere and are deliberately soft, so the planet gains living-world depth
+    // without becoming a literal Earth clone or a noisy texture.
+    final cloudPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = r * .018
+      ..color = const Color(0x173E5A72);
+    for (var band = 0; band < 7; band++) {
+      final y = c.dy + r * (-.56 + band * .18);
+      final path = Path()..moveTo(c.dx - r * .86, y);
+      path.cubicTo(
+        c.dx - r * .42, y - r * (.035 + band % 2 * .018),
+        c.dx - r * .10, y + r * (.045 + band % 3 * .012),
+        c.dx + r * .28, y - r * (.028 + band % 2 * .014),
+      );
+      path.cubicTo(
+        c.dx + r * .53, y + r * .035,
+        c.dx + r * .72, y - r * .018,
+        c.dx + r * .88, y + r * .008,
+      );
+      canvas.drawPath(path, cloudPaint);
+    }
+
+    // Ocean-facing specular flecks reinforce the spherical surface curvature.
+    final oceanGlint = Paint()..color = const Color(0x185E91A8);
+    for (var i = 0; i < 14; i++) {
+      final a = i * .91 + .35;
+      final rr = r * (.34 + (i % 5) * .095);
+      final p = c + Offset(math.cos(a) * rr, math.sin(a) * rr * .70);
+      canvas.drawOval(
+        Rect.fromCenter(center: p, width: r * .025, height: r * .008),
+        oceanGlint,
+      );
+    }
+
     // Surface relief: continental shelves, mountain belts and deep ocean basins.
     for(var i=0;i<11;i++){
       final y=c.dy-r*.56+i*r*.105;
@@ -1134,6 +1170,17 @@ class _GamePlanetStaticPainter extends CustomPainter {
       final p=c+Offset(math.cos(a)*rr,math.sin(a)*rr*.75);
       canvas.drawCircle(p,r*.008+rnd.nextDouble()*r*.012,Paint()..color=const Color(0x258F83C6));
     }
+
+    // A narrow limb haze sits above the terminator and helps the sphere separate
+    // cleanly from deep space at the dark edge.
+    canvas.drawCircle(
+      c,
+      r * .998,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = r * .024
+        ..color = const Color(0x1E7894A8),
+    );
 
     // Spherical shadow and terminator.
     canvas.drawCircle(c,r,Paint()..shader=const RadialGradient(
