@@ -900,49 +900,6 @@ class _IslandAtmospherePainter extends CustomPainter {
       oldDelegate.phase != phase;
 }
 
-class _IslandPanel extends StatelessWidget {
-  final _GameIsland island;
-  final VoidCallback onClose;
-  final VoidCallback onOpen;
-
-  const _IslandPanel({required this.island, required this.onClose, required this.onOpen});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xEE070B12),
-        border: Border.all(color: Colors.white.withValues(alpha: .13)),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 34, offset: Offset(0, 16))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(island.name, style: const TextStyle(fontSize: 14, letterSpacing: 2.5))),
-              IconButton(onPressed: onClose, icon: const Icon(Icons.close, size: 16, color: Colors.white54)),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(island.subtitle, style: const TextStyle(color: Colors.white54, fontSize: 11, height: 1.35)),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              TextButton(onPressed: onClose, child: const Text('CLOSE')),
-              const Spacer(),
-              ElevatedButton(onPressed: onOpen, child: const Text('ENTER REALM')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _WorldHeader extends StatelessWidget {
   final String title;
   final String eyebrow;
