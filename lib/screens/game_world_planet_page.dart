@@ -300,14 +300,14 @@ class _IslandAtlas extends StatelessWidget {
           ),
         ),
         AnimatedScale(
-          scale: _travelingIndex == null ? 1.0 : 3.15,
-          alignment: _travelingIndex == null
+          scale: _travelingIsland == null ? 1.0 : 3.15,
+          alignment: _travelingIsland == null
               ? Alignment.center
-              : _islandZoomAlignment(_travelingIndex!),
+              : _islandZoomAlignment(_travelingIsland!),
           duration: const Duration(milliseconds: 760),
           curve: Curves.easeInCubic,
           child: IgnorePointer(
-            ignoring: _travelingIndex != null,
+            ignoring: _travelingIsland != null,
             child: Stack(
               children: [
                 Center(
