@@ -284,8 +284,7 @@ class _RealmHint extends StatelessWidget{const _RealmHint();@override Widget bui
 
 
 class _RealmAtlas extends CustomPainter {
-  final double phase;
-  const _RealmAtlas(this.phase);
+  const _RealmAtlas();
   @override
   void paint(Canvas c, Size s) {
     final r = Offset.zero & s;
@@ -325,8 +324,7 @@ class _RealmAtlas extends CustomPainter {
 }
 
 class _RealmSpace extends CustomPainter {
-  final double phase;
-  const _RealmSpace(this.phase);
+  const _RealmSpace();
   @override
   void paint(Canvas c, Size s) {
     final r = Offset.zero & s;
