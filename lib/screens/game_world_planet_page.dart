@@ -28,6 +28,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
   // terrain path to become a per-frame allocation hotspot.
 
   bool _insideWorld = false;
+  int? _travelingIsland;
 
   static const _islands = <_GameIsland>[
     // Scale hierarchy follows the reference-world feeling: one dominant landmass,
@@ -101,9 +102,13 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
         _insideWorld = false;
         });
 
-  void _openIsland(int index) {
+  Future<void> _openIsland(int index) async {
+    if (_travelingIsland != null) return;
+    setState(() => _travelingIsland = index);
+    await Future<void>.delayed(const Duration(milliseconds: 760));
+    if (!mounted) return;
     final island = _islands[index];
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GamePlatformPage(
           territory: island.name,
@@ -111,6 +116,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
         ),
       ),
     );
+    if (mounted) setState(() => _travelingIsland = null);
   }
 
   @override
@@ -293,54 +299,65 @@ class _IslandAtlas extends StatelessWidget {
             ),
           ),
         ),
-        Center(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            child: SizedBox(
-              width: sceneW,
-              height: sceneH,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  RepaintBoundary(
-                    child: CustomPaint(
-                      painter: _IslandAtlasPainter(null, islands),
-                    ),
-                  ),
-                  IgnorePointer(
-                    child: CustomPaint(
-                      painter: _IslandAtmospherePainter(phase),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // Large transparent hit zones keep the painter free of UI concerns.
-        Center(
-          child: SizedBox(
-            width: sceneW,
-            height: sceneH,
-            child: LayoutBuilder(
-              builder: (_, box) => Stack(
-                children: [
-                  for (var i = 0; i < islands.length; i++)
-                    Positioned(
-                      left: box.maxWidth * _islandScreenPosition(i).dx - box.maxWidth * _islandHitWidth(i) / 2,
-                      top: box.maxHeight * _islandScreenPosition(i).dy - box.maxHeight * _islandHitHeight(i) / 2,
-                      width: box.maxWidth * _islandHitWidth(i),
-                      height: box.maxHeight * _islandHitHeight(i),
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () => onOpen(i),
-                          child: const SizedBox.expand(),
+        AnimatedScale(
+          scale: _travelingIndex == null ? 1.0 : 3.15,
+          alignment: _travelingIndex == null
+              ? Alignment.center
+              : _islandZoomAlignment(_travelingIndex!),
+          duration: const Duration(milliseconds: 760),
+          curve: Curves.easeInCubic,
+          child: IgnorePointer(
+            ignoring: _travelingIndex != null,
+            child: Stack(
+              children: [
+                Center(
+                  child: SizedBox(
+                    width: sceneW,
+                    height: sceneH,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        RepaintBoundary(
+                          child: CustomPaint(
+                            painter: _IslandAtlasPainter(null, islands),
+                          ),
                         ),
+                        IgnorePointer(
+                          child: CustomPaint(
+                            painter: _IslandAtmospherePainter(phase),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Center(
+                  child: SizedBox(
+                    width: sceneW,
+                    height: sceneH,
+                    child: LayoutBuilder(
+                      builder: (_, box) => Stack(
+                        children: [
+                          for (var i = 0; i < islands.length; i++)
+                            Positioned(
+                              left: box.maxWidth * _islandScreenPosition(i).dx - box.maxWidth * _islandHitWidth(i) / 2,
+                              top: box.maxHeight * _islandScreenPosition(i).dy - box.maxHeight * _islandHitHeight(i) / 2,
+                              width: box.maxWidth * _islandHitWidth(i),
+                              height: box.maxHeight * _islandHitHeight(i),
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () => onOpen(i),
+                                  child: const SizedBox.expand(),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                ],
-              ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -375,6 +392,11 @@ class _IslandAtlas extends StatelessWidget {
 
   double _islandHitHeight(int i) =>
       .36 * islands[i].scale * _islandDepthScale(i);
+
+  Alignment _islandZoomAlignment(int i) {
+    final p = _islandScreenPosition(i);
+    return Alignment((p.dx - .5) * 2, (p.dy - .5) * 2);
+  }
 }
 
 class _IslandAtlasPainter extends CustomPainter {
