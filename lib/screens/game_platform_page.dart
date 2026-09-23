@@ -53,7 +53,7 @@ class _RealmHit extends StatelessWidget{
   const _RealmHit({required this.platform,required this.index,required this.total,required this.selected,required this.size,required this.phase,required this.onTap,required this.onOpen});
   @override Widget build(BuildContext context){
     final p=_pos(index,total,size,phase);
-    final d=math.max(150,size.width*.235);
+    final d=math.max(150.0,size.width*.235);
     return Positioned(left:p.dx-d*.50,top:p.dy-d*.36,width:d,height:d*.78,child:MouseRegion(
       cursor:SystemMouseCursors.click,
       child:GestureDetector(onTap:onTap,onDoubleTap:onOpen,child:CustomPaint(painter:_MiniRealm(seed:index,active:selected,label:platform.name,phase:phase))),
