@@ -646,6 +646,49 @@ class _IslandAtlasPainter extends CustomPainter {
       shadow,
     );
 
+    // Floating-world contact shadow separates the landmass from the ocean haze
+    // and makes the vertical cliff volume read before selection.
+    final undersideShadow = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(.10, -.05),
+        radius: 1,
+        colors: [
+          Colors.black.withValues(alpha: .30 * (1.0 - distance * .35)),
+          Colors.black.withValues(alpha: .10 * (1.0 - distance)),
+          Colors.transparent,
+        ],
+        stops: const [.0, .48, 1],
+      ).createShader(Rect.fromCenter(
+        center: Offset(center.dx + w * .015, center.dy + h * .39),
+        width: w * 1.05,
+        height: h * .34,
+      ));
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(center.dx + w * .015, center.dy + h * .39),
+        width: w * 1.05,
+        height: h * .34,
+      ),
+      undersideShadow,
+    );
+
+    // Broken lower cliff highlight catches the same directional light as the
+    // top surface, keeping the island naturally eroded rather than disc-like.
+    final lowerEdge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1, size.width * .0032)
+      ..color = const Color(0x3C82949A);
+    final lowerPath = Path();
+    for (var k = 0; k < points.length; k += 2) {
+      final a = points[k];
+      final b = points[(k + 1) % points.length];
+      final q1 = Offset.lerp(a, b, .18)! + Offset(-w * .012, h * .10);
+      final q2 = Offset.lerp(a, b, .78)! + Offset(-w * .018, h * .12);
+      lowerPath.moveTo(q1.dx, q1.dy);
+      lowerPath.lineTo(q2.dx, q2.dy);
+    }
+    canvas.drawPath(lowerPath, lowerEdge);
+
     // Atmospheric edge mist softens the distant shore without flattening the land.
     final mist = Paint()
       ..shader = RadialGradient(
@@ -1001,6 +1044,15 @@ class _GamePlanetStaticPainter extends CustomPainter {
       radius:1.0,
       colors:[Colors.transparent,Color(0x13020A14),Color(0xE900020A)],
       stops:[.42,.67,1],
+    ).createShader(sphere));
+
+    // Restrained atmospheric surface haze breaks the procedural continent edges
+    // at distance so the planet reads as a world rather than a ball with stickers.
+    canvas.drawCircle(c,r*.985,Paint()..shader=RadialGradient(
+      center:const Alignment(-.22,-.18),
+      radius:.98,
+      colors:[const Color(0x120B2030),Colors.transparent,const Color(0x19010612)],
+      stops:const [0,.58,1],
     ).createShader(sphere));
 
     canvas.restore();
