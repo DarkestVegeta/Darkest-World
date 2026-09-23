@@ -109,7 +109,7 @@ class _MiniRealm extends CustomPainter{
 
     // Uneven terrain/vegetation patches prevent the realm from reading as a single procedural blob.
     final vegetation = Paint()..color = Colors.white.withValues(alpha: .045);
-    for(var i=0;i<18;i++){
+    for(var i=0;i<28;i++){
       final a=i*2.41+seed*.7;
       final p=center+Offset(math.cos(a)*w*(.10+(i%5)*.065),math.sin(a*1.31)*h*(.09+(i%4)*.055));
       c.drawOval(
@@ -131,7 +131,7 @@ class _MiniRealm extends CustomPainter{
     }
 
     final ridge=Paint()..style=PaintingStyle.stroke..strokeCap=StrokeCap.round..strokeWidth=math.max(1,s.width*.006)..color=Colors.white.withValues(alpha:.095);
-    for(var i=0;i<5;i++){
+    for(var i=0;i<8;i++){
       final yy=center.dy+h*(i-2)*.045;
       final path=Path()..moveTo(center.dx-w*.36,yy+h*.02);
       path.cubicTo(center.dx-w*.20,yy-h*.16,center.dx-w*.03,yy+h*.12,center.dx+w*.08,yy-h*.10);
@@ -165,6 +165,32 @@ class _MiniRealm extends CustomPainter{
       Rect.fromCenter(center: Offset(center.dx, center.dy + h * .28), width: w * 1.05, height: h * .48),
       depthShadow,
     );
+
+    // Secondary lower shelf: a broken, offset rock mass makes the realm read as
+    // suspended terrain with depth, rather than a single flat island silhouette.
+    final lowerShelf = top.shift(Offset(-w * .015, h * .29));
+    c.drawPath(
+      lowerShelf,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1, s.width * .010)
+        ..color = const Color(0x3B6C7A7A),
+    );
+
+    // A handful of cliff-face facets catch the environmental light. These are
+    // broad and irregular rather than decorative lines.
+    final facet = Paint()
+      ..color = const Color(0x2E91A09A);
+    for (var i = 0; i < 7; i++) {
+      final x = center.dx + (-.32 + i * .105) * w;
+      final y = center.dy + h * (.20 + (i % 3) * .035);
+      final p = Path()
+        ..moveTo(x - w * .055, y)
+        ..lineTo(x, y + h * (.10 + (i % 2) * .045))
+        ..lineTo(x + w * .06, y)
+        ..close();
+      c.drawPath(p, facet);
+    }
 
     // Platform identity comes from environmental accents, never mascots or famous scenes.
     final accent=_accent(seed);
