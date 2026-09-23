@@ -24,7 +24,7 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
   @override Widget build(BuildContext context){
     final compact=MediaQuery.sizeOf(context).width<820;
     return Scaffold(backgroundColor:const Color(0xFF02040A),body:AnimatedBuilder(animation:clock,builder:(_,__)=>Stack(fit:StackFit.expand,children:[
-      CustomPaint(painter:_RealmSpace(clock.value)),
+      const RepaintBoundary(child: CustomPaint(painter:_RealmSpace())),
       SafeArea(child:Padding(padding:EdgeInsets.fromLTRB(compact?14:30,compact?12:24,compact?14:30,0),child:Row(children:[
         IconButton(onPressed:()=>Navigator.pop(context),icon:const Icon(Icons.arrow_back_ios_new,size:14)),const SizedBox(width:8),
         Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -35,7 +35,7 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
       Center(child:LayoutBuilder(builder:(_,b){
         final w=math.min(b.maxWidth*(compact ? .98 : .90),1550.0),h=math.min(b.maxHeight*(compact ? .72 : .80),850.0);
         return SizedBox(width:w,height:h,child:Stack(children:[
-          CustomPaint(size:Size(w,h),painter:_RealmAtlas(clock.value)),
+          CustomPaint(size:Size(w,h),painter:_RealmAtlas()),
           for(var i=0;i<platforms.length;i++) _RealmHit(platform:platforms[i],index:i,total:platforms.length,selected:selected==i,size:Size(w,h),phase:clock.value,onTap:()=>setState(()=>selected=selected==i?null:i),onOpen:()=>enter(i)),
         ]));
       })),
@@ -194,7 +194,7 @@ class _MiniRealm extends CustomPainter{
 
     // Platform identity comes from environmental accents, never mascots or famous scenes.
     final accent=_accent(seed);
-    final beacon=Offset(center.dx+math.sin(phase*math.pi*2+seed)*w*.16,center.dy-h*.035);
+    final beacon=Offset(center.dx+w*.16,center.dy-h*.035);
     c.drawCircle(beacon,w*.08,Paint()..shader=RadialGradient(colors:[accent.withValues(alpha:active ? .28 : .10),Colors.transparent]).createShader(Rect.fromCircle(center:beacon,radius:w*.28)));
     c.drawCircle(beacon,w*.018,Paint()..color=accent.withValues(alpha:active ? .65 : .22));
 
@@ -278,7 +278,7 @@ class _RealmAtlas extends CustomPainter {
     }
   }
   @override
-  bool shouldRepaint(covariant _RealmAtlas o) => o.phase != phase;
+  bool shouldRepaint(covariant _RealmAtlas o) => false;
 }
 
 class _RealmSpace extends CustomPainter {
@@ -293,5 +293,5 @@ class _RealmSpace extends CustomPainter {
     ).createShader(r));
   }
   @override
-  bool shouldRepaint(covariant _RealmSpace o) => o.phase != phase;
+  bool shouldRepaint(covariant _RealmSpace o) => false;
 }
