@@ -414,6 +414,7 @@ class _IslandAtlasPainter extends CustomPainter {
 
     _drawCloudOcean(canvas, size, c);
     _drawDistantMountains(canvas, size, c);
+    _drawWorldDepth(canvas, size, c);
 
     final ordered = [...List.generate(islands.length, (i) => i)]
       ..sort((a, b) => islands[b].d.compareTo(islands[a].d));
@@ -483,6 +484,63 @@ class _IslandAtlasPainter extends CustomPainter {
     path.lineTo(0, size.height * .40);
     path.close();
     canvas.drawPath(path, Paint()..color = const Color(0x1D20303A));
+  }
+
+  void _drawWorldDepth(Canvas canvas, Size size, Offset c) {
+    final rect = Offset.zero & size;
+
+    // Broad atmospheric depth volumes. These are static gradients, not particles.
+    // Their job is to create the same foreground/midground/background separation
+    // visible in the reference instead of making every island equally prominent.
+    final farHaze = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, -.05),
+        radius: 1.05,
+        colors: const [
+          Color(0x143C6380),
+          Color(0x081E3448),
+          Colors.transparent,
+        ],
+        stops: const [0, .52, 1],
+      ).createShader(rect);
+    canvas.drawRect(rect, farHaze);
+
+    final horizon = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: const [
+          Color(0x001B3A4A),
+          Color(0x101B3340),
+          Color(0x00050A12),
+        ],
+        stops: const [0, .42, 1],
+      ).createShader(rect);
+    canvas.drawRect(rect, horizon);
+
+    // Large, soft cloud banks establish scale around the world without looking
+    // like decorative UI smoke.
+    final cloud = Paint()..color = const Color(0x0B8FA4A8);
+    final banks = [
+      Rect.fromCenter(
+        center: Offset(size.width * .14, size.height * .29),
+        width: size.width * .42,
+        height: size.height * .11,
+      ),
+      Rect.fromCenter(
+        center: Offset(size.width * .79, size.height * .34),
+        width: size.width * .36,
+        height: size.height * .13,
+      ),
+      Rect.fromCenter(
+        center: Offset(size.width * .58, size.height * .16),
+        width: size.width * .30,
+        height: size.height * .08,
+      ),
+    ];
+    for (final bank in banks) {
+      canvas.drawOval(bank, cloud);
+    }
   }
 
   void _drawIsland(Canvas canvas, Size size, Offset c, _GameIsland island, int index, bool active) {
@@ -613,7 +671,7 @@ class _IslandAtlasPainter extends CustomPainter {
     }
 
     // Mountain chains with irregular massing and directional shadow, not triangular game icons.
-    for (var m = 0; m < 9; m++) {
+    for (var m = 0; m < 12; m++) {
       final mx = center.dx + (-.38 + m * .092) * w;
       final base = center.dy + h * (.12 + (m % 3) * .025);
       final peak = base - h * (.13 + ((island.seed + m) % 5) * .036);
@@ -633,7 +691,9 @@ class _IslandAtlasPainter extends CustomPainter {
 
     // Vegetation/rock clusters are sparse and scale-bearing rather than decorative icons.
     final vegetation = Paint()..color = const Color(0x3695AA91);
-    for (var v = 0; v < 30; v++) {
+    // Two density bands: a sparse far layer and a stronger foreground layer.
+    // This creates scale without hundreds of individual particles.
+    for (var v = 0; v < 44; v++) {
       final a = v * 2.17 + island.seed;
       final rp = center + Offset(
         math.cos(a) * w * (.08 + (v % 6) * .055),
@@ -722,6 +782,23 @@ class _IslandAtlasPainter extends CustomPainter {
       Rect.fromCenter(center: Offset(center.dx, center.dy - h * .04), width: w * 1.18, height: h * .86),
       mist,
     );
+
+    // Directional rim light on only a few upper cliff segments gives the terrain
+    // a stronger cinematic light direction without outlining the whole island.
+    final rim = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(1, size.width * .0021)
+      ..color = const Color(0x326D8990);
+    for (var k = 0; k < points.length; k += 5) {
+      final p0 = points[k];
+      final p1 = points[(k + 1) % points.length];
+      canvas.drawLine(
+        Offset.lerp(center, p0, .995)!,
+        Offset.lerp(center, p1, .995)!,
+        rim,
+      );
+    }
 
     if (active) {
       _drawIdentityMarker(canvas, center, w, h, index);
