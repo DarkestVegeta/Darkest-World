@@ -1162,36 +1162,25 @@ class _GamePlanetStaticPainter extends CustomPainter {
       );
     }
 
-    // Surface relief: continental shelves, mountain belts and deep ocean basins.
-    for(var i=0;i<11;i++){
-      final y=c.dy-r*.56+i*r*.105;
-      final p=Path()..moveTo(c.dx-r*.88,y);
+    // Broad natural relief only: the reference reads as a physical world,
+    // not as a cartographic globe. Keep the surface quiet at galaxy distance.
+    for(var i=0;i<7;i++){
+      final y=c.dy-r*.38+i*r*.12;
+      final p=Path()..moveTo(c.dx-r*.72,y);
       p.cubicTo(
-        c.dx-r*.45,y-r*.055*math.sin(i+.8),
-        c.dx-r*.08,y+r*.075*math.cos(i*.7),
-        c.dx+r*.36,y-r*.05*math.sin(i*1.4),
+        c.dx-r*.38,y-r*.06*math.sin(i*.9+.4),
+        c.dx-r*.08,y+r*.055*math.cos(i*.8),
+        c.dx+r*.30,y-r*.045*math.sin(i*1.1),
       );
-      p.cubicTo(c.dx+r*.55,y-r*.025,c.dx+r*.72,y+r*.025,c.dx+r*.88,y);
+      p.cubicTo(c.dx+r*.50,y-r*.02,c.dx+r*.65,y+r*.02,c.dx+r*.72,y);
       canvas.drawPath(p,Paint()
         ..style=PaintingStyle.stroke
-        ..strokeWidth=r*(.004+i*.0005)
-        ..color=const Color(0x1F8AA6B0));
-    }
-    // A restrained night-side city shimmer gives scale without turning the planet into a starfield.
-    for(var i=0;i<8;i++){
-      final a=(i*2.31)+.4;
-      final rr=r*(.30+(i%4)*.10);
-      final p=c+Offset(math.cos(a)*rr,math.sin(a)*rr*.64);
-      canvas.drawCircle(p,r*.006,Paint()..color=const Color(0x357D8ED0));
+        ..strokeWidth=r*(.003+i*.00025)
+        ..color=const Color(0x108AA6B0));
     }
 
-    // Subtle surface lights: sparse, not a star field pasted on the planet.
-    for(var i=0;i<16;i++){
-      final a=rnd.nextDouble()*math.pi*2;
-      final rr=math.sqrt(rnd.nextDouble())*r*.78;
-      final p=c+Offset(math.cos(a)*rr,math.sin(a)*rr*.75);
-      canvas.drawCircle(p,r*.008+rnd.nextDouble()*r*.012,Paint()..color=const Color(0x258F83C6));
-    }
+    // No city-light/star-field scatter on the planet: scale comes from
+    // spherical shading, atmospheric depth and broad surface masses.
 
     // A narrow limb haze sits above the terminator and helps the sphere separate
     // cleanly from deep space at the dark edge.
