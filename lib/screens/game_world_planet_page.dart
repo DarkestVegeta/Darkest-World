@@ -39,10 +39,10 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
     // Perspective composition: one immense foreground continent anchors the scene;
     // four smaller but still substantial realms recede into real atmospheric distance.
     _GameIsland('NINTENDO LAND', 'Forests · valleys · old stone · layered coast', -.04, .34, 1.12, 7, _nintendo),
-    _GameIsland('SEGA REALM', 'Weathered ridges · dry plateaus · deep valleys', .50, -.30, .54, 19, _sega),
-    _GameIsland('PLAYSTATION GALAXY', 'Cliffs · mist · ruins · crystalline terrain', -.52, -.24, .57, 31, _playstation),
-    _GameIsland('XBOX TERRITORY', 'Cold frontier · mineral shelves · distant lights', .50, .17, .49, 43, _xbox),
-    _GameIsland('PC DIMENSION', 'Dark highlands · strange geometry · open expanses', -.45, .16, .46, 59, _pc),
+    _GameIsland('SEGA REALM', 'Weathered ridges · dry plateaus · deep valleys', .50, -.30, .68, 19, _sega),
+    _GameIsland('PLAYSTATION GALAXY', 'Cliffs · mist · ruins · crystalline terrain', -.52, -.24, .68, 31, _playstation),
+    _GameIsland('XBOX TERRITORY', 'Cold frontier · mineral shelves · distant lights', .50, .17, .60, 43, _xbox),
+    _GameIsland('PC DIMENSION', 'Dark highlands · strange geometry · open expanses', -.45, .16, .58, 59, _pc),
   ];
 
   static const _nintendo = <GamePlatformGroup>[
