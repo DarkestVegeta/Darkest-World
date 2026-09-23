@@ -56,7 +56,17 @@ class _RealmHit extends StatelessWidget{
     final d=math.max(150.0,size.width*.235);
     return Positioned(left:p.dx-d*.50,top:p.dy-d*.36,width:d,height:d*.78,child:MouseRegion(
       cursor:SystemMouseCursors.click,
-      child:GestureDetector(onTap:onTap,onDoubleTap:onOpen,child:CustomPaint(painter:_MiniRealm(seed:index,active:selected,label:platform.name,phase:phase))),
+      child:GestureDetector(
+        onTap:onTap,
+        onDoubleTap:onOpen,
+        child:Stack(
+          fit:StackFit.expand,
+          children:[
+            CustomPaint(painter:_MiniRealm(seed:index,active:selected,label:platform.name)),
+            IgnorePointer(child:CustomPaint(painter:_RealmBeacon(seed:index,active:selected,phase:phase))),
+          ],
+        ),
+      ),
     ));
   }
 }
@@ -70,8 +80,8 @@ Offset _pos(int i,int total,Size s,double phase){
 }
 
 class _MiniRealm extends CustomPainter{
-  final int seed; final bool active; final String label; final double phase;
-  const _MiniRealm({required this.seed,required this.active,required this.label,required this.phase});
+  final int seed; final bool active; final String label;
+  const _MiniRealm({required this.seed,required this.active,required this.label});
 
   @override void paint(Canvas c,Size s){
     final center=Offset(s.width*.5,s.height*.40);
@@ -221,7 +231,40 @@ class _MiniRealm extends CustomPainter{
   ][i%6];
 
   Color _accent(int i)=>const[Color(0xFFB9D69D),Color(0xFFD4A66B),Color(0xFFAEBCE0),Color(0xFF6BC2B1),Color(0xFFA58CDA),Color(0xFF9EB5AC)][i%6];
-  @override bool shouldRepaint(covariant _MiniRealm o)=>o.seed!=seed||o.active!=active||o.phase!=phase;
+  @override bool shouldRepaint(covariant _MiniRealm o)=>o.seed!=seed||o.active!=active||o.label!=label;
+}
+
+class _RealmBeacon extends CustomPainter {
+  final int seed;
+  final bool active;
+  final double phase;
+  const _RealmBeacon({required this.seed,required this.active,required this.phase});
+
+  @override
+  void paint(Canvas c, Size s) {
+    final center=Offset(s.width*.5,s.height*.40);
+    final w=s.width*.98;
+    final h=s.height*.70;
+    final accent=_accent(seed);
+    final beacon=Offset(
+      center.dx+math.sin(phase*math.pi*2+seed)*w*.16,
+      center.dy-h*.035,
+    );
+    c.drawCircle(
+      beacon,w*.08,
+      Paint()..shader=RadialGradient(
+        colors:[accent.withValues(alpha:active ? .28 : .10),Colors.transparent],
+      ).createShader(Rect.fromCircle(center:beacon,radius:w*.28)),
+    );
+    c.drawCircle(
+      beacon,w*.018,
+      Paint()..color=accent.withValues(alpha:active ? .65 : .22),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _RealmBeacon o) =>
+      o.phase!=phase || o.active!=active || o.seed!=seed;
 }
 
 class _RealmPanel extends StatelessWidget{
