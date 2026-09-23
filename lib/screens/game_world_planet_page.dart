@@ -412,7 +412,7 @@ class _IslandAtlasPainter extends CustomPainter {
         ).createShader(rect),
     );
 
-    _drawCloudOcean(canvas, size, c, phase);
+    _drawCloudOcean(canvas, size, c);
     _drawDistantMountains(canvas, size, c);
 
     final ordered = [...List.generate(islands.length, (i) => i)]
@@ -454,7 +454,7 @@ class _IslandAtlasPainter extends CustomPainter {
     );
   }
 
-  void _drawCloudOcean(Canvas canvas, Size size, Offset c, double phase) {
+  void _drawCloudOcean(Canvas canvas, Size size, Offset c) {
     final ocean = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -592,6 +592,26 @@ class _IslandAtlasPainter extends CustomPainter {
     // Terrain is read through broad natural relief rather than map-like contour lines.
     // This keeps the image closer to a cinematic aerial environment than a strategy map.
 
+    // Sparse shoreline breaks give the water/land boundary a natural coastal
+    // scale cue. They deliberately stop short of becoming a glowing outline.
+    final foam = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(1, size.width * .0024)
+      ..color = const Color(0x358DA7A3);
+    for (var s = 0; s < 12; s++) {
+      final start = (s * 2.43 + island.seed * .37) % points.length;
+      final i0 = start.floor();
+      final i1 = (i0 + 1) % points.length;
+      final p0 = Offset.lerp(points[i0], points[i1], .16 + (s % 3) * .11)!;
+      final p1 = Offset.lerp(points[i0], points[i1], .40 + (s % 4) * .07)!;
+      canvas.drawLine(
+        Offset.lerp(center, p0, .985)!,
+        Offset.lerp(center, p1, .985)!,
+        foam,
+      );
+    }
+
     // Mountain chains with irregular massing and directional shadow, not triangular game icons.
     for (var m = 0; m < 9; m++) {
       final mx = center.dx + (-.38 + m * .092) * w;
@@ -704,7 +724,7 @@ class _IslandAtlasPainter extends CustomPainter {
     );
 
     if (active) {
-      _drawIdentityMarker(canvas, center, w, h, index, phase);
+      _drawIdentityMarker(canvas, center, w, h, index);
 
       final label = TextPainter(
         text: TextSpan(
@@ -744,7 +764,7 @@ class _IslandAtlasPainter extends CustomPainter {
     }
   }
 
-  void _drawIdentityMarker(Canvas canvas, Offset center, double w, double h, int index, double phase) {
+  void _drawIdentityMarker(Canvas canvas, Offset center, double w, double h, int index) {
     final accent = [
       const Color(0xFFB7D3A8),
       const Color(0xFFD2A76E),
@@ -753,7 +773,7 @@ class _IslandAtlasPainter extends CustomPainter {
       const Color(0xFF9E8FD0),
     ][index];
     final p = center + Offset(
-      math.sin(phase * math.pi * 2 + index) * w * .025,
+      (index.isEven ? -1 : 1) * w * .018,
       -h * .10,
     );
 
