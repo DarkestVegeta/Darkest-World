@@ -155,6 +155,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
                       key: const ValueKey('game-world-atlas'),
                       phase: _clock.value,
                       islands: _islands,
+                      travelingIsland: _travelingIsland,
                       onOpen: _openIsland,
                       onBack: _leaveWorld,
                     )
