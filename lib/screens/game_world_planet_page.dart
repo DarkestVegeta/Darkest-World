@@ -377,12 +377,14 @@ class _IslandAtlas extends StatelessWidget {
             ),
           ),
         ),
-        IgnorePointer(
-          child: AnimatedOpacity(
-            opacity: travelingIsland == null ? 0.0 : .24,
-            duration: const Duration(milliseconds: 760),
-            curve: Curves.easeInCubic,
-            child: const ColoredBox(color: Color(0xFF02040A)),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: travelingIsland == null ? 0.0 : .24,
+              duration: const Duration(milliseconds: 760),
+              curve: Curves.easeInCubic,
+              child: const ColoredBox(color: Color(0xFF02040A)),
+            ),
           ),
         ),
       ],
