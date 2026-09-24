@@ -34,7 +34,7 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
         IconButton(onPressed:()=>Navigator.pop(context),icon:const Icon(Icons.arrow_back_ios_new,size:14)),const SizedBox(width:8),
         Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Text(widget.territory.toUpperCase(),style:const TextStyle(fontSize:16,letterSpacing:3.8)),
-          const SizedBox(height:4),const Text('PLATFORM REALMS · DEEP ARCHIVE',style:TextStyle(fontSize:6.5,letterSpacing:2.1,color:Color(0x668D95A5))),
+          const SizedBox(height:4),const Text('LIVING PLATFORM REALMS · TRAVEL THROUGH THE ARCHIVE',style:TextStyle(fontSize:6.5,letterSpacing:2.1,color:Color(0x668D95A5))),
         ]),
       ]))),
       Center(child:LayoutBuilder(builder:(_,b){
@@ -47,7 +47,7 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
           child: IgnorePointer(
             ignoring: traveling != null,
             child: SizedBox(width:w,height:h,child:Stack(children:[
-              const CustomPaint(size:Size(1550,850),painter:_RealmAtlas()),
+              CustomPaint(painter:_RealmAtlas()),
               for(var i=0;i<platforms.length;i++) _RealmHit(
                 platform:platforms[i],index:i,total:platforms.length,size:Size(w,h),phase:clock.value,
                 onOpen:()=>enter(i),
