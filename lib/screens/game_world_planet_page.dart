@@ -260,6 +260,7 @@ class _GamePlanetView extends StatelessWidget {
 class _IslandAtlas extends StatelessWidget {
   final double phase;
   final List<_GameIsland> islands;
+  final int? travelingIsland;
   final ValueChanged<int> onOpen;
   final VoidCallback onBack;
 
@@ -267,6 +268,7 @@ class _IslandAtlas extends StatelessWidget {
     super.key,
     required this.phase,
     required this.islands,
+    required this.travelingIsland,
     required this.onOpen,
     required this.onBack,
   });
@@ -300,14 +302,14 @@ class _IslandAtlas extends StatelessWidget {
           ),
         ),
         AnimatedScale(
-          scale: _travelingIsland == null ? 1.0 : 3.15,
+          scale: travelingIsland == null ? 1.0 : 3.15,
           alignment: _travelingIsland == null
               ? Alignment.center
               : _islandZoomAlignment(_travelingIsland!),
           duration: const Duration(milliseconds: 760),
           curve: Curves.easeInCubic,
           child: IgnorePointer(
-            ignoring: _travelingIsland != null,
+            ignoring: travelingIsland != null,
             child: Stack(
               children: [
                 Center(
