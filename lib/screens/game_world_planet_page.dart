@@ -367,9 +367,22 @@ class _IslandAtlas extends StatelessWidget {
         Positioned(
           right: compact ? 16 : 30,
           bottom: compact ? 18 : 30,
-          child: Text(
-            'TRAVEL TO A TERRITORY',
-            style: TextStyle(fontSize: 6.5, letterSpacing: 2, color: Colors.white.withValues(alpha: .22)),
+          child: AnimatedOpacity(
+            opacity: travelingIsland == null ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 360),
+            curve: Curves.easeOut,
+            child: Text(
+              'TRAVEL TO A TERRITORY',
+              style: TextStyle(fontSize: 6.5, letterSpacing: 2, color: Colors.white.withValues(alpha: .22)),
+            ),
+          ),
+        ),
+        IgnorePointer(
+          child: AnimatedOpacity(
+            opacity: travelingIsland == null ? 0.0 : .24,
+            duration: const Duration(milliseconds: 760),
+            curve: Curves.easeInCubic,
+            child: const ColoredBox(color: Color(0xFF02040A)),
           ),
         ),
       ],
