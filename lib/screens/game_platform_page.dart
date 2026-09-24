@@ -243,7 +243,7 @@ class _MiniRealm extends CustomPainter{
     }
 
     // Platform identity comes from environmental accents, never mascots or famous scenes.
-    final accent=_accent(seed);
+    final accent=_realmAccent(seed);
     final beacon=Offset(center.dx+w*.16,center.dy-h*.035);
     c.drawCircle(beacon,w*.08,Paint()..shader=RadialGradient(colors:[accent.withValues(alpha:active ? .28 : .10),Colors.transparent]).createShader(Rect.fromCircle(center:beacon,radius:w*.28)));
     c.drawCircle(beacon,w*.018,Paint()..color=accent.withValues(alpha:active ? .65 : .22));
@@ -273,6 +273,8 @@ class _MiniRealm extends CustomPainter{
   Color _accent(int i)=>const[Color(0xFFB9D69D),Color(0xFFD4A66B),Color(0xFFAEBCE0),Color(0xFF6BC2B1),Color(0xFFA58CDA),Color(0xFF9EB5AC)][i%6];
   @override bool shouldRepaint(covariant _MiniRealm o)=>o.seed!=seed||o.active!=active||o.label!=label;
 }
+
+Color _realmAccent(int i)=>const[Color(0xFFB9D69D),Color(0xFFD4A66B),Color(0xFFAEBCE0),Color(0xFF6BC2B1),Color(0xFFA58CDA),Color(0xFF9EB5AC)][i%6];
 
 class _RealmBeacon extends CustomPainter {
   final int seed;
