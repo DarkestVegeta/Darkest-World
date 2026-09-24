@@ -11,15 +11,20 @@ class GamePlatformPage extends StatefulWidget {
 
 class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerProviderStateMixin {
   late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 120))..repeat();
-  int? selected;
+  int? traveling;
   List<GamePlatform> get platforms => widget.groups.expand((g) => g.platforms).toList(growable: false);
   @override void dispose(){clock.dispose();super.dispose();}
-  void enter(int i){
-    final p=platforms[i];
-    Navigator.of(context).push(MaterialPageRoute(builder:(_)=>GameListPage(
-      territory:widget.territory, platform:p.name, externalPlatformIds:p.externalPlatformIds,
-      navigationPlatforms:platforms, navigationIndex:i,
+  Future<void> enter(int i) async {
+    if (traveling != null) return;
+    setState(() => traveling = i);
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    final p = platforms[i];
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => GameListPage(
+      territory: widget.territory, platform: p.name, externalPlatformIds: p.externalPlatformIds,
+      navigationPlatforms: platforms, navigationIndex: i,
     )));
+    if (mounted) setState(() => traveling = null);
   }
   @override Widget build(BuildContext context){
     final compact=MediaQuery.sizeOf(context).width<820;
@@ -34,13 +39,44 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
       ]))),
       Center(child:LayoutBuilder(builder:(_,b){
         final w=math.min(b.maxWidth*(compact ? .98 : .90),1550.0),h=math.min(b.maxHeight*(compact ? .72 : .80),850.0);
-        return SizedBox(width:w,height:h,child:Stack(children:[
-          CustomPaint(size:Size(w,h),painter:_RealmAtlas()),
-          for(var i=0;i<platforms.length;i++) _RealmHit(platform:platforms[i],index:i,total:platforms.length,selected:selected==i,size:Size(w,h),phase:clock.value,onTap:()=>setState(()=>selected=selected==i?null:i),onOpen:()=>enter(i)),
-        ]));
+        return AnimatedScale(
+          scale: traveling == null ? 1.0 : 3.05,
+          alignment: traveling == null ? Alignment.center : _realmZoomAlignment(traveling!, total: platforms.length, size: Size(w,h), phase: clock.value),
+          duration: const Duration(milliseconds: 700),
+          curve: Curves.easeInCubic,
+          child: IgnorePointer(
+            ignoring: traveling != null,
+            child: SizedBox(width:w,height:h,child:Stack(children:[
+              const CustomPaint(size:Size(1550,850),painter:_RealmAtlas()),
+              for(var i=0;i<platforms.length;i++) _RealmHit(
+                platform:platforms[i],index:i,total:platforms.length,size:Size(w,h),phase:clock.value,
+                onOpen:()=>enter(i),
+              ),
+            ])),
+          ),
+        );
       })),
-      Positioned(left:compact?14:30,right:compact?14:30,bottom:compact?14:28,child:selected==null?const _RealmHint():_RealmPanel(
-        platform:platforms[selected!],index:selected!,total:platforms.length,onClose:()=>setState(()=>selected=null),onOpen:()=>enter(selected!))),
+      Positioned(
+        left:compact?14:30,right:compact?14:30,bottom:compact?14:28,
+        child:AnimatedOpacity(
+          opacity: traveling == null ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 320),
+          child:Text(
+            'TRAVEL TO A PLATFORM REALM',
+            style:TextStyle(fontSize:6.5,letterSpacing:1.7,color:Colors.white.withValues(alpha:.30)),
+          ),
+        ),
+      ),
+      Positioned.fill(
+        child:IgnorePointer(
+          child:AnimatedOpacity(
+            opacity: traveling == null ? 0.0 : .24,
+            duration: const Duration(milliseconds:700),
+            curve: Curves.easeInCubic,
+            child:const ColoredBox(color:Color(0xFF02040A)),
+          ),
+        ),
+      ),
     ])));
   }
 }
@@ -49,27 +85,31 @@ class GamePlatformGroup { final String name; final String subtitle; final List<G
 class GamePlatform { final String name; final List<int> externalPlatformIds; const GamePlatform(this.name,this.externalPlatformIds); }
 
 class _RealmHit extends StatelessWidget{
-  final GamePlatform platform; final int index,total; final bool selected; final Size size; final double phase; final VoidCallback onTap,onOpen;
-  const _RealmHit({required this.platform,required this.index,required this.total,required this.selected,required this.size,required this.phase,required this.onTap,required this.onOpen});
+  final GamePlatform platform; final int index,total; final Size size; final double phase; final VoidCallback onOpen;
+  const _RealmHit({required this.platform,required this.index,required this.total,required this.size,required this.phase,required this.onOpen});
   @override Widget build(BuildContext context){
     final p=_pos(index,total,size,phase);
     final d=math.max(150.0,size.width*.235);
     return Positioned(left:p.dx-d*.50,top:p.dy-d*.36,width:d,height:d*.78,child:MouseRegion(
       cursor:SystemMouseCursors.click,
       child:GestureDetector(
-        onTap:onTap,
-        onDoubleTap:onOpen,
+        onTap:onOpen,
         child:Stack(
           fit:StackFit.expand,
           children:[
-            CustomPaint(painter:_MiniRealm(seed:index,active:selected,label:platform.name)),
-            IgnorePointer(child:CustomPaint(painter:_RealmBeacon(seed:index,active:selected,phase:phase))),
+            CustomPaint(painter:_MiniRealm(seed:index,active:false,label:platform.name)),
+            IgnorePointer(child:CustomPaint(painter:_RealmBeacon(seed:index,active:false,phase:phase))),
           ],
         ),
       ),
     ));
   }
 }
+Alignment _realmZoomAlignment(int i,{required int total,required Size size,required double phase}) {
+  final p = _pos(i,total,size,phase);
+  return Alignment((p.dx / size.width - .5) * 2, (p.dy / size.height - .5) * 2);
+}
+
 Offset _pos(int i,int total,Size s,double phase){
   const positions=[
     Offset(.20,.42),Offset(.50,.31),Offset(.80,.43),Offset(.34,.70),Offset(.68,.72),
@@ -266,22 +306,6 @@ class _RealmBeacon extends CustomPainter {
   bool shouldRepaint(covariant _RealmBeacon o) =>
       o.phase!=phase || o.active!=active || o.seed!=seed;
 }
-
-class _RealmPanel extends StatelessWidget{
-  final GamePlatform platform;final int index,total;final VoidCallback onClose,onOpen;
-  const _RealmPanel({required this.platform,required this.index,required this.total,required this.onClose,required this.onOpen});
-  @override Widget build(BuildContext c)=>Container(padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:const Color(0xEF050912),border:Border.all(color:const Color(0x357B94A3)),borderRadius:BorderRadius.circular(16),boxShadow:const[BoxShadow(color:Colors.black87,blurRadius:32)]),child:Row(children:[
-    Container(width:46,height:46,decoration:BoxDecoration(shape:BoxShape.circle,gradient:RadialGradient(colors:[_accent(index),const Color(0xFF3B4550),const Color(0xFF080A0E)]))),
-    const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text('REALM '+(index+1).toString()+'/'+total.toString(),style:const TextStyle(fontSize:6.5,letterSpacing:2,color:Color(0x6688939E))),const SizedBox(height:4),
-      Text(platform.name,style:const TextStyle(fontSize:17,letterSpacing:2.3)),const SizedBox(height:3),
-      Text(platform.externalPlatformIds.length.toString().padLeft(2,'0')+' SOURCES · ARCHIVE READY',style:const TextStyle(fontSize:6,color:Color(0x557F8A96),letterSpacing:1.4))
-    ])),IconButton(onPressed:onClose,icon:const Icon(Icons.close,size:16,color:Colors.white54)),FilledButton(onPressed:onOpen,child:const Text('ENTER ARCHIVE'))
-  ]));
-}
-Color _accent(int i)=>const[Color(0xFFB9D69D),Color(0xFFD4A66B),Color(0xFFAEBCE0),Color(0xFF6BC2B1),Color(0xFFA58CDA),Color(0xFF9EB5AC)][i%6];
-class _RealmHint extends StatelessWidget{const _RealmHint();@override Widget build(BuildContext c)=>Container(padding:const EdgeInsets.symmetric(horizontal:18,vertical:10),decoration:BoxDecoration(color:const Color(0xB8070B12),border:Border.all(color:const Color(0x263B4A56)),borderRadius:BorderRadius.circular(14)),child:const Text('SELECT A PLATFORM REALM · DOUBLE-CLICK TO ENTER',style:TextStyle(fontSize:6.5,letterSpacing:1.7,color:Color(0x687D8994))));}
-
 
 class _RealmAtlas extends CustomPainter {
   const _RealmAtlas();
