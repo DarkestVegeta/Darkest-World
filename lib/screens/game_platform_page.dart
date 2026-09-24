@@ -270,7 +270,6 @@ class _MiniRealm extends CustomPainter{
     [Color(0xFF77827C),Color(0xFF45514D),Color(0xFF242D2F)],
   ][i%6];
 
-  Color _accent(int i)=>const[Color(0xFFB9D69D),Color(0xFFD4A66B),Color(0xFFAEBCE0),Color(0xFF6BC2B1),Color(0xFFA58CDA),Color(0xFF9EB5AC)][i%6];
   @override bool shouldRepaint(covariant _MiniRealm o)=>o.seed!=seed||o.active!=active||o.label!=label;
 }
 
@@ -287,7 +286,7 @@ class _RealmBeacon extends CustomPainter {
     final center=Offset(s.width*.5,s.height*.40);
     final w=s.width*.98;
     final h=s.height*.70;
-    final accent=_accent(seed);
+    final accent=_realmAccent(seed);
     final beacon=Offset(
       center.dx+math.sin(phase*math.pi*2+seed)*w*.16,
       center.dy-h*.035,
