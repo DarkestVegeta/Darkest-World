@@ -33,7 +33,149 @@ class _GameListPageState extends State<GameListPage> with SingleTickerProviderSt
     ])));
   }
 }
-class _ArchiveWorldStatic extends CustomPainter{const _ArchiveWorldStatic();@override void paint(Canvas x,Size s){final c=Offset(s.width*.5,s.height*.5),r=math.min(s.width,s.height)*.31;for(var i=0;i<8;i++){final rr=r*(1.45+i*.22);x.drawOval(Rect.fromCenter(center:c,width:rr*2,height:rr*.54),Paint()..style=PaintingStyle.stroke..strokeWidth=i==7?1:.48..color=const Color(0x218EA8B8));}final rect=Rect.fromCircle(center:c,radius:r*1.08);x.drawCircle(c,r*1.08,Paint()..shader=const RadialGradient(center:Alignment(-.42,-.48),colors:[Color(0xFFC2CED5),Color(0xFF6E7D91),Color(0xFF293446),Color(0xFF050811)],stops:[.03,.24,.62,1]).createShader(rect));final lat=Paint()..style=PaintingStyle.stroke..strokeWidth=.65..color=const Color(0x457F9BA8);for(var i=-3;i<=3;i++){x.drawOval(Rect.fromCenter(center:Offset(c.dx,c.dy+i*r*.12),width:r*1.72,height:r*(.18+(3-i.abs())*.10)),lat);}final detail=Paint()..style=PaintingStyle.stroke..strokeWidth=1.0..color=const Color(0x597A9587);for(var i=0;i<12;i++){final p=Path()..moveTo(c.dx-r*.62+i*r*.09,c.dy-r*.45)..cubicTo(c.dx-r*.3+i*r*.07,c.dy-r*.15,c.dx-r*.45+i*r*.08,c.dy+r*.22,c.dx-r*.08+i*r*.08,c.dy+r*.53);x.drawPath(p,detail);}x.drawCircle(c,r*1.08,Paint()..style=PaintingStyle.stroke..strokeWidth=r*.025..color=const Color(0x397FADB7));class _ArchiveWorldAtmosphere extends CustomPainter{final double phase;const _ArchiveWorldAtmosphere(this.phase);@override void paint(Canvas x,Size s){final c=Offset(s.width*.5,s.height*.5),r=math.min(s.width,s.height)*.31; x.drawArc(Rect.fromCircle(center:c,radius:r*1.16),phase*math.pi*2,.9,false,Paint()..style=PaintingStyle.stroke..strokeWidth=1.5..color=const Color(0x729BBCC7));} @override bool shouldRepaint(covariant _ArchiveWorldAtmosphere o)=>o.phase!=phase;}
+class _ArchiveWorldStatic extends CustomPainter {
+  const _ArchiveWorldStatic();
+
+  @override
+  void paint(Canvas c, Size s) {
+    final center = Offset(s.width * .5, s.height * .5);
+    final r = math.min(s.width, s.height) * .31;
+
+    // The archive remains a physical destination: a dark spherical library
+    // world with real volume, rather than a control panel.
+    final rect = Rect.fromCircle(center: center, radius: r * 1.08);
+    c.drawCircle(
+      center,
+      r * 1.08,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(-.42, -.48),
+          colors: [
+            Color(0xFFB7C5CF),
+            Color(0xFF66798B),
+            Color(0xFF293547),
+            Color(0xFF050811),
+          ],
+          stops: [.03, .24, .62, 1],
+        ).createShader(rect),
+    );
+
+    // Subtle surface structure: restrained enough to read as a world,
+    // not a cartographic dashboard.
+    final surface = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = .8
+      ..color = const Color(0x3D78919C);
+    for (var i = 0; i < 8; i++) {
+      final rr = r * (.82 + i * .055);
+      c.drawOval(
+        Rect.fromCenter(
+          center: Offset(center.dx, center.dy + i * r * .015),
+          width: rr * 2,
+          height: rr * .46,
+        ),
+        surface,
+      );
+    }
+
+    final land = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1, r * .018)
+      ..color = const Color(0x596F8A82);
+    for (var i = 0; i < 9; i++) {
+      final p = Path()
+        ..moveTo(
+          center.dx - r * (.72 - i * .055),
+          center.dy - r * (.40 - i * .025),
+        )
+        ..cubicTo(
+          center.dx - r * .48,
+          center.dy - r * .15 + i * 2,
+          center.dx - r * .22,
+          center.dy + r * .18,
+          center.dx + r * (.42 + i * .025),
+          center.dy + r * .38,
+        );
+      c.drawPath(p, land);
+    }
+
+    // A faint atmospheric rim and deep underside provide physical separation.
+    c.drawCircle(
+      center,
+      r * 1.08,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1, r * .025)
+        ..color = const Color(0x397FADB7),
+    );
+    c.drawOval(
+      Rect.fromCenter(
+        center: Offset(center.dx, center.dy + r * .64),
+        width: r * 1.9,
+        height: r * .42,
+      ),
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Colors.black.withValues(alpha: .42),
+            Colors.transparent,
+          ],
+        ).createShader(
+          Rect.fromCenter(
+            center: Offset(center.dx, center.dy + r * .64),
+            width: r * 2.1,
+            height: r * .48,
+          ),
+        ),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArchiveWorldStatic oldDelegate) => false;
+}
+
+class _ArchiveWorldAtmosphere extends CustomPainter {
+  final double phase;
+  const _ArchiveWorldAtmosphere(this.phase);
+
+  @override
+  void paint(Canvas c, Size s) {
+    final center = Offset(s.width * .5, s.height * .5);
+    final r = math.min(s.width, s.height) * .31;
+
+    c.drawArc(
+      Rect.fromCircle(center: center, radius: r * 1.16),
+      phase * math.pi * 2,
+      .9,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1.2, r * .012)
+        ..color = const Color(0x729BBCC7),
+    );
+
+    final mist = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1, r * .018)
+      ..color = const Color(0x208F7BD0);
+    c.drawArc(
+      Rect.fromCenter(
+        center: Offset(center.dx, center.dy + r * .08),
+        width: r * 2.45,
+        height: r * 1.25,
+      ),
+      phase * math.pi * 2 + 1.1,
+      .65,
+      false,
+      mist,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArchiveWorldAtmosphere oldDelegate) =>
+      oldDelegate.phase != phase;
+}
+
 class _ArchiveSpaceStatic extends CustomPainter{
   const _ArchiveSpaceStatic();
   @override void paint(Canvas x,Size s){
