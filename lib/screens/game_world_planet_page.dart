@@ -652,7 +652,7 @@ class _IslandAtlasPainter extends CustomPainter {
 
     // Large terrain regions are soft physical masses rather than map contours.
     // They establish plateaus, valleys and broad elevation changes at aerial scale.
-    for (var region = 0; region < 6; region++) {
+    for (var region = 0; region < 5; region++) {
       final a = region * 2.37 + island.seed * .8;
       final rp = center + Offset(
         math.cos(a) * w * (.08 + (region % 3) * .11),
