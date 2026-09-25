@@ -188,15 +188,25 @@ class _MiniRealm extends CustomPainter{
       c.drawPath(path,ridge);
     }
 
-    // Mountain silhouettes sit inside the landmass, giving actual elevation rather than a flat blob.
-    final mountain=Paint()..color=Colors.white.withValues(alpha:.105);
-    for(var i=0;i<5;i++){
-      final x=center.dx+(-.30+i*.15)*w;
-      final base=center.dy+h*.13;
-      final peak=base-h*(.17+.04*((seed+i)%3));
-      final path=Path()..moveTo(x-w*.10,base)..lineTo(x,peak)..lineTo(x+w*.11,base)..close();
+    // Broad interior ridges: fewer, wider elevation masses keep the realm natural
+    // and prevent repeated triangular peaks from reading like game icons.
+    final mountain=Paint()..color=Colors.white.withValues(alpha:.09);
+    for(var i=0;i<3;i++){
+      final x=center.dx+(-.22+i*.22)*w;
+      final base=center.dy+h*.12;
+      final peak=base-h*(.16+.035*((seed+i)%3));
+      final path=Path()
+        ..moveTo(x-w*.19,base)
+        ..quadraticBezierTo(x-w*.11,peak+h*.05,x-w*.025,peak)
+        ..quadraticBezierTo(x+w*.07,peak+h*.035,x+w*.19,base)
+        ..close();
       c.drawPath(path,mountain);
-      c.drawPath(Path()..moveTo(x,peak)..lineTo(x+w*.035,base)..lineTo(x+w*.11,base),Paint()..color=Colors.black.withValues(alpha:.12));
+      c.drawPath(
+        Path()
+          ..moveTo(x-w*.025,peak)
+          ..quadraticBezierTo(x+w*.07,peak+h*.035,x+w*.19,base),
+        Paint()..color=Colors.black.withValues(alpha:.11),
+      );
     }
 
     // Deep environmental shadows: terrain masses should sit inside the world, not float as stickers.
@@ -332,16 +342,22 @@ class _RealmAtlas extends CustomPainter {
     horizon..lineTo(s.width, s.height)..lineTo(0, s.height)..close();
     c.drawPath(horizon, Paint()..color = const Color(0x25101C21));
     final center = Offset(s.width * .5, s.height * .48);
-    c.drawCircle(center, s.width * .12, Paint()..shader = const RadialGradient(
-      colors: [Color(0x24A78BEA), Color(0x00000000)],
-    ).createShader(Rect.fromCircle(center: center, radius: s.width * .2)));
-    for (var i = 0; i < 5; i++) {
-      final rr = s.width * (.12 + i * .10);
-      c.drawOval(
-        Rect.fromCenter(center: center, width: rr * 2, height: rr * .48),
-        Paint()..style = PaintingStyle.stroke..strokeWidth = .5..color = const Color(0x183E7480),
-      );
-    }
+    // Soft environmental bloom replaces orbital/cartographic rings: the scene
+    // should feel like a physical destination, not a technical map.
+    c.drawCircle(
+      center,
+      s.width * .18,
+      Paint()..shader = const RadialGradient(
+        colors: [Color(0x24A78BEA), Color(0x00000000)],
+      ).createShader(Rect.fromCircle(center: center, radius: s.width * .28)),
+    );
+    final haze = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, -.2),
+        radius: .8,
+        colors: const [Color(0x103E7480), Color(0x00000000)],
+      ).createShader(r);
+    c.drawRect(r, haze);
   }
   @override
   bool shouldRepaint(covariant _RealmAtlas o) => false;
