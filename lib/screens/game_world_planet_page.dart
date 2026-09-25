@@ -673,8 +673,30 @@ class _IslandAtlasPainter extends CustomPainter {
       );
     }
 
-    // Terrain is read through broad natural relief rather than map-like contour lines.
-    // This keeps the image closer to a cinematic aerial environment than a strategy map.
+    // Broad relief shadows give each landmass a physical slope and keep the
+    // surface from reading as flat stickers. These are large, soft forms rather
+    // than cartographic contour lines.
+    for (var relief = 0; relief < 6; relief++) {
+      final a = relief * 1.91 + island.seed * .27;
+      final rp = center + Offset(
+        math.cos(a) * w * (.12 + (relief % 3) * .11),
+        math.sin(a * 1.31) * h * (.10 + (relief % 2) * .12),
+      );
+      final rr = w * (.10 + (relief % 3) * .035);
+      final rh = h * (.12 + (relief % 2) * .045);
+      canvas.drawOval(
+        Rect.fromCenter(center: rp, width: rr * 2, height: rh * 2),
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              Colors.black.withValues(alpha: .14),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromCenter(center: rp, width: rr * 2, height: rh * 2),
+          ),
+      );
+    }
 
     // Sparse shoreline breaks give the water/land boundary a natural coastal
     // scale cue. They deliberately stop short of becoming a glowing outline.
@@ -1082,12 +1104,12 @@ class _GamePlanetStaticPainter extends CustomPainter {
 
     // Large organic continental masses.
     final rnd=math.Random(4319);
-    for(var i=0;i<18;i++){
+    for(var i=0;i<9;i++){
       final a=rnd.nextDouble()*math.pi*2;
       final rr=math.sqrt(rnd.nextDouble())*r*.74;
       final p=c+Offset(math.cos(a)*rr,math.sin(a)*rr*.72);
-      final w=r*(.08+rnd.nextDouble()*.25);
-      final h=r*(.035+rnd.nextDouble()*.15);
+      final w=r*(.14+rnd.nextDouble()*.27);
+      final h=r*(.055+rnd.nextDouble()*.19);
       final land=Path();
       final n=11;
       for(var j=0;j<n;j++){
@@ -1097,7 +1119,7 @@ class _GamePlanetStaticPainter extends CustomPainter {
         if(j==0)land.moveTo(p.dx+q.dx,p.dy+q.dy);else land.lineTo(p.dx+q.dx,p.dy+q.dy);
       }
       land.close();
-      final landColor=i%3==0?const Color(0x4B756B7B):const Color(0x43555D72);
+      final landColor=i%3==0?const Color(0x536F6B78):const Color(0x4A566173);
       canvas.drawPath(land,Paint()..color=landColor);
       canvas.drawPath(land.shift(Offset(r*.008,r*.012)),Paint()..style=PaintingStyle.stroke..strokeWidth=r*.006..color=const Color(0x244B7B79));
     }
