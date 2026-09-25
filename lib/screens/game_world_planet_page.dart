@@ -202,7 +202,7 @@ class _GamePlanetView extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 760;
-    final diameter = math.min(size.width * (compact ? .90 : .78), size.height * .92);
+    final diameter = math.min(size.width * (compact ? .94 : .84), size.height * .92);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -278,8 +278,8 @@ class _IslandAtlas extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 850;
-    final sceneW = math.min(size.width * (compact ? 1.00 : .98), 1700.0);
-    final sceneH = math.min(size.height * (compact ? .82 : .90), 980.0);
+    final sceneW = math.min(size.width * (compact ? 1.00 : .99), 1800.0);
+    final sceneH = math.min(size.height * (compact ? .84 : .94), 1020.0);
 
     return Stack(
       fit: StackFit.expand,
@@ -1126,37 +1126,10 @@ class _GamePlanetStaticPainter extends CustomPainter {
       canvas.drawPath(path, cloudPaint);
     }
 
-    // Ocean-facing specular flecks reinforce the spherical surface curvature.
-    final oceanGlint = Paint()..color = const Color(0x185E91A8);
-    for (var i = 0; i < 14; i++) {
-      final a = i * .91 + .35;
-      final rr = r * (.34 + (i % 5) * .095);
-      final p = c + Offset(math.cos(a) * rr, math.sin(a) * rr * .70);
-      canvas.drawOval(
-        Rect.fromCenter(center: p, width: r * .025, height: r * .008),
-        oceanGlint,
-      );
-    }
-
-    // Broad natural relief only: the reference reads as a physical world,
-    // not as a cartographic globe. Keep the surface quiet at galaxy distance.
-    for(var i=0;i<7;i++){
-      final y=c.dy-r*.38+i*r*.12;
-      final p=Path()..moveTo(c.dx-r*.72,y);
-      p.cubicTo(
-        c.dx-r*.38,y-r*.06*math.sin(i*.9+.4),
-        c.dx-r*.08,y+r*.055*math.cos(i*.8),
-        c.dx+r*.30,y-r*.045*math.sin(i*1.1),
-      );
-      p.cubicTo(c.dx+r*.50,y-r*.02,c.dx+r*.65,y+r*.02,c.dx+r*.72,y);
-      canvas.drawPath(p,Paint()
-        ..style=PaintingStyle.stroke
-        ..strokeWidth=r*(.003+i*.00025)
-        ..color=const Color(0x108AA6B0));
-    }
-
-    // No city-light/star-field scatter on the planet: scale comes from
-    // spherical shading, atmospheric depth and broad surface masses.
+    // Keep the galaxy-distance surface deliberately quiet: no decorative
+    // glints or contour bands that could make the planet read like a map.
+    // Scale comes from the enlarged sphere, broad continental masses,
+    // spherical shading and atmospheric depth.
 
     // A narrow limb haze sits above the terminator and helps the sphere separate
     // cleanly from deep space at the dark edge.
