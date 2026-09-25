@@ -61,43 +61,38 @@ class _ArchiveWorldStatic extends CustomPainter {
         ).createShader(rect),
     );
 
-    // Subtle surface structure: restrained enough to read as a world,
-    // not a cartographic dashboard.
-    final surface = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = .8
-      ..color = const Color(0x3D78919C);
-    for (var i = 0; i < 8; i++) {
-      final rr = r * (.82 + i * .055);
-      c.drawOval(
-        Rect.fromCenter(
-          center: Offset(center.dx, center.dy + i * r * .015),
-          width: rr * 2,
-          height: rr * .46,
-        ),
-        surface,
+    // Physical surface masses: the archive should feel like a world with
+    // terrain, not a globe with cartographic latitude lines.
+    final rnd = math.Random(3817);
+    for (var i = 0; i < 6; i++) {
+      final a = i * 1.83;
+      final p = center + Offset(
+        math.cos(a) * r * (.18 + (i % 3) * .13),
+        math.sin(a * 1.27) * r * (.16 + (i % 2) * .15),
       );
-    }
-
-    final land = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1, r * .018)
-      ..color = const Color(0x596F8A82);
-    for (var i = 0; i < 9; i++) {
-      final p = Path()
-        ..moveTo(
-          center.dx - r * (.72 - i * .055),
-          center.dy - r * (.40 - i * .025),
-        )
-        ..cubicTo(
-          center.dx - r * .48,
-          center.dy - r * .15 + i * 2,
-          center.dx - r * .22,
-          center.dy + r * .18,
-          center.dx + r * (.42 + i * .025),
-          center.dy + r * .38,
-        );
-      c.drawPath(p, land);
+      final w = r * (.22 + (i % 3) * .09);
+      final h = r * (.12 + (i % 2) * .08);
+      final land = Path();
+      for (var k = 0; k < 12; k++) {
+        final aa = k / 12 * math.pi * 2;
+        final n = .78 + .14 * math.sin(aa * 3 + i) + .07 * math.sin(aa * 5 + i * .4);
+        final q = p + Offset(math.cos(aa) * w * n, math.sin(aa) * h * n);
+        if (k == 0) land.moveTo(q.dx, q.dy); else land.lineTo(q.dx, q.dy);
+      }
+      land.close();
+      c.drawPath(
+        land,
+        Paint()..shader = LinearGradient(
+          begin: Alignment(-.7, -1),
+          end: Alignment(.8, 1),
+          colors: const [Color(0x735D766D), Color(0x38313F3D)],
+        ).createShader(Rect.fromCenter(center: p, width: w * 2, height: h * 2)),
+      );
+      c.drawPath(
+        land,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, r * .012)
+          ..color = const Color(0x3A93AAA0),
+      );
     }
 
     // A faint atmospheric rim and deep underside provide physical separation.
