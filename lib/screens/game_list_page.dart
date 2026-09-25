@@ -14,8 +14,16 @@ class GameListPage extends StatefulWidget {
 }
 class _GameListPageState extends State<GameListPage> with SingleTickerProviderStateMixin {
   late final AnimationController _clock=AnimationController(vsync:this,duration:const Duration(seconds:72))..repeat();
+  bool _traveling=false;
   @override void dispose(){_clock.dispose();super.dispose();}
-  void _open()=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>ContentBrowserPage(title:'${widget.platform} • GAMES',contentType:'game',platformIds:widget.externalPlatformIds)));
+  Future<void> _open() async {
+    if(_traveling)return;
+    setState(()=>_traveling=true);
+    await Future<void>.delayed(const Duration(milliseconds:650));
+    if(!mounted)return;
+    await Navigator.of(context).push(MaterialPageRoute(builder:(_)=>ContentBrowserPage(title:'${widget.platform} • GAMES',contentType:'game',platformIds:widget.externalPlatformIds)));
+    if(mounted)setState(()=>_traveling=false);
+  }
   void _move(GamePlatform p,int i)=>Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>GameListPage(territory:widget.territory,platform:p.name,externalPlatformIds:p.externalPlatformIds,navigationPlatforms:widget.navigationPlatforms,navigationIndex:i)));
   @override Widget build(BuildContext context){
     final compact=MediaQuery.sizeOf(context).width<760;
