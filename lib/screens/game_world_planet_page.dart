@@ -650,26 +650,27 @@ class _IslandAtlasPainter extends CustomPainter {
     ]);
     canvas.drawPath(coast, shore);
 
-    // Large terrain regions: plateaus, valleys and mountain masses.
-    for (var region = 0; region < 9; region++) {
-      final a = region * 2.21 + island.seed * .8;
+    // Large terrain regions are soft physical masses rather than map contours.
+    // They establish plateaus, valleys and broad elevation changes at aerial scale.
+    for (var region = 0; region < 6; region++) {
+      final a = region * 2.37 + island.seed * .8;
       final rp = center + Offset(
-        math.cos(a) * w * (.05 + (region % 4) * .085),
-        math.sin(a * 1.19) * h * (.04 + (region % 3) * .075),
+        math.cos(a) * w * (.08 + (region % 3) * .11),
+        math.sin(a * 1.17) * h * (.07 + (region % 2) * .13),
       );
-      final rw = w * (.09 + (region % 3) * .045);
-      final rh = h * (.07 + (region % 4) * .028);
-      final path = Path();
-      for (var k = 0; k < 12; k++) {
-        final aa = k / 12 * math.pi * 2;
-        final nn = .78 + .18 * math.sin(aa * 3 + region);
-        final q = rp + Offset(math.cos(aa) * rw * nn, math.sin(aa) * rh * nn);
-        if (k == 0) path.moveTo(q.dx, q.dy); else path.lineTo(q.dx, q.dy);
-      }
-      path.close();
-      canvas.drawPath(
-        path,
-        Paint()..color = Colors.white.withValues(alpha: .025 + (region % 3) * .012),
+      final rw = w * (.14 + (region % 3) * .055);
+      final rh = h * (.12 + (region % 2) * .055);
+      canvas.drawOval(
+        Rect.fromCenter(center: rp, width: rw * 2, height: rh * 2),
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              Colors.white.withValues(alpha: .045),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromCenter(center: rp, width: rw * 2, height: rh * 2),
+          ),
       );
     }
 
@@ -718,22 +719,29 @@ class _IslandAtlasPainter extends CustomPainter {
       );
     }
 
-    // Mountain chains with irregular massing and directional shadow, not triangular game icons.
-    for (var m = 0; m < 12; m++) {
-      final mx = center.dx + (-.38 + m * .092) * w;
-      final base = center.dy + h * (.12 + (m % 3) * .025);
-      final peak = base - h * (.13 + ((island.seed + m) % 5) * .036);
-      final left = mx - w * (.065 + (m % 2) * .018);
-      final right = mx + w * (.075 + ((m + 1) % 2) * .018);
+    // Broad mountain chains: fewer, wider silhouettes with rounded ridges.
+    // This avoids repeated triangular peaks and keeps the terrain mature/natural.
+    for (var m = 0; m < 7; m++) {
+      final mx = center.dx + (-.34 + m * .11) * w;
+      final base = center.dy + h * (.12 + (m % 3) * .028);
+      final peak = base - h * (.14 + ((island.seed + m) % 4) * .035);
+      final left = mx - w * (.12 + (m % 2) * .025);
+      final right = mx + w * (.13 + ((m + 1) % 2) * .025);
       final mountain = Path()
         ..moveTo(left, base)
-        ..quadraticBezierTo(mx - w * .018, peak + h * .035, mx, peak)
-        ..quadraticBezierTo(mx + w * .028, peak + h * .045, right, base)
+        ..quadraticBezierTo(mx - w * .07, peak + h * .045, mx - w * .025, peak)
+        ..quadraticBezierTo(mx + w * .025, peak + h * .018, mx + w * .06, peak + h * .035)
+        ..quadraticBezierTo(mx + w * .095, peak + h * .055, right, base)
         ..close();
-      canvas.drawPath(mountain, Paint()..color = Colors.white.withValues(alpha: .055 + (m % 2) * .018));
       canvas.drawPath(
-        Path()..moveTo(mx, peak)..lineTo(right, base)..lineTo(mx + w * .02, base - h * .01),
-        Paint()..color = Colors.black.withValues(alpha: .13),
+        mountain,
+        Paint()..color = Colors.white.withValues(alpha: .06 + (m % 2) * .015),
+      );
+      canvas.drawPath(
+        Path()
+          ..moveTo(mx - w * .025, peak)
+          ..quadraticBezierTo(mx + w * .02, peak + h * .018, right, base),
+        Paint()..color = Colors.black.withValues(alpha: .12),
       );
     }
 
