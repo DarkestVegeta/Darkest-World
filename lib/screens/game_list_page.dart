@@ -61,17 +61,16 @@ class _ArchiveWorldStatic extends CustomPainter {
         ).createShader(rect),
     );
 
-    // Physical surface masses: the archive should feel like a world with
-    // terrain, not a globe with cartographic latitude lines.
-    final rnd = math.Random(3817);
-    for (var i = 0; i < 6; i++) {
+    // Physical surface masses: broad irregular regions create a living
+    // archive world instead of a small globe with decorative map markings.
+    for (var i = 0; i < 5; i++) {
       final a = i * 1.83;
       final p = center + Offset(
         math.cos(a) * r * (.18 + (i % 3) * .13),
         math.sin(a * 1.27) * r * (.16 + (i % 2) * .15),
       );
-      final w = r * (.22 + (i % 3) * .09);
-      final h = r * (.12 + (i % 2) * .08);
+      final w = r * (.28 + (i % 3) * .10);
+      final h = r * (.15 + (i % 2) * .09);
       final land = Path();
       for (var k = 0; k < 12; k++) {
         final aa = k / 12 * math.pi * 2;
