@@ -22,7 +22,6 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
     final p = platforms[i];
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => GameListPage(
       territory: widget.territory, platform: p.name, externalPlatformIds: p.externalPlatformIds,
-      navigationPlatforms: platforms, navigationIndex: i,
     )));
     if (mounted) setState(() => traveling = null);
   }
