@@ -22,6 +22,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   bool loading = true;
   String query = '';
   int selected = 0;
+  int? hovered;
 
   bool get snes => widget.contentType == 'game' && (widget.platformIds.contains(19) || widget.title.toUpperCase().contains('SNES'));
   List<ContentItem> get visible => items.where((item) => item.title.toLowerCase().contains(query.toLowerCase())).toList(growable: false);
@@ -86,7 +87,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 
   void _select(int index) {
     if (visible.isEmpty) return;
-    setState(() => selected = index.clamp(0, visible.length - 1));
+    setState(() { selected = index.clamp(0, visible.length - 1); hovered = null; });
     _publish();
   }
 
@@ -149,6 +150,8 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
                                               child: _ArchiveCard(
                                                 item: visibleItems[slot],
                                                 active: slot == center - start,
+                                                hovered: hovered == start + slot,
+                                                onHover: (v) => setState(() => hovered = v ? start + slot : null),
                                                 onTap: () => _select(start + slot),
                                                 onDoubleTap: () => _open(visibleItems[slot]),
                                               ),
@@ -191,12 +194,16 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
 class _ArchiveCard extends StatelessWidget {
   final ContentItem item;
   final bool active;
+  final bool hovered;
+  final ValueChanged<bool> onHover;
   final VoidCallback onTap;
   final VoidCallback onDoubleTap;
 
   const _ArchiveCard({
     required this.item,
     required this.active,
+    required this.hovered,
+    required this.onHover,
     required this.onTap,
     required this.onDoubleTap,
   });
@@ -206,19 +213,21 @@ class _ArchiveCard extends StatelessWidget {
     final url = '${item.metadata['public_url'] ?? item.metadata['image_url'] ?? ''}';
     return MouseRegion(
       cursor: SystemMouseCursors.click,
+      onEnter: (_) => onHover(true),
+      onExit: (_) => onHover(false),
       child: GestureDetector(
         onTap: onTap,
         onDoubleTap: onDoubleTap,
         child: AnimatedScale(
-          scale: active ? 1.0 : .94,
+          scale: active ? 1.0 : (hovered ? .98 : .94),
           duration: const Duration(milliseconds: 220),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: active ? const Color(0xD90B0A16) : const Color(0x86070810),
+              color: active ? const Color(0xD90B0A16) : (hovered ? const Color(0xA40A0A15) : const Color(0x86070810)),
               border: Border.all(
-                color: active ? const Color(0x8F8A78B5) : const Color(0x1F7F70B0),
+                color: active ? const Color(0x8F8A78B5) : (hovered ? const Color(0x557F70B0) : const Color(0x1F7F70B0)),
                 width: active ? 1.2 : 1,
               ),
               boxShadow: active
