@@ -13,8 +13,9 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
   late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 120))..repeat();
   int? traveling;
   int? hovered;
+  final FocusNode focusNode = FocusNode();
   List<GamePlatform> get platforms => widget.groups.expand((g) => g.platforms).toList(growable: false);
-  @override void dispose(){clock.dispose();super.dispose();}
+  @override void dispose(){focusNode.dispose();clock.dispose();super.dispose();}
   Future<void> enter(int i) async {
     if (traveling != null) return;
     setState(() { traveling = i; hovered = null; });
@@ -28,7 +29,28 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
   }
   @override Widget build(BuildContext context){
     final compact=MediaQuery.sizeOf(context).width<820;
-    return Scaffold(backgroundColor:const Color(0xFF02040A),body:AnimatedBuilder(animation:clock,builder:(_,__)=>Stack(fit:StackFit.expand,children:[
+    return Scaffold(backgroundColor:const Color(0xFF02040A),body:Focus(
+      autofocus:true,
+      focusNode:focusNode,
+      onKeyEvent:(_,event){
+        if(event is! KeyDownEvent || traveling != null || platforms.isEmpty) return KeyEventResult.ignored;
+        if(event.logicalKey == LogicalKeyboardKey.arrowLeft){
+          final i = hovered == null ? 0 : math.max(0, hovered! - 1);
+          setState(()=>hovered=i);
+          return KeyEventResult.handled;
+        }
+        if(event.logicalKey == LogicalKeyboardKey.arrowRight){
+          final i = hovered == null ? 0 : math.min(platforms.length - 1, hovered! + 1);
+          setState(()=>hovered=i);
+          return KeyEventResult.handled;
+        }
+        if(event.logicalKey == LogicalKeyboardKey.enter && hovered != null){
+          enter(hovered!);
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child:AnimatedBuilder(animation:clock,builder:(_,__)=>Stack(fit:StackFit.expand,children:[
       const RepaintBoundary(child: CustomPaint(painter:_RealmSpace())),
       SafeArea(child:Padding(padding:EdgeInsets.fromLTRB(compact?14:30,compact?12:24,compact?14:30,0),child:Row(children:[
         IconButton(onPressed:()=>Navigator.pop(context),icon:const Icon(Icons.arrow_back_ios_new,size:14)),const SizedBox(width:8),
