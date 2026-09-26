@@ -120,7 +120,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
             return KeyEventResult.handled;
           }
           if (event.logicalKey == LogicalKeyboardKey.enter) {
-            _open(list[selected.clamp(0, list.length - 1)]);
+            _open(list[selected.clamp(0, list.length - 1).toInt()]);
             return KeyEventResult.handled;
           }
           return KeyEventResult.ignored;
