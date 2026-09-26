@@ -136,7 +136,7 @@ class _MiniRealm extends CustomPainter{
     final body=top.shift(Offset(0,h*.24));
     // Massive rock underside — the island must have physical volume.
     c.drawPath(body,Paint()..color=const Color(0xF0081116));
-    for(var layer=0;layer<5;layer++){
+    for(var layer=0;layer<3;layer++){
       final t=layer/5;
       final lower=top.shift(Offset(0,h*(.08+.18*t)));
       c.drawPath(lower,Paint()..style=PaintingStyle.stroke..strokeWidth=math.max(1,s.width*.006*(1-t))..color=Color.lerp(const Color(0xAA26383B),const Color(0x0010181D),t)!);
@@ -158,7 +158,7 @@ class _MiniRealm extends CustomPainter{
 
     // Uneven terrain/vegetation patches prevent the realm from reading as a single procedural blob.
     final vegetation = Paint()..color = Colors.white.withValues(alpha: .045);
-    for(var i=0;i<28;i++){
+    for(var i=0;i<18;i++){
       final a=i*2.41+seed*.7;
       final p=center+Offset(math.cos(a)*w*(.10+(i%5)*.065),math.sin(a*1.31)*h*(.09+(i%4)*.055));
       c.drawOval(
@@ -168,7 +168,7 @@ class _MiniRealm extends CustomPainter{
     }
 
     // Real terrain relief: broad plateaus, valleys, ridges and vegetation masses.
-    for(var layer=1;layer<=5;layer++){
+    for(var layer=1;layer<=3;layer++){
       final shrink=1-layer*.105;
       final inner=Path();
       for(var i=0;i<pts.length;i++){
@@ -180,7 +180,7 @@ class _MiniRealm extends CustomPainter{
     }
 
     final ridge=Paint()..style=PaintingStyle.stroke..strokeCap=StrokeCap.round..strokeWidth=math.max(1,s.width*.006)..color=Colors.white.withValues(alpha:.095);
-    for(var i=0;i<8;i++){
+    for(var i=0;i<5;i++){
       final yy=center.dy+h*(i-2)*.045;
       final path=Path()..moveTo(center.dx-w*.36,yy+h*.02);
       path.cubicTo(center.dx-w*.20,yy-h*.16,center.dx-w*.03,yy+h*.12,center.dx+w*.08,yy-h*.10);
@@ -191,7 +191,7 @@ class _MiniRealm extends CustomPainter{
     // Broad interior ridges: fewer, wider elevation masses keep the realm natural
     // and prevent repeated triangular peaks from reading like game icons.
     final mountain=Paint()..color=Colors.white.withValues(alpha:.09);
-    for(var i=0;i<3;i++){
+    for(var i=0;i<2;i++){
       final x=center.dx+(-.22+i*.22)*w;
       final base=center.dy+h*.12;
       final peak=base-h*(.16+.035*((seed+i)%3));
@@ -240,7 +240,7 @@ class _MiniRealm extends CustomPainter{
     // broad and irregular rather than decorative lines.
     final facet = Paint()
       ..color = const Color(0x2E91A09A);
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 3; i++) {
       final x = center.dx + (-.28 + i * .14) * w;
       final y = center.dy + h * (.20 + (i % 3) * .035);
       final p = Path()
@@ -327,7 +327,7 @@ class _RealmAtlas extends CustomPainter {
       colors: [Color(0xFF172B32), Color(0xFF07131D), Color(0xFF02040A)],
     ).createShader(r));
     final rnd = math.Random(5512);
-    for (var i = 0; i < 120; i++) {
+    for (var i = 0; i < 80; i++) {
       final d = .2 + rnd.nextDouble() * .8;
       c.drawCircle(
         Offset(rnd.nextDouble() * s.width, rnd.nextDouble() * s.height),
