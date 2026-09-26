@@ -30,6 +30,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
   bool _insideWorld = false;
   int? _travelingIsland;
   int? _hoveredIsland;
+  final FocusNode _focusNode = FocusNode();
 
   static const _islands = <_GameIsland>[
     // Scale hierarchy follows the reference-world feeling: one dominant landmass,
@@ -91,6 +92,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _clock.dispose();
     super.dispose();
   }
@@ -131,7 +133,18 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF020308),
-      body: AnimatedBuilder(
+      body: Focus(
+        autofocus: true,
+        focusNode: _focusNode,
+        onKeyEvent: (_, event) {
+          if (event is! KeyDownEvent || _insideWorld || _travelingIsland != null) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.enter) {
+            _enterWorld();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: AnimatedBuilder(
         animation: _clock,
         builder: (context, _) => Stack(
           fit: StackFit.expand,
