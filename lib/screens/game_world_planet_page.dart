@@ -94,9 +94,10 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
     super.dispose();
   }
 
-  void _enterWorld() => setState(() {
-        _insideWorld = true;
-      });
+  Future<void> _enterWorld() async {
+    if (_insideWorld || _travelingIsland != null) return;
+    setState(() => _insideWorld = true);
+  }
 
   void _leaveWorld() => setState(() {
         _insideWorld = false;
