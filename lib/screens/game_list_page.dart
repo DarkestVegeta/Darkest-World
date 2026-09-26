@@ -12,7 +12,9 @@ class GameListPage extends StatefulWidget {
 class _GameListPageState extends State<GameListPage> with SingleTickerProviderStateMixin {
   late final AnimationController _clock=AnimationController(vsync:this,duration:const Duration(seconds:72))..repeat();
   bool _traveling=false;
-  @override void dispose(){_clock.dispose();super.dispose();}
+  bool _hovered=false;
+  final FocusNode _focusNode=FocusNode();
+  @override void dispose(){_focusNode.dispose();_clock.dispose();super.dispose();}
   Future<void> _open() async {
     if(_traveling)return;
     setState(()=>_traveling=true);
@@ -23,11 +25,26 @@ class _GameListPageState extends State<GameListPage> with SingleTickerProviderSt
   }
   @override Widget build(BuildContext context){
     final compact=MediaQuery.sizeOf(context).width<760;
-    return Scaffold(backgroundColor:const Color(0xFF010207),body:AnimatedBuilder(animation:_clock,builder:(_,__)=>Stack(fit:StackFit.expand,children:[
+    return Scaffold(backgroundColor:const Color(0xFF010207),body:Focus(
+      autofocus:true,
+      focusNode:_focusNode,
+      onKeyEvent:(_,event){
+        if(event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter && !_traveling){
+          _open();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child:AnimatedBuilder(animation:_clock,builder:(_,__)=>Stack(fit:StackFit.expand,children:[
       const RepaintBoundary(child:CustomPaint(painter:_ArchiveSpaceStatic())),
       RepaintBoundary(child:CustomPaint(painter:_ArchiveSpaceAtmosphere(_clock.value))),
       IgnorePointer(child:RepaintBoundary(child:CustomPaint(painter:_ArchiveWorldAtmosphere(_clock.value)))),
-      Center(child:LayoutBuilder(builder:(_,b){final d=math.min(b.maxWidth*(compact ? .90 : .64),b.maxHeight*(compact ? .58 : .72)).toDouble();return AnimatedScale(scale:_traveling?2.65:1.0,alignment:Alignment.center,duration:const Duration(milliseconds:650),curve:Curves.easeInCubic,child:GestureDetector(onTap:_open,child:MouseRegion(cursor:SystemMouseCursors.click,child:SizedBox.square(dimension:d,child:CustomPaint(painter:const _ArchiveWorldStatic())))));})),
+      Center(child:LayoutBuilder(builder:(_,b){final d=math.min(b.maxWidth*(compact ? .90 : .64),b.maxHeight*(compact ? .58 : .72)).toDouble();return AnimatedScale(scale:_traveling?2.65:1.0,alignment:Alignment.center,duration:const Duration(milliseconds:650),curve:Curves.easeInCubic,child:GestureDetector(onTap:_open,child:MouseRegion(
+          cursor:SystemMouseCursors.click,
+          onEnter:(_)=>setState(()=>_hovered=true),
+          onExit:(_)=>setState(()=>_hovered=false),
+          child:AnimatedScale(scale:_hovered && !_traveling ? 1.025 : 1.0,duration:const Duration(milliseconds:220),curve:Curves.easeOut,child:SizedBox.square(dimension:d,child:CustomPaint(painter:const _ArchiveWorldStatic())))
+        )));})),
       SafeArea(child:Padding(padding:EdgeInsets.all(compact?14:30),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('GAME-WORLD / ${widget.territory.toUpperCase()} / ${widget.platform.toUpperCase()}',style:const TextStyle(fontSize:10,letterSpacing:2.3)),const SizedBox(height:5),const Text('ARCHIVE WORLD  /  CATALOG ORBIT',style:TextStyle(fontSize:6.5,letterSpacing:2,color:Color(0x5FFFFFFF))),const Spacer(),Center(child:Text('PHYSICAL MEDIA ARCHIVE  •  LIVE CATALOG',style:TextStyle(fontSize:6,letterSpacing:2,color:Colors.white.withValues(alpha:.35))))]))),
       Positioned(left:compact?14:30,right:compact?14:30,bottom:compact?16:28,child:AnimatedOpacity(opacity:_traveling?0.0:1.0,duration:const Duration(milliseconds:300),child:Text('ENTER THE ARCHIVE WORLD · TRAVEL INTO THE LIBRARY',style:TextStyle(fontSize:6.5,letterSpacing:1.8,color:Colors.white.withValues(alpha:.30))))),
       Positioned.fill(child:IgnorePointer(child:AnimatedOpacity(opacity:_traveling?.24:0.0,duration:const Duration(milliseconds:650),curve:Curves.easeInCubic,child:const ColoredBox(color:Color(0xFF02040A))))),
