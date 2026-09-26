@@ -611,9 +611,9 @@ class _IslandAtlasPainter extends CustomPainter {
     // Thick broken underside and visible cliff strata.
     final body = top.shift(Offset(-w * .018, h * .30));
     canvas.drawPath(body, Paint()..color = const Color(0xEE050C12));
-    for (var layer = 0; layer < 7; layer++) {
+    for (var layer = 0; layer < 4; layer++) {
       final t = layer / 7;
-      final shifted = top.shift(Offset(-w * (.008 + t * .012), h * (.07 + t * .25)));
+      final shifted = top.shift(Offset(-w * (.008 + t * .012), h * (.06 + t * .19)));
       canvas.drawPath(
         shifted,
         Paint()
@@ -653,7 +653,7 @@ class _IslandAtlasPainter extends CustomPainter {
 
     // Large terrain regions are soft physical masses rather than map contours.
     // They establish plateaus, valleys and broad elevation changes at aerial scale.
-    for (var region = 0; region < 5; region++) {
+    for (var region = 0; region < 4; region++) {
       final a = region * 2.37 + island.seed * .8;
       final rp = center + Offset(
         math.cos(a) * w * (.08 + (region % 3) * .11),
@@ -678,7 +678,7 @@ class _IslandAtlasPainter extends CustomPainter {
     // Broad relief shadows give each landmass a physical slope and keep the
     // surface from reading as flat stickers. These are large, soft forms rather
     // than cartographic contour lines.
-    for (var relief = 0; relief < 5; relief++) {
+    for (var relief = 0; relief < 4; relief++) {
       final a = relief * 1.91 + island.seed * .27;
       final rp = center + Offset(
         math.cos(a) * w * (.12 + (relief % 3) * .11),
@@ -707,7 +707,7 @@ class _IslandAtlasPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = math.max(1, size.width * .0024)
       ..color = const Color(0x358DA7A3);
-    for (var s = 0; s < 12; s++) {
+    for (var s = 0; s < 7; s++) {
       final start = (s * 2.43 + island.seed * .37) % points.length;
       final i0 = start.floor();
       final i1 = (i0 + 1) % points.length;
@@ -722,7 +722,7 @@ class _IslandAtlasPainter extends CustomPainter {
 
     // Broad mountain chains: fewer, wider silhouettes with rounded ridges.
     // This avoids repeated triangular peaks and keeps the terrain mature/natural.
-    for (var m = 0; m < 7; m++) {
+    for (var m = 0; m < 5; m++) {
       final mx = center.dx + (-.34 + m * .11) * w;
       final base = center.dy + h * (.12 + (m % 3) * .028);
       final peak = base - h * (.14 + ((island.seed + m) % 4) * .035);
@@ -750,7 +750,7 @@ class _IslandAtlasPainter extends CustomPainter {
     final vegetation = Paint()..color = const Color(0x3695AA91);
     // Two density bands: a sparse far layer and a stronger foreground layer.
     // This creates scale without hundreds of individual particles.
-    for (var v = 0; v < 44; v++) {
+    for (var v = 0; v < 30; v++) {
       final a = v * 2.17 + island.seed;
       final rp = center + Offset(
         math.cos(a) * w * (.08 + (v % 6) * .055),
@@ -945,7 +945,7 @@ class _IslandAtmospherePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
     final mist = Paint()..color = const Color(0x20D8E8EA);
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < 6; i++) {
       final x = size.width * (.05 + i * .105);
       final y = size.height * (.16 + math.sin(phase * math.pi * 2 + i) * .018);
       canvas.drawOval(
@@ -1053,7 +1053,7 @@ class _DeepSpaceAtmospherePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final stars = math.Random(913);
-    for (var i = 0; i < 110; i++) {
+    for (var i = 0; i < 85; i++) {
       final p = Offset(
         stars.nextDouble() * size.width,
         stars.nextDouble() * size.height,
