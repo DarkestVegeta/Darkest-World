@@ -23,9 +23,16 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   String query = '';
   int selected = 0;
   int? hovered;
+  final FocusNode _focusNode = FocusNode();
 
   bool get snes => widget.contentType == 'game' && (widget.platformIds.contains(19) || widget.title.toUpperCase().contains('SNES'));
   List<ContentItem> get visible => items.where((item) => item.title.toLowerCase().contains(query.toLowerCase())).toList(growable: false);
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -99,7 +106,26 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     final list = visible;
     return Scaffold(
       backgroundColor: const Color(0xFF020208),
-      body: SafeArea(
+      body: Focus(
+        autofocus: true,
+        focusNode: _focusNode,
+        onKeyEvent: (_, event) {
+          if (event is! KeyDownEvent || list.isEmpty) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            _select(math.max(0, selected - 1));
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            _select(math.min(list.length - 1, selected + 1));
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.enter) {
+            _open(list[selected.clamp(0, list.length - 1)]);
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(compact ? 12 : 28),
           child: Column(
