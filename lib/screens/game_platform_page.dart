@@ -34,6 +34,10 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
       focusNode:focusNode,
       onKeyEvent:(_,event){
         if(event is! KeyDownEvent || traveling != null || platforms.isEmpty) return KeyEventResult.ignored;
+        if(event.logicalKey == LogicalKeyboardKey.escape){
+          Navigator.of(context).pop();
+          return KeyEventResult.handled;
+        }
         if(event.logicalKey == LogicalKeyboardKey.arrowLeft){
           final i = hovered == null ? 0 : math.max(0, hovered! - 1);
           setState(()=>hovered=i);
