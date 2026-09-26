@@ -21,6 +21,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
   TypedFranchiseNavigation? navigation;
   bool relatedLoading = true;
   bool navigationLoading = true;
+  final FocusNode _focusNode = FocusNode();
 
   bool get external => widget.item.externalSource != null && widget.item.externalId != null;
 
@@ -60,6 +61,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
 
   @override
   void dispose() {
+    _focusNode.dispose();
     clock.dispose();
     super.dispose();
   }
@@ -104,7 +106,22 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
     final year = widget.item.releaseYear?.toString() ?? '${widget.item.metadata['year'] ?? 'ARCHIVE'}';
     return Scaffold(
       backgroundColor: const Color(0xFF020208),
-      body: AnimatedBuilder(
+      body: Focus(
+        autofocus: true,
+        focusNode: _focusNode,
+        onKeyEvent: (_, event) {
+          if (event is! KeyDownEvent || navigation == null) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft && navigation!.previous != null) {
+            _open(navigation!.previous!);
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight && navigation!.next != null) {
+            _open(navigation!.next!);
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: AnimatedBuilder(
 
         animation: clock,
         builder: (_, __) => Stack(
