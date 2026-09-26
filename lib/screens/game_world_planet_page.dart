@@ -189,6 +189,8 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
                       key: const ValueKey('game-world-planet'),
                       phase: _clock.value,
                       onEnter: _enterWorld,
+                      hovered: _hoveredPlanet,
+                      onHover: (value) => setState(() => _hoveredPlanet = value),
                     ),
             ),
           ],
