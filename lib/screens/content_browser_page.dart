@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/content_models.dart';
 import '../core/content_repository.dart';
@@ -128,45 +129,135 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
                     ? const Center(child: CircularProgressIndicator())
                     : list.isEmpty
                         ? const Center(child: Text('GEEN CONTENT', style: TextStyle(letterSpacing: 3)))
-                        : GridView.builder(
-                            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: compact ? 180 : 230,
-                              mainAxisExtent: compact ? 250 : 300,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
-                            itemCount: list.length,
-                            itemBuilder: (_, index) {
-                              final item = list[index];
-                              final active = index == selected;
-                              final url = '${item.metadata['public_url'] ?? item.metadata['image_url'] ?? ''}';
-                              return InkWell(
-                                onTap: () => _select(index),
-                                onDoubleTap: () => _open(item),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 220),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: active ? const Color(0xE50B0A16) : const Color(0xB9070810),
-                                    border: Border.all(color: active ? const Color(0x8F8A78B5) : const Color(0x247F70B0)),
+                        : LayoutBuilder(
+                            builder: (context, box) {
+                              final center = selected.clamp(0, list.length - 1);
+                              final start = (center - 2).clamp(0, math.max(0, list.length - 5));
+                              final end = math.min(list.length, start + 5);
+                              final visibleItems = list.sublist(start, end);
+                              return Column(
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        for (var slot = 0; slot < visibleItems.length; slot++)
+                                          Expanded(
+                                            flex: slot == center - start ? 12 : 10,
+                                            child: Padding(
+                                              padding: EdgeInsets.symmetric(horizontal: compact ? 3 : 6, vertical: 8),
+                                              child: _ArchiveCard(
+                                                item: visibleItems[slot],
+                                                active: slot == center - start,
+                                                onTap: () => _select(start + slot),
+                                                onDoubleTap: () => _open(visibleItems[slot]),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ),
-                                  child: Column(
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Expanded(
-                                        child: url.isEmpty
-                                            ? Center(child: Text(item.title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, letterSpacing: 1.2)))
-                                            : Image.network(url, fit: BoxFit.contain, filterQuality: FilterQuality.high, errorBuilder: (_, __, ___) => Center(child: Text(item.title, textAlign: TextAlign.center))),
+                                      Text('PREVIOUS', style: TextStyle(fontSize: 7, letterSpacing: 2, color: Colors.white.withValues(alpha: .30))),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                                        child: Text(
+                                          visibleItems.isEmpty ? '' : visibleItems[center - start].title.toUpperCase(),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontSize: 8, letterSpacing: 2.2),
+                                        ),
                                       ),
-                                      const SizedBox(height: 10),
-                                      Text(item.title.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(fontSize: active ? 9 : 7, letterSpacing: 1.2)),
+                                      Text('NEXT', style: TextStyle(fontSize: 7, letterSpacing: 2, color: Colors.white.withValues(alpha: .30))),
                                     ],
                                   ),
-                                ),
+                                ],
                               );
                             },
                           ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class _ArchiveCard extends StatelessWidget {
+  final ContentItem item;
+  final bool active;
+  final VoidCallback onTap;
+  final VoidCallback onDoubleTap;
+
+  const _ArchiveCard({
+    required this.item,
+    required this.active,
+    required this.onTap,
+    required this.onDoubleTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final url = '${item.metadata['public_url'] ?? item.metadata['image_url'] ?? ''}';
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        onDoubleTap: onDoubleTap,
+        child: AnimatedScale(
+          scale: active ? 1.0 : .94,
+          duration: const Duration(milliseconds: 220),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: active ? const Color(0xD90B0A16) : const Color(0x86070810),
+              border: Border.all(
+                color: active ? const Color(0x8F8A78B5) : const Color(0x1F7F70B0),
+                width: active ? 1.2 : 1,
+              ),
+              boxShadow: active
+                  ? const [BoxShadow(color: Color(0x22000000), blurRadius: 24, spreadRadius: 2)]
+                  : const [],
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: url.isEmpty
+                      ? Center(
+                          child: Text(
+                            item.title,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: active ? 12 : 9, letterSpacing: 1.2),
+                          ),
+                        )
+                      : Image.network(
+                          url,
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.high,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: Text(item.title, textAlign: TextAlign.center),
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  item.title.toUpperCase(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: active ? 9 : 7,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
