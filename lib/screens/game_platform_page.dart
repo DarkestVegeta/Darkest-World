@@ -12,18 +12,19 @@ class GamePlatformPage extends StatefulWidget {
 class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerProviderStateMixin {
   late final AnimationController clock = AnimationController(vsync: this, duration: const Duration(seconds: 120))..repeat();
   int? traveling;
+  int? hovered;
   List<GamePlatform> get platforms => widget.groups.expand((g) => g.platforms).toList(growable: false);
   @override void dispose(){clock.dispose();super.dispose();}
   Future<void> enter(int i) async {
     if (traveling != null) return;
-    setState(() => traveling = i);
+    setState(() { traveling = i; hovered = null; });
     await Future<void>.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
     final p = platforms[i];
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => GameListPage(
       territory: widget.territory, platform: p.name, externalPlatformIds: p.externalPlatformIds,
     )));
-    if (mounted) setState(() => traveling = null);
+    if (mounted) setState(() { traveling = null; hovered = null; });
   }
   @override Widget build(BuildContext context){
     final compact=MediaQuery.sizeOf(context).width<820;
@@ -49,6 +50,8 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
               CustomPaint(painter:_RealmAtlas()),
               for(var i=0;i<platforms.length;i++) _RealmHit(
                 platform:platforms[i],index:i,total:platforms.length,size:Size(w,h),phase:clock.value,
+                active: hovered == i,
+                onHover:(v)=>setState(()=>hovered=v ? i : null),
                 onOpen:()=>enter(i),
               ),
             ])),
@@ -84,20 +87,22 @@ class GamePlatformGroup { final String name; final String subtitle; final List<G
 class GamePlatform { final String name; final List<int> externalPlatformIds; const GamePlatform(this.name,this.externalPlatformIds); }
 
 class _RealmHit extends StatelessWidget{
-  final GamePlatform platform; final int index,total; final Size size; final double phase; final VoidCallback onOpen;
-  const _RealmHit({required this.platform,required this.index,required this.total,required this.size,required this.phase,required this.onOpen});
+  final GamePlatform platform; final int index,total; final Size size; final double phase; final bool active; final ValueChanged<bool> onHover; final VoidCallback onOpen;
+  const _RealmHit({required this.platform,required this.index,required this.total,required this.size,required this.phase,required this.active,required this.onHover,required this.onOpen});
   @override Widget build(BuildContext context){
     final p=_pos(index,total,size,phase);
     final d=math.max(150.0,size.width*.235);
     return Positioned(left:p.dx-d*.50,top:p.dy-d*.36,width:d,height:d*.78,child:MouseRegion(
       cursor:SystemMouseCursors.click,
+      onEnter:(_)=>onHover(true),
+      onExit:(_)=>onHover(false),
       child:GestureDetector(
         onTap:onOpen,
         child:Stack(
           fit:StackFit.expand,
           children:[
-            CustomPaint(painter:_MiniRealm(seed:index,active:false,label:platform.name)),
-            IgnorePointer(child:CustomPaint(painter:_RealmBeacon(seed:index,active:false,phase:phase))),
+            CustomPaint(painter:_MiniRealm(seed:index,active:active,label:platform.name)),
+            IgnorePointer(child:CustomPaint(painter:_RealmBeacon(seed:index,active:active,phase:phase))),
           ],
         ),
       ),
