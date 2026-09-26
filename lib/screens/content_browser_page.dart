@@ -111,6 +111,10 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
         focusNode: _focusNode,
         onKeyEvent: (_, event) {
           if (event is! KeyDownEvent || list.isEmpty) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.escape) {
+            Navigator.of(context).pop();
+            return KeyEventResult.handled;
+          }
           if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
             _select(math.max(0, selected - 1));
             return KeyEventResult.handled;
