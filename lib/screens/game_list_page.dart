@@ -185,7 +185,7 @@ class _ArchiveSpaceAtmosphere extends CustomPainter{
   const _ArchiveSpaceAtmosphere(this.phase);
   @override void paint(Canvas x,Size s){
     final rnd=math.Random(917);
-    for(var i=0;i<150;i++){
+    for(var i=0;i<80;i++){
       final p=Offset(rnd.nextDouble()*s.width,rnd.nextDouble()*s.height);
       final pulse=.35+.65*math.sin(phase*math.pi*2+i*.41).abs();
       x.drawCircle(p,.2+rnd.nextDouble()*.65,Paint()..color=Colors.white.withValues(alpha:.02+.045*pulse));
