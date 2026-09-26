@@ -29,6 +29,10 @@ class _GameListPageState extends State<GameListPage> with SingleTickerProviderSt
       autofocus:true,
       focusNode:_focusNode,
       onKeyEvent:(_,event){
+        if(event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape && !_traveling){
+          Navigator.of(context).pop();
+          return KeyEventResult.handled;
+        }
         if(event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter && !_traveling){
           _open();
           return KeyEventResult.handled;
