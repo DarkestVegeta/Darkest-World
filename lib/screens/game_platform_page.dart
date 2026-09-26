@@ -168,7 +168,7 @@ class _MiniRealm extends CustomPainter{
     }
 
     // Real terrain relief: broad plateaus, valleys, ridges and vegetation masses.
-    for(var layer=1;layer<=6;layer++){
+    for(var layer=1;layer<=5;layer++){
       final shrink=1-layer*.105;
       final inner=Path();
       for(var i=0;i<pts.length;i++){
@@ -240,8 +240,8 @@ class _MiniRealm extends CustomPainter{
     // broad and irregular rather than decorative lines.
     final facet = Paint()
       ..color = const Color(0x2E91A09A);
-    for (var i = 0; i < 7; i++) {
-      final x = center.dx + (-.32 + i * .105) * w;
+    for (var i = 0; i < 5; i++) {
+      final x = center.dx + (-.28 + i * .14) * w;
       final y = center.dy + h * (.20 + (i % 3) * .035);
       final p = Path()
         ..moveTo(x - w * .055, y)
