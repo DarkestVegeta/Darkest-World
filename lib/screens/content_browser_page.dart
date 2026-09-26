@@ -131,9 +131,9 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
                         ? const Center(child: Text('GEEN CONTENT', style: TextStyle(letterSpacing: 3)))
                         : LayoutBuilder(
                             builder: (context, box) {
-                              final center = selected.clamp(0, list.length - 1);
-                              final start = (center - 2).clamp(0, math.max(0, list.length - 5));
-                              final end = math.min(list.length, start + 5);
+                              final center = selected.clamp(0, list.length - 1).toInt();
+                              final start = (center - 2).clamp(0, math.max(0, list.length - 5)).toInt();
+                              final end = math.min(list.length, start + 5).toInt();
                               final visibleItems = list.sublist(start, end);
                               return Column(
                                 children: [
