@@ -29,6 +29,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
 
   bool _insideWorld = false;
   int? _travelingIsland;
+  int? _hoveredIsland;
 
   static const _islands = <_GameIsland>[
     // Scale hierarchy follows the reference-world feeling: one dominant landmass,
@@ -105,7 +106,10 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
 
   Future<void> _openIsland(int index) async {
     if (_travelingIsland != null) return;
-    setState(() => _travelingIsland = index);
+    setState(() {
+      _travelingIsland = index;
+      _hoveredIsland = null;
+    });
     await Future<void>.delayed(const Duration(milliseconds: 760));
     if (!mounted) return;
     final island = _islands[index];
@@ -117,7 +121,10 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
         ),
       ),
     );
-    if (mounted) setState(() => _travelingIsland = null);
+    if (mounted) setState(() {
+      _travelingIsland = null;
+      _hoveredIsland = null;
+    });
   }
 
   @override
@@ -263,7 +270,9 @@ class _IslandAtlas extends StatelessWidget {
   final double phase;
   final List<_GameIsland> islands;
   final int? travelingIsland;
+  final int? hoveredIsland;
   final ValueChanged<int> onOpen;
+  final ValueChanged<int?> onHover;
   final VoidCallback onBack;
 
   const _IslandAtlas({
@@ -271,7 +280,9 @@ class _IslandAtlas extends StatelessWidget {
     required this.phase,
     required this.islands,
     required this.travelingIsland,
+    required this.hoveredIsland,
     required this.onOpen,
+    required this.onHover,
     required this.onBack,
   });
 
@@ -323,7 +334,7 @@ class _IslandAtlas extends StatelessWidget {
                       children: [
                         RepaintBoundary(
                           child: CustomPaint(
-                            painter: _IslandAtlasPainter(null, islands),
+                            painter: _IslandAtlasPainter(hoveredIsland, islands),
                           ),
                         ),
                         IgnorePointer(
@@ -350,6 +361,8 @@ class _IslandAtlas extends StatelessWidget {
                               height: box.maxHeight * _islandHitHeight(i),
                               child: MouseRegion(
                                 cursor: SystemMouseCursors.click,
+                                onEnter: (_) => onHover(i),
+                                onExit: (_) => onHover(null),
                                 child: GestureDetector(
                                   onTap: () => onOpen(i),
                                   child: const SizedBox.expand(),
