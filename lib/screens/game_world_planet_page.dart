@@ -678,7 +678,7 @@ class _IslandAtlasPainter extends CustomPainter {
     // Broad relief shadows give each landmass a physical slope and keep the
     // surface from reading as flat stickers. These are large, soft forms rather
     // than cartographic contour lines.
-    for (var relief = 0; relief < 6; relief++) {
+    for (var relief = 0; relief < 5; relief++) {
       final a = relief * 1.91 + island.seed * .27;
       final rp = center + Offset(
         math.cos(a) * w * (.12 + (relief % 3) * .11),
@@ -1053,7 +1053,7 @@ class _DeepSpaceAtmospherePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final stars = math.Random(913);
-    for (var i = 0; i < 190; i++) {
+    for (var i = 0; i < 110; i++) {
       final p = Offset(
         stars.nextDouble() * size.width,
         stars.nextDouble() * size.height,
@@ -1141,7 +1141,7 @@ class _GamePlanetStaticPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = r * .018
       ..color = const Color(0x173E5A72);
-    for (var band = 0; band < 7; band++) {
+    for (var band = 0; band < 5; band++) {
       final y = c.dy + r * (-.56 + band * .18);
       final path = Path()..moveTo(c.dx - r * .86, y);
       path.cubicTo(
