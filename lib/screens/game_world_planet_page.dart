@@ -28,6 +28,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
   // terrain path to become a per-frame allocation hotspot.
 
   bool _insideWorld = false;
+  bool _hoveredPlanet = false;
   int? _travelingIsland;
   int? _hoveredIsland;
   final FocusNode _focusNode = FocusNode();
@@ -138,6 +139,10 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
         focusNode: _focusNode,
         onKeyEvent: (_, event) {
           if (event is! KeyDownEvent || _insideWorld || _travelingIsland != null) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.escape) {
+            if (_insideWorld) _leaveWorld();
+            return KeyEventResult.handled;
+          }
           if (event.logicalKey == LogicalKeyboardKey.enter) {
             _enterWorld();
             return KeyEventResult.handled;
@@ -216,8 +221,10 @@ class _GameIsland {
 class _GamePlanetView extends StatelessWidget {
   final double phase;
   final VoidCallback onEnter;
+  final bool hovered;
+  final ValueChanged<bool> onHover;
 
-  const _GamePlanetView({super.key, required this.phase, required this.onEnter});
+  const _GamePlanetView({super.key, required this.phase, required this.onEnter, required this.hovered, required this.onHover});
 
   @override
   Widget build(BuildContext context) {
@@ -235,9 +242,15 @@ class _GamePlanetView extends StatelessWidget {
         Center(
           child: MouseRegion(
             cursor: SystemMouseCursors.click,
+            onEnter: (_) => onHover(true),
+            onExit: (_) => onHover(false),
             child: GestureDetector(
               onTap: onEnter,
-              child: SizedBox.square(
+              child: AnimatedScale(
+                scale: hovered ? 1.018 : 1.0,
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOut,
+                child: SizedBox.square(
                 dimension: diameter,
                 child: Stack(
                   fit: StackFit.expand,
