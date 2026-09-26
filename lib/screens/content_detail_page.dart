@@ -86,7 +86,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
     }
   }
 
-  void _open(ContentItem item) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)));
+  void _open(ContentItem item) => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => ContentDetailPage(item: item)));
 
   ChatContext? get chatContext {
     if (external) return null;
@@ -111,6 +111,10 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
         focusNode: _focusNode,
         onKeyEvent: (_, event) {
           if (event is! KeyDownEvent || navigation == null) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.escape) {
+            Navigator.of(context).pop();
+            return KeyEventResult.handled;
+          }
           if (event.logicalKey == LogicalKeyboardKey.arrowLeft && navigation!.previous != null) {
             _open(navigation!.previous!);
             return KeyEventResult.handled;
