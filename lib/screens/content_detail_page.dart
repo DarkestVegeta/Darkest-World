@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/chat_scope.dart';
 import '../core/content_models.dart';
@@ -104,8 +105,13 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
     return Scaffold(
       backgroundColor: const Color(0xFF020208),
       body: AnimatedBuilder(
+
         animation: clock,
-        builder: (_, __) => ListView(
+        builder: (_, __) => Stack(
+          fit: StackFit.expand,
+          children: [
+            CustomPaint(painter: _DetailAtmospherePainter(clock.value)),
+            ListView(
           padding: EdgeInsets.fromLTRB(compact ? 12 : 34, 14, compact ? 12 : 34, 50),
           children: [
             Row(children: [
@@ -162,6 +168,26 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
             ),
           ],
         ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        const Color(0x5502040A),
+                        const Color(0xB302040A),
+                      ],
+                      stops: const [.25, .72, 1],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: chatContext == null ? null : Chatbox(contextData: chatContext!),
     );
@@ -209,4 +235,52 @@ class _NavButton extends StatelessWidget {
   const _NavButton({required this.label, required this.item, required this.onTap, this.active = false});
   @override
   Widget build(BuildContext context) => OutlinedButton(onPressed: onTap, child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Column(children: [Text(label, style: const TextStyle(fontSize: 5.5, letterSpacing: 1.4)), const SizedBox(height: 4), Text(item?.title ?? '—', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: active ? 8 : 7))])));
+}
+
+
+class _DetailAtmospherePainter extends CustomPainter {
+  final double phase;
+  const _DetailAtmospherePainter(this.phase);
+
+  @override
+  void paint(Canvas c, Size s) {
+    final center = Offset(s.width * .52, s.height * .40);
+    c.drawRect(Offset.zero & s, Paint()..color = const Color(0xFF020208));
+    final r = math.max(s.width, s.height) * .72;
+    c.drawCircle(
+      center,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          colors: const [
+            Color(0x221C1740),
+            Color(0x0D0B1730),
+            Colors.transparent,
+          ],
+          stops: const [0, .48, 1],
+        ).createShader(Rect.fromCircle(center: center, radius: r)),
+    );
+    final arcPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = const Color(0x143E4C78);
+    final drift = math.sin(phase * math.pi * 2) * 18;
+    for (var i = 0; i < 3; i++) {
+      final rect = Rect.fromCenter(
+        center: center + Offset(drift * (i + 1) * .25, i * 34.0),
+        width: s.width * (.72 + i * .10),
+        height: s.height * (.38 + i * .08),
+      );
+      c.drawArc(rect, math.pi * (.18 + i * .11), math.pi * 1.18, false, arcPaint);
+    }
+    for (var i = 0; i < 36; i++) {
+      final a = i * 2.399 + phase * math.pi * 2 * .035;
+      final rr = s.shortestSide * (.22 + (i % 7) * .065);
+      final p = center + Offset(math.cos(a) * rr, math.sin(a) * rr * .58);
+      c.drawCircle(p, .7 + (i % 3) * .35, Paint()..color = Colors.white.withValues(alpha: .025 + (i % 4) * .008));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DetailAtmospherePainter oldDelegate) => oldDelegate.phase != phase;
 }
