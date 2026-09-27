@@ -126,13 +126,15 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
           }
           return KeyEventResult.ignored;
         },
-        child: AnimatedBuilder(
-
-        animation: clock,
-        builder: (_, __) => Stack(
+        child: Stack(
           fit: StackFit.expand,
           children: [
-            CustomPaint(painter: _DetailAtmospherePainter(clock.value)),
+            AnimatedBuilder(
+              animation: clock,
+              builder: (_, __) => CustomPaint(
+                painter: _DetailAtmospherePainter(clock.value),
+              ),
+            ),
             ListView(
           padding: EdgeInsets.fromLTRB(compact ? 12 : 34, 14, compact ? 12 : 34, 50),
           children: [
