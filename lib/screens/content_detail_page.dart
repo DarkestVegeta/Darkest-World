@@ -148,8 +148,8 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
               height: compact ? 500 : 560,
               decoration: BoxDecoration(color: const Color(0xD6070711), border: Border.all(color: const Color(0x507F70B0)), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 35)]),
               child: compact
-                  ? Column(children: [Expanded(child: DarkestWorldArtbox(imageUrl: artUrl, title: widget.item.title, phase: clock.value, compact: true)), _HeroInfo(item: widget.item, compact: true)])
-                  : Row(children: [Expanded(flex: 7, child: DarkestWorldArtbox(imageUrl: artUrl, title: widget.item.title, phase: clock.value)), Expanded(flex: 5, child: _HeroInfo(item: widget.item, compact: false))]),
+                  ? Column(children: [Expanded(child: AnimatedBuilder(animation: clock, builder: (_, __) => DarkestWorldArtbox(imageUrl: artUrl, title: widget.item.title, phase: clock.value, compact: true))), _HeroInfo(item: widget.item, compact: true)])
+                  : Row(children: [Expanded(flex: 7, child: AnimatedBuilder(animation: clock, builder: (_, __) => DarkestWorldArtbox(imageUrl: artUrl, title: widget.item.title, phase: clock.value))), Expanded(flex: 5, child: _HeroInfo(item: widget.item, compact: false))]),
             ),
             const SizedBox(height: 24),
             _Panel(title: 'ARCHIVE INTEL', child: Wrap(spacing: 8, runSpacing: 8, children: [
@@ -164,7 +164,7 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
             ],
             if (state != null) ...[
               const SizedBox(height: 24),
-              _Panel(title: 'ARCHIVE SIGNAL', child: ArchiveSignalTelemetryLens(state: state, phase: clock.value, compact: compact, onPreviousTap: navigation?.previous == null ? null : _open, onNextTap: navigation?.next == null ? null : _open, onRelatedTap: _open)),
+              _Panel(title: 'ARCHIVE SIGNAL', child: AnimatedBuilder(animation: clock, builder: (_, __) => ArchiveSignalTelemetryLens(state: state, phase: clock.value, compact: compact, onPreviousTap: navigation?.previous == null ? null : _open, onNextTap: navigation?.next == null ? null : _open, onRelatedTap: _open))),
             ],
             const SizedBox(height: 24),
             _Panel(
