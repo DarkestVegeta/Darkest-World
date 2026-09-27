@@ -48,6 +48,14 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
           setState(()=>hovered=i);
           return KeyEventResult.handled;
         }
+        if(event.logicalKey == LogicalKeyboardKey.home){
+          setState(()=>hovered=0);
+          return KeyEventResult.handled;
+        }
+        if(event.logicalKey == LogicalKeyboardKey.end){
+          setState(()=>hovered=platforms.length - 1);
+          return KeyEventResult.handled;
+        }
         if(event.logicalKey == LogicalKeyboardKey.enter && hovered != null){
           enter(hovered!);
           return KeyEventResult.handled;
