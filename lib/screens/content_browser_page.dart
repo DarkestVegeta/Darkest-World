@@ -15,7 +15,7 @@ class ContentBrowserPage extends StatefulWidget {
   @override State<ContentBrowserPage> createState() => _ContentBrowserPageState();
 }
 
-class _ContentBrowserPageState extends State<ContentBrowserPage> {
+class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTickerProviderStateMixin {
   final repository = ContentRepository();
   final navigation = GalaxyNavigationSession.instance;
   final items = <ContentItem>[];
@@ -24,6 +24,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   int selected = 0;
   int? hovered;
   final FocusNode _focusNode = FocusNode();
+  late final AnimationController _clock = AnimationController(vsync: this, duration: const Duration(seconds: 80))..repeat();
 
   bool get snes => widget.contentType == 'game' && (widget.platformIds.contains(19) || widget.title.toUpperCase().contains('SNES'));
   List<ContentItem> get visible => items.where((item) => item.title.toLowerCase().contains(query.toLowerCase())).toList(growable: false);
@@ -31,6 +32,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
   @override
   void dispose() {
     _focusNode.dispose();
+    _clock.dispose();
     super.dispose();
   }
 
@@ -106,7 +108,19 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
     final list = visible;
     return Scaffold(
       backgroundColor: const Color(0xFF020208),
-      body: Focus(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const RepaintBoundary(child: CustomPaint(painter: _ArchiveBrowserSpaceStatic())),
+          IgnorePointer(
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _clock,
+                builder: (_, __) => CustomPaint(painter: _ArchiveBrowserAtmosphere(_clock.value)),
+              ),
+            ),
+          ),
+          Focus(
         autofocus: true,
         focusNode: _focusNode,
         onKeyEvent: (_, event) {
@@ -223,11 +237,65 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
             ],
           ),
         ),
+          ),
+        ],
       ),
     );
   }
 }
 
+
+class _ArchiveBrowserSpaceStatic extends CustomPainter {
+  const _ArchiveBrowserSpaceStatic();
+
+  @override
+  void paint(Canvas c, Size s) {
+    final rect = Offset.zero & s;
+    c.drawRect(rect, Paint()..shader = const RadialGradient(
+      center: Alignment(0, -.18),
+      radius: 1.08,
+      colors: [Color(0xFF11172A), Color(0xFF060912), Color(0xFF010207)],
+    ).createShader(rect));
+    final bloom = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0x3A765EA8),
+          const Color(0x001E2440),
+        ],
+      ).createShader(Rect.fromCircle(center: Offset(s.width * .50, s.height * .42), radius: s.shortestSide * .72));
+    c.drawCircle(Offset(s.width * .50, s.height * .42), s.shortestSide * .72, bloom);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArchiveBrowserSpaceStatic oldDelegate) => false;
+}
+
+class _ArchiveBrowserAtmosphere extends CustomPainter {
+  final double phase;
+  const _ArchiveBrowserAtmosphere(this.phase);
+
+  @override
+  void paint(Canvas c, Size s) {
+    final center = Offset(s.width * .5, s.height * .47);
+    final r = math.min(s.width, s.height) * .34;
+    final arc = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1, r * .009)
+      ..color = const Color(0x247F6FB4);
+    c.drawArc(Rect.fromCircle(center: center, radius: r * 1.18), phase * math.pi * 2, .75, false, arc);
+    c.drawArc(Rect.fromCircle(center: center, radius: r * 1.36), phase * math.pi * -1.3 + 2.2, .42, false, arc..color = const Color(0x1D9AB2C5));
+    final mist = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: const [Color(0x000A0C18), Color(0x267A5BA5), Color(0x000A0C18)],
+      ).createShader(Rect.fromLTWH(0, s.height * .25, s.width, s.height * .55));
+    c.drawRect(Rect.fromLTWH(0, s.height * .25, s.width, s.height * .55), mist);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArchiveBrowserAtmosphere oldDelegate) => oldDelegate.phase != phase;
+}
 
 class _ArchiveCard extends StatelessWidget {
   final ContentItem item;
@@ -257,7 +325,7 @@ class _ArchiveCard extends StatelessWidget {
         onTap: onTap,
         onDoubleTap: onDoubleTap,
         child: AnimatedScale(
-          scale: active ? 1.0 : (hovered ? .98 : .94),
+          scale: active ? 1.015 : (hovered ? 1.0 : .94),
           duration: const Duration(milliseconds: 220),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
