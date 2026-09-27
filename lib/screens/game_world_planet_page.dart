@@ -147,8 +147,33 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
             }
             return KeyEventResult.handled;
           }
-          if (event.logicalKey == LogicalKeyboardKey.enter && !_insideWorld) {
-            _enterWorld();
+          if (!_insideWorld) {
+            if (event.logicalKey == LogicalKeyboardKey.enter) {
+              _enterWorld();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            final next = _hoveredIsland == null ? 0 : math.max(0, _hoveredIsland! - 1);
+            setState(() => _hoveredIsland = next);
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            final next = _hoveredIsland == null ? 0 : math.min(_islands.length - 1, _hoveredIsland! + 1);
+            setState(() => _hoveredIsland = next);
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.home) {
+            setState(() => _hoveredIsland = 0);
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.end) {
+            setState(() => _hoveredIsland = _islands.length - 1);
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.enter && _hoveredIsland != null) {
+            _openIsland(_hoveredIsland!);
             return KeyEventResult.handled;
           }
           return KeyEventResult.ignored;
