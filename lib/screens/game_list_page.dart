@@ -39,10 +39,10 @@ class _GameListPageState extends State<GameListPage> with SingleTickerProviderSt
         }
         return KeyEventResult.ignored;
       },
-      child:AnimatedBuilder(animation:_clock,builder:(_,__)=>Stack(fit:StackFit.expand,children:[
+      child:Stack(fit:StackFit.expand,children:[
       const RepaintBoundary(child:CustomPaint(painter:_ArchiveSpaceStatic())),
-      RepaintBoundary(child:CustomPaint(painter:_ArchiveSpaceAtmosphere(_clock.value))),
-      IgnorePointer(child:RepaintBoundary(child:CustomPaint(painter:_ArchiveWorldAtmosphere(_clock.value)))),
+      AnimatedBuilder(animation:_clock,builder:(_,__) => RepaintBoundary(child:CustomPaint(painter:_ArchiveSpaceAtmosphere(_clock.value)))),
+      IgnorePointer(child:AnimatedBuilder(animation:_clock,builder:(_,__) => RepaintBoundary(child:CustomPaint(painter:_ArchiveWorldAtmosphere(_clock.value))))),
       Center(child:LayoutBuilder(builder:(_,b){final d=math.min(b.maxWidth*(compact ? .90 : .64),b.maxHeight*(compact ? .58 : .72)).toDouble();return AnimatedScale(scale:_traveling?2.65:1.0,alignment:Alignment.center,duration:const Duration(milliseconds:650),curve:Curves.easeInCubic,child:GestureDetector(onTap:_open,child:MouseRegion(
           cursor:SystemMouseCursors.click,
           onEnter:(_)=>setState(()=>_hovered=true),
@@ -52,7 +52,7 @@ class _GameListPageState extends State<GameListPage> with SingleTickerProviderSt
       SafeArea(child:Padding(padding:EdgeInsets.all(compact?14:30),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('GAME-WORLD / ${widget.territory.toUpperCase()} / ${widget.platform.toUpperCase()}',style:const TextStyle(fontSize:10,letterSpacing:2.3)),const SizedBox(height:5),const Text('ARCHIVE WORLD  /  CATALOG ORBIT',style:TextStyle(fontSize:6.5,letterSpacing:2,color:Color(0x5FFFFFFF))),const Spacer(),Center(child:Text('PHYSICAL MEDIA ARCHIVE  •  LIVE CATALOG',style:TextStyle(fontSize:6,letterSpacing:2,color:Colors.white.withValues(alpha:.35))))]))),
       Positioned(left:compact?14:30,right:compact?14:30,bottom:compact?16:28,child:AnimatedOpacity(opacity:_traveling?0.0:1.0,duration:const Duration(milliseconds:300),child:Text('ENTER THE ARCHIVE WORLD · TRAVEL INTO THE LIBRARY',style:TextStyle(fontSize:6.5,letterSpacing:1.8,color:Colors.white.withValues(alpha:.30))))),
       Positioned.fill(child:IgnorePointer(child:AnimatedOpacity(opacity:_traveling?.24:0.0,duration:const Duration(milliseconds:650),curve:Curves.easeInCubic,child:const ColoredBox(color:Color(0xFF02040A))))),
-    ])));
+    ]));
   }
 }
 class _ArchiveWorldStatic extends CustomPainter {
