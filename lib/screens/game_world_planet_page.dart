@@ -217,7 +217,7 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
                     )
                   : _GamePlanetView(
                       key: const ValueKey('game-world-planet'),
-                      phase: _clock.value,
+                      animation: _clock,
                       onEnter: _enterWorld,
                       hovered: _hoveredPlanet,
                       onHover: (value) => setState(() => _hoveredPlanet = value),
@@ -251,12 +251,12 @@ class _GameIsland {
 }
 
 class _GamePlanetView extends StatelessWidget {
-  final double phase;
+  final Animation<double> animation;
   final VoidCallback onEnter;
   final bool hovered;
   final ValueChanged<bool> onHover;
 
-  const _GamePlanetView({super.key, required this.phase, required this.onEnter, required this.hovered, required this.onHover});
+  const _GamePlanetView({super.key, required this.animation, required this.onEnter, required this.hovered, required this.onHover});
 
   @override
   Widget build(BuildContext context) {
@@ -292,9 +292,9 @@ class _GamePlanetView extends StatelessWidget {
                     ),
                     IgnorePointer(
                       child: AnimatedBuilder(
-                        animation: _clock,
+                        animation: animation,
                         builder: (_, __) => CustomPaint(
-                          painter: _GamePlanetAtmospherePainter(_clock.value),
+                          painter: _GamePlanetAtmospherePainter(animation.value),
                         ),
                       ),
                     ),
@@ -400,9 +400,9 @@ class _IslandAtlas extends StatelessWidget {
                         ),
                         IgnorePointer(
                           child: AnimatedBuilder(
-                            animation: _clock,
+                            animation: animation,
                             builder: (_, __) => CustomPaint(
-                              painter: _IslandAtmospherePainter(_clock.value),
+                              painter: _IslandAtmospherePainter(animation.value),
                             ),
                           ),
                         ),
