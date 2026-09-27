@@ -62,7 +62,7 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
         }
         return KeyEventResult.ignored;
       },
-      child:AnimatedBuilder(animation:clock,builder:(_,__)=>Stack(fit:StackFit.expand,children:[
+      child:Stack(fit:StackFit.expand,children:[
       const RepaintBoundary(child: CustomPaint(painter:_RealmSpace())),
       SafeArea(child:Padding(padding:EdgeInsets.fromLTRB(compact?14:30,compact?12:24,compact?14:30,0),child:Row(children:[
         IconButton(onPressed:()=>Navigator.pop(context),icon:const Icon(Icons.arrow_back_ios_new,size:14)),const SizedBox(width:8),
@@ -71,7 +71,7 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
           const SizedBox(height:4),const Text('LIVING PLATFORM REALMS · TRAVEL THROUGH THE ARCHIVE',style:TextStyle(fontSize:6.5,letterSpacing:2.1,color:Color(0x668D95A5))),
         ]),
       ]))),
-      Center(child:LayoutBuilder(builder:(_,b){
+      AnimatedBuilder(animation:clock,builder:(_,__) => Center(child:LayoutBuilder(builder:(_,b){
         final w=math.min(b.maxWidth*(compact ? .98 : .90),1550.0),h=math.min(b.maxHeight*(compact ? .72 : .80),850.0);
         return AnimatedScale(
           scale: traveling == null ? 1.0 : 3.05,
@@ -91,7 +91,7 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
             ])),
           ),
         );
-      })),
+      }))),
       Positioned(
         left:compact?14:30,right:compact?14:30,bottom:compact?14:28,
         child:AnimatedOpacity(
@@ -113,7 +113,7 @@ class _GamePlatformPageState extends State<GamePlatformPage> with SingleTickerPr
           ),
         ),
       ),
-    ])));
+    ]));
   }
 }
 
@@ -135,7 +135,7 @@ class _RealmHit extends StatelessWidget{
         child:Stack(
           fit:StackFit.expand,
           children:[
-            CustomPaint(painter:_MiniRealm(seed:index,active:active,label:platform.name)),
+            RepaintBoundary(child:CustomPaint(painter:_MiniRealm(seed:index,active:active,label:platform.name))),
             IgnorePointer(child:CustomPaint(painter:_RealmBeacon(seed:index,active:active,phase:phase))),
           ],
         ),
