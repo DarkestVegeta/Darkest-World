@@ -138,12 +138,16 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
         autofocus: true,
         focusNode: _focusNode,
         onKeyEvent: (_, event) {
-          if (event is! KeyDownEvent || _insideWorld || _travelingIsland != null) return KeyEventResult.ignored;
+          if (event is! KeyDownEvent || _travelingIsland != null) return KeyEventResult.ignored;
           if (event.logicalKey == LogicalKeyboardKey.escape) {
-            if (_insideWorld) _leaveWorld();
+            if (_insideWorld) {
+              _leaveWorld();
+            } else {
+              Navigator.of(context).maybePop();
+            }
             return KeyEventResult.handled;
           }
-          if (event.logicalKey == LogicalKeyboardKey.enter) {
+          if (event.logicalKey == LogicalKeyboardKey.enter && !_insideWorld) {
             _enterWorld();
             return KeyEventResult.handled;
           }
