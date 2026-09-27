@@ -110,11 +110,12 @@ class _ContentDetailPageState extends State<ContentDetailPage> with SingleTicker
         autofocus: true,
         focusNode: _focusNode,
         onKeyEvent: (_, event) {
-          if (event is! KeyDownEvent || navigation == null) return KeyEventResult.ignored;
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
           if (event.logicalKey == LogicalKeyboardKey.escape) {
             Navigator.of(context).pop();
             return KeyEventResult.handled;
           }
+          if (navigation == null) return KeyEventResult.ignored;
           if (event.logicalKey == LogicalKeyboardKey.arrowLeft && navigation!.previous != null) {
             _open(navigation!.previous!);
             return KeyEventResult.handled;
