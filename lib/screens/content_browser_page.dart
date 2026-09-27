@@ -123,6 +123,14 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> {
             _select(math.min(list.length - 1, selected + 1));
             return KeyEventResult.handled;
           }
+          if (event.logicalKey == LogicalKeyboardKey.home) {
+            _select(0);
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.end) {
+            _select(list.length - 1);
+            return KeyEventResult.handled;
+          }
           if (event.logicalKey == LogicalKeyboardKey.enter) {
             _open(list[selected.clamp(0, list.length - 1).toInt()]);
             return KeyEventResult.handled;
