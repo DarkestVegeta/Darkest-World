@@ -178,17 +178,18 @@ class _GameWorldPlanetPageState extends State<GameWorldPlanetPage>
           }
           return KeyEventResult.ignored;
         },
-        child: AnimatedBuilder(
-        animation: _clock,
-        builder: (context, _) => Stack(
+        child: Stack(
           fit: StackFit.expand,
           children: [
             const RepaintBoundary(
               child: CustomPaint(painter: _DeepSpaceStaticPainter()),
             ),
             IgnorePointer(
-              child: CustomPaint(
-                painter: _DeepSpaceAtmospherePainter(_clock.value),
+              child: AnimatedBuilder(
+                animation: _clock,
+                builder: (_, __) => CustomPaint(
+                  painter: _DeepSpaceAtmospherePainter(_clock.value),
+                ),
               ),
             ),
             AnimatedSwitcher(
@@ -290,8 +291,11 @@ class _GamePlanetView extends StatelessWidget {
                       child: CustomPaint(painter: _GamePlanetStaticPainter()),
                     ),
                     IgnorePointer(
-                      child: CustomPaint(
-                        painter: _GamePlanetAtmospherePainter(phase),
+                      child: AnimatedBuilder(
+                        animation: _clock,
+                        builder: (_, __) => CustomPaint(
+                          painter: _GamePlanetAtmospherePainter(_clock.value),
+                        ),
                       ),
                     ),
                   ],
@@ -395,8 +399,11 @@ class _IslandAtlas extends StatelessWidget {
                           ),
                         ),
                         IgnorePointer(
-                          child: CustomPaint(
-                            painter: _IslandAtmospherePainter(phase),
+                          child: AnimatedBuilder(
+                            animation: _clock,
+                            builder: (_, __) => CustomPaint(
+                              painter: _IslandAtmospherePainter(_clock.value),
+                            ),
                           ),
                         ),
                       ],
