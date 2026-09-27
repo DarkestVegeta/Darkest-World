@@ -238,6 +238,7 @@ class _ContentBrowserPageState extends State<ContentBrowserPage> with SingleTick
           ),
         ),
           ),
+          ),
         ],
       ),
     );
