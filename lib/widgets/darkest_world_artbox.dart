@@ -67,7 +67,13 @@ class _Case extends StatelessWidget {
           imageUrl!,
           fit: BoxFit.contain,
           cacheWidth: cacheWidth,
-          filterQuality: FilterQuality.medium, errorBuilder: (_, __, ___) => Center(child: Text(title.toUpperCase(), textAlign: TextAlign.center)));
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (_, __, ___) => Center(
+            child: Text(title.toUpperCase(), textAlign: TextAlign.center),
+          ),
+        );
+      },
+    );
     return Container(
       width: width,
       height: height,
