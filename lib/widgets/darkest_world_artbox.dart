@@ -57,7 +57,17 @@ class _Case extends StatelessWidget {
   Widget build(BuildContext context) {
     final content = imageUrl == null
         ? Center(child: Text(title.toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, letterSpacing: 1.4, color: Color(0x778F82A9))))
-        : Image.network(imageUrl!, fit: BoxFit.contain, filterQuality: FilterQuality.high, errorBuilder: (_, __, ___) => Center(child: Text(title.toUpperCase(), textAlign: TextAlign.center)));
+        : LayoutBuilder(
+      builder: (context, constraints) {
+        // Keep archive art sharp without decoding a full source image into
+        // the GTX 950's 2 GB VRAM when the displayed artbox is much smaller.
+        final dpr = MediaQuery.devicePixelRatioOf(context);
+        final cacheWidth = (constraints.maxWidth * dpr).clamp(420.0, 1400.0).toInt();
+        return Image.network(
+          imageUrl!,
+          fit: BoxFit.contain,
+          cacheWidth: cacheWidth,
+          filterQuality: FilterQuality.medium, errorBuilder: (_, __, ___) => Center(child: Text(title.toUpperCase(), textAlign: TextAlign.center)));
     return Container(
       width: width,
       height: height,
