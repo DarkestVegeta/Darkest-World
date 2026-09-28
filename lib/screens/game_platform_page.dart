@@ -248,6 +248,10 @@ class _MiniRealm extends CustomPainter{
       );
     }
 
+    // Reference-level realm identity: zooming into a territory should reveal
+    // a richer environment, not the same generic island repeated five times.
+    _drawRealmEnvironment(c, center, w, h, seed);
+
     // Deep environmental shadows: terrain masses should sit inside the world, not float as stickers.
     final depthShadow = Paint()
       ..shader = RadialGradient(
@@ -305,6 +309,93 @@ class _MiniRealm extends CustomPainter{
     if(active){
       c.drawPath(top,Paint()..style=PaintingStyle.stroke..strokeWidth=math.max(1.5,s.width*.009)..color=Colors.white.withValues(alpha:.20));
     }
+  }
+
+  void _drawRealmEnvironment(Canvas c, Offset center, double w, double h, int seed) {
+    final accent = _realmAccent(seed);
+    final structure = Paint()..color = accent.withValues(alpha: .16);
+
+    switch (seed % 5) {
+      case 0:
+        // Organic fantasy realm: rivers, rounded towers and a luminous central
+        // garden-like structure.
+        final river = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = h * .022
+          ..color = const Color(0x554E9FB0);
+        final path = Path()..moveTo(center.dx-w*.38,center.dy+h*.05);
+        path.cubicTo(center.dx-w*.16,center.dy-h*.12,center.dx+w*.02,center.dy+h*.14,center.dx+w*.38,center.dy-h*.04);
+        c.drawPath(path,river);
+        for(var i=0;i<6;i++){
+          final x=center.dx+(-.30+i*.12)*w;
+          final base=center.dy+h*.08;
+          c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:Offset(x,base-h*.055),width:w*.06,height:h*.11),Radius.circular(w*.018)),structure);
+        }
+        c.drawCircle(Offset(center.dx,center.dy-h*.03),w*.06,structure);
+        break;
+      case 1:
+        // Warm high-speed/industrial realm: routes, low structures and warm
+        // environmental highlights.
+        final route=Paint()..style=PaintingStyle.stroke..strokeWidth=h*.016..color=const Color(0x55D5AE76);
+        final p=Path()..moveTo(center.dx-w*.38,center.dy+h*.10);
+        p.cubicTo(center.dx-w*.18,center.dy-h*.10,center.dx+w*.10,center.dy+h*.11,center.dx+w*.38,center.dy-h*.06);
+        c.drawPath(p,route);
+        for(var i=0;i<5;i++){
+          final q=Offset(center.dx+(-.27+i*.135)*w,center.dy+h*(.02+(i%2)*.08));
+          c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:q,width:w*.075,height:h*.07),Radius.circular(w*.012)),structure);
+        }
+        break;
+      case 2:
+        // Cool crystalline realm: vertical blue-violet silhouettes and broad
+        // circular architectural forms.
+        for(var i=0;i<7;i++){
+          final x=center.dx+(-.32+i*.105)*w;
+          final base=center.dy+h*.10;
+          final peak=base-h*(.12+(i%3)*.035);
+          final p=Path()..moveTo(x-w*.025,base)..lineTo(x,peak)..lineTo(x+w*.032,base)..close();
+          c.drawPath(p,structure);
+        }
+        c.drawOval(Rect.fromCenter(center:Offset(center.dx,center.dy+h*.04),width:w*.32,height:h*.12),
+          Paint()..style=PaintingStyle.stroke..strokeWidth=h*.012..color=accent.withValues(alpha:.20));
+        break;
+      case 3:
+        // Green techno-natural realm: embedded lights following valleys rather
+        // than floating neon icons.
+        final valley=Paint()..style=PaintingStyle.stroke..strokeWidth=h*.020..color=const Color(0x4455B99A);
+        final p=Path()..moveTo(center.dx-w*.38,center.dy+h*.07);
+        p.cubicTo(center.dx-w*.16,center.dy-h*.13,center.dx+w*.08,center.dy+h*.15,center.dx+w*.38,center.dy-h*.03);
+        c.drawPath(p,valley);
+        for(var i=0;i<7;i++){
+          final q=Offset(center.dx+(-.30+(i%4)*.20)*w,center.dy+(-.08+(i~/4)*.16)*h);
+          c.drawCircle(q,w*.018,Paint()..color=accent.withValues(alpha:.25));
+        }
+        break;
+      default:
+        // Dark industrial/volcanic realm: tall engineered silhouettes and
+        // restrained warm vents.
+        for(var i=0;i<5;i++){
+          final x=center.dx+(-.28+i*.14)*w;
+          final base=center.dy+h*.12;
+          final peak=base-h*(.10+(i%3)*.035);
+          final p=Path()..moveTo(x-w*.032,base)..lineTo(x-w*.012,peak)..lineTo(x+w*.018,peak-h*.012)..lineTo(x+w*.038,base)..close();
+          c.drawPath(p,structure);
+        }
+        for(var i=0;i<4;i++){
+          final q=Offset(center.dx+(-.22+i*.15)*w,center.dy+h*(.02+(i%2)*.09));
+          c.drawCircle(q,w*.018,Paint()..color=const Color(0x66D58B58));
+        }
+        break;
+    }
+
+    // One shared atmospheric highlight keeps every realm under the same
+    // directional world light.
+    c.drawOval(
+      Rect.fromCenter(center:center,width:w*.88,height:h*.66),
+      Paint()..shader=LinearGradient(
+        begin:const Alignment(-.8,-1),end:const Alignment(.7,.8),
+        colors:[accent.withValues(alpha:.07),Colors.transparent],
+      ).createShader(Rect.fromCenter(center:center,width:w,height:h)),
+    );
   }
 
   Path _closed(List<Offset> pts){final p=Path()..moveTo(pts.first.dx,pts.first.dy);for(final q in pts.skip(1))p.lineTo(q.dx,q.dy);p.close();return p;}
