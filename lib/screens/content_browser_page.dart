@@ -395,13 +395,29 @@ class _ArchiveCard extends StatelessWidget {
                             style: TextStyle(fontSize: active ? 12 : 9, letterSpacing: 1.2),
                           ),
                         )
-                      : Image.network(
-                          url,
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
-                          errorBuilder: (_, __, ___) => Center(
-                            child: Text(item.title, textAlign: TextAlign.center),
-                          ),
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Decode close to the actual card size. This keeps
+                            // the five-card archive sharp while avoiding five
+                            // full-resolution textures competing for the GTX
+                            // 950's 2 GB VRAM, especially on large desktop
+                            // windows / multi-monitor setups.
+                            final dpr = MediaQuery.devicePixelRatioOf(context);
+                            final cacheWidth = (constraints.maxWidth * dpr)
+                                .clamp(360.0, 1100.0)
+                                .toInt();
+                            return RepaintBoundary(
+                              child: Image.network(
+                                url,
+                                fit: BoxFit.contain,
+                                cacheWidth: cacheWidth,
+                                filterQuality: FilterQuality.medium,
+                                errorBuilder: (_, __, ___) => Center(
+                                  child: Text(item.title, textAlign: TextAlign.center),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                 ),
                 const SizedBox(height: 9),
