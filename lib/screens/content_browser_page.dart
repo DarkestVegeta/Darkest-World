@@ -265,6 +265,49 @@ class _ArchiveBrowserSpaceStatic extends CustomPainter {
         ],
       ).createShader(Rect.fromCircle(center: Offset(s.width * .50, s.height * .42), radius: s.shortestSide * .72));
     c.drawCircle(Offset(s.width * .50, s.height * .42), s.shortestSide * .72, bloom);
+
+    // Deep-space world silhouettes keep the archive browser visually connected
+    // to the floating-island language instead of becoming a flat card gallery.
+    final rnd = math.Random(441);
+    for (var i = 0; i < 7; i++) {
+      final p = Offset(
+        s.width * (.06 + rnd.nextDouble() * .88),
+        s.height * (.18 + rnd.nextDouble() * .62),
+      );
+      final w = s.shortestSide * (.16 + rnd.nextDouble() * .15);
+      final h = s.shortestSide * (.055 + rnd.nextDouble() * .07);
+      final land = Path();
+      for (var k = 0; k < 14; k++) {
+        final a = k / 14 * math.pi * 2;
+        final n = .72 + rnd.nextDouble() * .24 + math.sin(a * 3 + i) * .07;
+        final q = p + Offset(math.cos(a) * w * n, math.sin(a) * h * n);
+        if (k == 0) land.moveTo(q.dx, q.dy); else land.lineTo(q.dx, q.dy);
+      }
+      land.close();
+      c.drawPath(land.shift(Offset(-w * .01, h * .28)), Paint()..color = const Color(0x30030810));
+      c.drawPath(
+        land,
+        Paint()
+          ..shader = LinearGradient(
+            begin: const Alignment(-.8, -1),
+            end: const Alignment(.8, .8),
+            colors: const [Color(0x243C5367), Color(0x12192331)],
+          ).createShader(Rect.fromCenter(center: p, width: w * 2, height: h * 2)),
+      );
+      for (var m = 0; m < 3; m++) {
+        final x = p.dx + (-.24 + m * .22) * w;
+        final base = p.dy + h * .08;
+        final peak = base - h * (.55 + (m % 2) * .22);
+        c.drawPath(
+          Path()
+            ..moveTo(x - w * .08, base)
+            ..quadraticBezierTo(x - w * .025, peak + h * .10, x, peak)
+            ..quadraticBezierTo(x + w * .04, peak + h * .08, x + w * .08, base)
+            ..close(),
+          Paint()..color = const Color(0x253E4F60),
+        );
+      }
+    }
   }
 
   @override
