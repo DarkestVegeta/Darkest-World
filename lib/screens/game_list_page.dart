@@ -62,10 +62,10 @@ class _ArchiveWorldStatic extends CustomPainter {
   void paint(Canvas c, Size s) {
     final center = Offset(s.width * .5, s.height * .5);
     final r = math.min(s.width, s.height) * .34;
+    final sphereRect = Rect.fromCircle(center: center, radius: r * 1.08);
 
-    // The archive remains a physical destination: a dark spherical library
-    // world with real volume, rather than a control panel.
-    final rect = Rect.fromCircle(center: center, radius: r * 1.08);
+    // The archive is a destination world, not a database icon: rich physical
+    // surface layers keep the visual language continuous with Game World.
     c.drawCircle(
       center,
       r * 1.08,
@@ -73,75 +73,144 @@ class _ArchiveWorldStatic extends CustomPainter {
         ..shader = const RadialGradient(
           center: Alignment(-.42, -.48),
           colors: [
-            Color(0xFFB7C5CF),
-            Color(0xFF66798B),
-            Color(0xFF293547),
-            Color(0xFF050811),
+            Color(0xFFC3D2D7),
+            Color(0xFF718797),
+            Color(0xFF35485A),
+            Color(0xFF090E1A),
           ],
-          stops: [.03, .24, .62, 1],
-        ).createShader(rect),
+          stops: [.025, .22, .60, 1],
+        ).createShader(sphereRect),
     );
 
-    // Physical surface masses: broad irregular regions create a living
-    // archive world instead of a small globe with decorative map markings.
-    for (var i = 0; i < 5; i++) {
-      final a = i * 1.83;
-      final p = center + Offset(
-        math.cos(a) * r * (.18 + (i % 3) * .13),
-        math.sin(a * 1.27) * r * (.16 + (i % 2) * .15),
-      );
-      final w = r * (.28 + (i % 3) * .10);
-      final h = r * (.15 + (i % 2) * .09);
-      final land = Path();
-      for (var k = 0; k < 12; k++) {
-        final aa = k / 12 * math.pi * 2;
-        final n = .78 + .14 * math.sin(aa * 3 + i) + .07 * math.sin(aa * 5 + i * .4);
-        final q = p + Offset(math.cos(aa) * w * n, math.sin(aa) * h * n);
-        if (k == 0) land.moveTo(q.dx, q.dy); else land.lineTo(q.dx, q.dy);
+    final rnd = math.Random(6117);
+    final palettes = const [
+      [Color(0x826C8D76), Color(0x454C6956)],
+      [Color(0x826F7890), Color(0x45454E69)],
+      [Color(0x827C6D5B), Color(0x454D443B)],
+      [Color(0x82607873), Color(0x45405755)],
+      [Color(0x826A5E78), Color(0x45433D57)],
+      [Color(0x82758B70), Color(0x45465E4F)],
+    ];
+
+    // Six broad organic landmasses. Their irregular silhouettes echo the large
+    // floating-world references without becoming a cartographic map.
+    for (var i = 0; i < 6; i++) {
+      final a = rnd.nextDouble() * math.pi * 2;
+      final rr = math.sqrt(rnd.nextDouble()) * r * .67;
+      final p = center + Offset(math.cos(a) * rr, math.sin(a) * rr * .72);
+      final w = r * (.22 + rnd.nextDouble() * .17);
+      final h = r * (.11 + rnd.nextDouble() * .11);
+      final pts = <Offset>[];
+      for (var k = 0; k < 20; k++) {
+        final t = k / 20 * math.pi * 2;
+        final n = .72 +
+            rnd.nextDouble() * .22 +
+            math.sin(t * 2.4 + i) * .09 +
+            math.sin(t * 6.1 + i * .4) * .035;
+        pts.add(p + Offset(math.cos(t) * w * n, math.sin(t) * h * n));
       }
+      final land = Path()..moveTo(pts.first.dx, pts.first.dy);
+      for (final q in pts.skip(1)) land.lineTo(q.dx, q.dy);
       land.close();
+
+      final palette = palettes[i];
       c.drawPath(
         land,
-        Paint()..shader = LinearGradient(
-          begin: Alignment(-.7, -1),
-          end: Alignment(.8, 1),
-          colors: const [Color(0x735D766D), Color(0x38313F3D)],
-        ).createShader(Rect.fromCenter(center: p, width: w * 2, height: h * 2)),
+        Paint()
+          ..shader = LinearGradient(
+            begin: const Alignment(-.8, -1),
+            end: const Alignment(.8, .9),
+            colors: palette,
+          ).createShader(Rect.fromCenter(center: p, width: w * 2, height: h * 2)),
       );
+
+      // Visible cliff/body depth makes the archive world physically elevated.
       c.drawPath(
-        land,
-        Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, r * .012)
-          ..color = const Color(0x3A93AAA0),
+        land.shift(Offset(-w * .018, h * .30)),
+        Paint()..color = const Color(0xD8070D15),
       );
+      for (var layer = 0; layer < 3; layer++) {
+        c.drawPath(
+          land.shift(Offset(-w * (.008 + layer * .008), h * (.06 + layer * .08))),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = math.max(1, r * .009)
+            ..color = Color.fromARGB(48 - layer * 10, 130, 151, 153),
+        );
+      }
+
+      // Broad plateau/relief masses.
+      for (var relief = 0; relief < 3; relief++) {
+        final q = p + Offset(
+          math.cos(i + relief * 2.1) * w * .16,
+          math.sin(i * .7 + relief) * h * .20,
+        );
+        c.drawOval(
+          Rect.fromCenter(center: q, width: w * .42, height: h * .40),
+          Paint()
+            ..shader = RadialGradient(
+              colors: [Colors.white.withValues(alpha: .045), Colors.transparent],
+            ).createShader(Rect.fromCenter(center: q, width: w * .42, height: h * .40)),
+        );
+      }
+
+      // Mountain/architecture silhouettes: archive-world scale cues, not game
+      // characters or recognizable locations.
+      final structure = Paint()..color = Colors.white.withValues(alpha: .10 + i * .008);
+      for (var m = 0; m < 4; m++) {
+        final x = p.dx + (-.27 + m * .18) * w;
+        final base = p.dy + h * .05;
+        final peak = base - h * (.42 + (m % 2) * .16);
+        final ridge = Path()
+          ..moveTo(x - w * .10, base)
+          ..quadraticBezierTo(x - w * .04, peak + h * .10, x, peak)
+          ..quadraticBezierTo(x + w * .05, peak + h * .07, x + w * .11, base)
+          ..close();
+        c.drawPath(ridge, structure);
+      }
+
+      // Subtle archive "library" traces: small clustered forms rather than HUD.
+      final archiveLight = Paint()..color = const Color(0x6A9A83D0);
+      for (var q = 0; q < 5; q++) {
+        final lp = p + Offset(
+          (-.25 + (q % 3) * .24) * w,
+          (-.06 + (q ~/ 3) * .16) * h,
+        );
+        c.drawCircle(lp, w * .012, archiveLight);
+        c.drawLine(
+          lp + Offset(-w * .035, h * .025),
+          lp + Offset(w * .035, -h * .035),
+          Paint()..color = const Color(0x326E9CC4)..strokeWidth = math.max(1, r * .004),
+        );
+      }
     }
 
-    // A faint atmospheric rim and deep underside provide physical separation.
+    // Deep atmospheric depth inside the sphere.
+    final haze = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-.10, -.25),
+        radius: .96,
+        colors: const [Color(0x142C6B83), Colors.transparent, Color(0x24010208)],
+        stops: const [0, .58, 1],
+      ).createShader(sphereRect);
+    c.drawCircle(center, r * 1.07, haze);
+
+    // Directional limb and underside separation.
     c.drawCircle(
       center,
       r * 1.08,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = math.max(1, r * .025)
+        ..strokeWidth = math.max(1, r * .024)
         ..color = const Color(0x397FADB7),
     );
     c.drawOval(
-      Rect.fromCenter(
-        center: Offset(center.dx, center.dy + r * .64),
-        width: r * 1.9,
-        height: r * .42,
-      ),
+      Rect.fromCenter(center: Offset(center.dx, center.dy + r * .66), width: r * 1.95, height: r * .43),
       Paint()
         ..shader = RadialGradient(
-          colors: [
-            Colors.black.withValues(alpha: .42),
-            Colors.transparent,
-          ],
+          colors: [Colors.black.withValues(alpha: .44), Colors.transparent],
         ).createShader(
-          Rect.fromCenter(
-            center: Offset(center.dx, center.dy + r * .64),
-            width: r * 2.1,
-            height: r * .48,
-          ),
+          Rect.fromCenter(center: Offset(center.dx, center.dy + r * .66), width: r * 2.1, height: r * .50),
         ),
     );
   }
