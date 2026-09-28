@@ -823,6 +823,11 @@ class _IslandAtlasPainter extends CustomPainter {
       );
     }
 
+    // Territory identity pass: each island gets a distinct environmental language
+    // like the supplied reference, while staying abstract enough to avoid iconic
+    // game scenes, mascots or recognizable locations.
+    _drawTerritoryIdentity(canvas, center, w, h, index, random);
+
     // Vegetation/rock clusters are sparse and scale-bearing rather than decorative icons.
     final vegetation = Paint()..color = const Color(0x3695AA91);
     // Two density bands: a sparse far layer and a stronger foreground layer.
@@ -973,6 +978,154 @@ class _IslandAtlasPainter extends CustomPainter {
       default:
         return const [Color(0xFF5C6371), Color(0xFF393E50), Color(0xFF202435)];
     }
+  }
+
+  void _drawTerritoryIdentity(Canvas canvas, Offset center, double w, double h, int index, math.Random random) {
+    final accent = [
+      const Color(0xFF9FD8B0),
+      const Color(0xFFD6A36A),
+      const Color(0xFF8EA9E8),
+      const Color(0xFF69C59B),
+      const Color(0xFFB37BDA),
+    ][index];
+
+    // Broad biome patches first: these are painted as terrain masses, not UI
+    // symbols, so the islands still read as one physical world.
+    final biome = switch (index) {
+      0 => const [Color(0x557FAF72), Color(0x4460A06E), Color(0x332F6D65)],
+      1 => const [Color(0x555D7D56), Color(0x445E8A75), Color(0x334B5144)],
+      2 => const [Color(0x554B6089), Color(0x444A5681), Color(0x333B4260)],
+      3 => const [Color(0x5559A67D), Color(0x444A8D75), Color(0x333A6E64)],
+      _ => const [Color(0x554C4A61), Color(0x44413955), Color(0x33312639)],
+    };
+    for (var i = 0; i < 5; i++) {
+      final a = random.nextDouble() * math.pi * 2;
+      final p = center + Offset(
+        math.cos(a) * w * (.10 + random.nextDouble() * .22),
+        math.sin(a) * h * (.08 + random.nextDouble() * .20),
+      );
+      final rw = w * (.10 + random.nextDouble() * .10);
+      final rh = h * (.07 + random.nextDouble() * .08);
+      canvas.drawOval(
+        Rect.fromCenter(center: p, width: rw * 2, height: rh * 2),
+        Paint()..color = biome[i % biome.length],
+      );
+    }
+
+    // Small-scale architectural silhouettes make each platform territory
+    // visually distinct without turning the archive into an IP collage.
+    final structure = Paint()..color = accent.withValues(alpha: .18);
+    final shadow = Paint()..color = Colors.black.withValues(alpha: .20);
+
+    if (index == 0) {
+      // Nintendo-like realm language: bright organic fantasy, rounded towers,
+      // water channels and a central ceremonial structure.
+      final water = Paint()..color = const Color(0x554D9FB0);
+      for (var i = 0; i < 3; i++) {
+        final y = center.dy + h * (-.10 + i * .12);
+        final river = Path()..moveTo(center.dx - w * .40, y);
+        river.cubicTo(center.dx - w * .18, y - h * .08, center.dx + w * .02, y + h * .09, center.dx + w * .38, y - h * .02);
+        canvas.drawPath(river, water..style = PaintingStyle.stroke..strokeWidth = h * .022);
+      }
+      for (var i = 0; i < 6; i++) {
+        final x = center.dx + (-.30 + i * .12) * w;
+        final base = center.dy + h * (.06 + (i % 2) * .035);
+        final top = base - h * (.10 + (i % 3) * .025);
+        final p = Path()
+          ..moveTo(x - w * .045, base)
+          ..quadraticBezierTo(x - w * .025, top, x, top - h * .018)
+          ..quadraticBezierTo(x + w * .025, top, x + w * .045, base)
+          ..close();
+        canvas.drawPath(p, structure);
+      }
+      canvas.drawCircle(Offset(center.dx, center.dy - h * .02), w * .055, structure);
+    } else if (index == 1) {
+      // Sega-like realm language: warm stone, lush industrial/fantasy routes,
+      // long ramps and low mechanical structures.
+      final route = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1, h * .018)
+        ..color = const Color(0x55D5B07A);
+      final path = Path()..moveTo(center.dx - w * .40, center.dy + h * .10);
+      path.cubicTo(center.dx - w * .18, center.dy - h * .12, center.dx + w * .02, center.dy + h * .12, center.dx + w * .38, center.dy - h * .05);
+      canvas.drawPath(path, route);
+      for (var i = 0; i < 5; i++) {
+        final p = Offset(center.dx + (-.28 + i * .14) * w, center.dy + h * (.05 + (i % 2) * .08));
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(Rect.fromCenter(center: p, width: w * .075, height: h * .08), Radius.circular(w * .018)),
+          structure,
+        );
+        canvas.drawLine(p + Offset(-w * .025, h * .04), p + Offset(w * .025, -h * .05), shadow..strokeWidth = math.max(1, w * .006));
+      }
+    } else if (index == 2) {
+      // PlayStation-like realm language: cool crystalline/architectural
+      // verticality and deep blue-purple terrain.
+      for (var i = 0; i < 7; i++) {
+        final x = center.dx + (-.32 + i * .105) * w;
+        final base = center.dy + h * (.12 - (i % 2) * .02);
+        final peak = base - h * (.16 + (i % 3) * .045);
+        final crystal = Path()
+          ..moveTo(x - w * .028, base)
+          ..lineTo(x - w * .012, peak + h * .028)
+          ..lineTo(x + w * .008, peak)
+          ..lineTo(x + w * .032, base)
+          ..close();
+        canvas.drawPath(crystal, structure);
+        canvas.drawPath(
+          Path()..moveTo(x + w * .008, peak)..lineTo(x + w * .032, base),
+          Paint()..color = const Color(0x447AA6D6),
+        );
+      }
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(center.dx, center.dy + h * .05), width: w * .30, height: h * .10),
+        Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, h * .012)..color = accent.withValues(alpha: .22),
+      );
+    } else if (index == 3) {
+      // Xbox-like realm language: deep green valleys with restrained luminous
+      // structures embedded in natural terrain.
+      final glow = Paint()..color = accent.withValues(alpha: .22);
+      for (var i = 0; i < 8; i++) {
+        final p = Offset(
+          center.dx + (-.31 + (i % 4) * .19) * w,
+          center.dy + (-.08 + (i ~/ 4) * .16) * h,
+        );
+        canvas.drawCircle(p, w * .025, glow);
+        canvas.drawLine(p + Offset(-w * .06, 0), p + Offset(w * .06, 0), Paint()..color = accent.withValues(alpha: .10)..strokeWidth = math.max(1, h * .010));
+      }
+      final valley = Path()..moveTo(center.dx - w * .36, center.dy + h * .08);
+      valley.cubicTo(center.dx - w * .18, center.dy - h * .12, center.dx + w * .08, center.dy + h * .15, center.dx + w * .37, center.dy - h * .04);
+      canvas.drawPath(valley, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, h * .024)..color = const Color(0x4456B99A));
+    } else {
+      // PC-like realm language: dark volcanic/industrial massing with sparse
+      // warm vents and taller engineered silhouettes.
+      for (var i = 0; i < 5; i++) {
+        final x = center.dx + (-.28 + i * .14) * w;
+        final base = center.dy + h * (.13 + (i % 2) * .02);
+        final peak = base - h * (.11 + (i % 3) * .04);
+        final tower = Path()
+          ..moveTo(x - w * .035, base)
+          ..lineTo(x - w * .018, peak)
+          ..lineTo(x + w * .018, peak - h * .018)
+          ..lineTo(x + w * .040, base)
+          ..close();
+        canvas.drawPath(tower, structure);
+      }
+      for (var i = 0; i < 4; i++) {
+        final p = Offset(center.dx + (-.22 + i * .15) * w, center.dy + h * (.02 + (i % 2) * .09));
+        canvas.drawCircle(p, w * .018, Paint()..color = const Color(0x66D58B58));
+        canvas.drawCircle(p, w * .055, Paint()..shader = RadialGradient(colors:[const Color(0x22D58B58),Colors.transparent]).createShader(Rect.fromCircle(center:p,radius:w*.055)));
+      }
+    }
+
+    // Shared atmospheric highlight: one restrained light direction across all
+    // territories keeps them belonging to the same physical world.
+    final light = Paint()
+      ..shader = LinearGradient(
+        begin: const Alignment(-.9, -1),
+        end: const Alignment(.7, .8),
+        colors: [accent.withValues(alpha: .10), Colors.transparent],
+      ).createShader(Rect.fromCenter(center: center, width: w * 1.2, height: h * 1.2));
+    canvas.drawOval(Rect.fromCenter(center: center, width: w * .95, height: h * .80), light);
   }
 
   void _drawIdentityMarker(Canvas canvas, Offset center, double w, double h, int index) {
@@ -1232,6 +1385,30 @@ class _GamePlanetStaticPainter extends CustomPainter {
         c.dx + r * .88, y + r * .008,
       );
       canvas.drawPath(path, cloudPaint);
+    }
+
+    // World-scale terrain depth: broad biome fields and tiny architectural
+    // silhouettes echo the supplied Game World planet reference without turning
+    // the sphere into a map or a collage of recognizable game locations.
+    final surfaceRnd = math.Random(7712);
+    for (var i = 0; i < 18; i++) {
+      final a = surfaceRnd.nextDouble() * math.pi * 2;
+      final rr = math.sqrt(surfaceRnd.nextDouble()) * r * .70;
+      final p = c + Offset(math.cos(a) * rr, math.sin(a) * rr * .72);
+      final rw = r * (.018 + surfaceRnd.nextDouble() * .045);
+      final rh = r * (.010 + surfaceRnd.nextDouble() * .028);
+      final tone = const [
+        Color(0x3B7B8C74), Color(0x3A596B91), Color(0x3A7A6B93),
+        Color(0x3A4F8B77), Color(0x3A8D765C),
+      ][i % 5];
+      canvas.drawOval(Rect.fromCenter(center:p,width:rw*2,height:rh*2), Paint()..color=tone);
+      if (i % 3 == 0) {
+        final peak = p + Offset(0, -rh * 1.7);
+        canvas.drawPath(
+          Path()..moveTo(p.dx-rw*.45,p.dy+rh*.35)..lineTo(peak.dx,peak.dy)..lineTo(p.dx+rw*.55,p.dy+rh*.35)..close(),
+          Paint()..color=const Color(0x2E9BA6B5),
+        );
+      }
     }
 
     // Keep the galaxy-distance surface deliberately quiet: no decorative
