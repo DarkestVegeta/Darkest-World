@@ -45,6 +45,14 @@ class GalaxyRuntimeController extends ChangeNotifier {
   notifyListeners();
  }
 
+ /// Foundation-level Quick Find against the same nodes used by the spatial world.
+ List<GameWorldFindResult> quickFind(
+  String query,{GameWorldFindAction action=GameWorldFindAction.browse}) =>
+  GameWorldNavigationContract.find(
+   _nodes,
+   GameWorldFindRequest(query:query,action:action),
+  );
+
  Future<void> updateStreamingBudget({double loadDistance=20,double unloadDistance=28}) async {
   if(!ready)return;
   final payload=jsonEncode({'loadDistance':loadDistance,'unloadDistance':unloadDistance});
