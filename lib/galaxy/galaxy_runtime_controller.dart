@@ -45,6 +45,17 @@ class GalaxyRuntimeController extends ChangeNotifier {
   notifyListeners();
  }
 
+ /// Sends the in-world Game World display contract to Babylon.
+ /// The board remains a presentation layer over the same Galaxy node data.
+ Future<void> setGameWorldNavigation(
+   {List<GameWorldBoardItem> items=GameWorldNavigationContract.defaultItems}) async {
+  if(!ready)return;
+  final payload=jsonEncode(GameWorldNavigationContract.toRuntimePayload(items));
+  await webview.executeScript(
+    'window.DarkestWorldBabylon && window.DarkestWorldBabylon.setGameWorldNavigation($payload);',
+  );
+ }
+
  /// Foundation-level Quick Find against the same nodes used by the spatial world.
  List<GameWorldFindResult> quickFind(
   String query,{GameWorldFindAction action=GameWorldFindAction.browse}) =>
@@ -66,7 +77,6 @@ class GalaxyRuntimeController extends ChangeNotifier {
   }
  }
 
- /// Starts Planet -> World lifecycle without pretending the final World scene/assets exist yet.
  Future<void> enterWorld(String nodeKey) async {
   if(!ready)return;
   GalaxyNode? node;
@@ -88,7 +98,6 @@ class GalaxyRuntimeController extends ChangeNotifier {
   await webview.executeScript('window.DarkestWorldBabylon && window.DarkestWorldBabylon.enterWorld("$safe");');
  }
 
- /// Future World scene/asset lifecycle calls this when its destination is ready.
  void completeWorldEntry() {
   if(entryNodeKey==null)return;
   entryPhase=WorldEntryPhase.entered;
