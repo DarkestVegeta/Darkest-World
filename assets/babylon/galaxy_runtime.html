@@ -51,6 +51,9 @@
   let travelTargetRadius=28;
   let entryTarget=null;
   let entryProgress=1;
+  let gameWorldMode=false;
+  let gameWorldRoot=null;
+  let gameWorldBoard=null;
 
   function materialFor(node){
     const m=new BABYLON.StandardMaterial("mat_"+node.id,scene);
@@ -111,6 +114,64 @@
     return true;
   }
 
+  function createGameWorldNavigation(payload){
+    if(gameWorldRoot){gameWorldRoot.dispose();}
+    gameWorldRoot=new BABYLON.TransformNode("gameWorldRoot",scene);
+    gameWorldMode=true;
+
+    // Lightweight destination foundation: abstract land/paths on the left,
+    // practical archive display on the right. Heavy world assets come later.
+    const ground=BABYLON.MeshBuilder.CreateDisc("gameWorldGround",{radius:12,tessellation:64},scene);
+    ground.rotation.x=Math.PI/2;
+    ground.parent=gameWorldRoot;
+    const groundMat=new BABYLON.StandardMaterial("gameWorldGroundMat",scene);
+    groundMat.diffuseColor=new BABYLON.Color3(.018,.022,.026);
+    groundMat.specularColor=BABYLON.Color3.Black();
+    ground.material=groundMat;
+
+    const pathMat=new BABYLON.StandardMaterial("gameWorldPathMat",scene);
+    pathMat.emissiveColor=new BABYLON.Color3(.045,.018,.07);
+    for(let i=0;i<5;i++){
+      const path=BABYLON.MeshBuilder.CreateTube("gamePath_"+i,{path:[
+        new BABYLON.Vector3(-8,-.03,-5+i*2.4),
+        new BABYLON.Vector3(-4,-.03,-4+i*2.0),
+        new BABYLON.Vector3(0,-.03,-2.8+i*1.4)
+      ],radius:.055,tessellation:8},scene);
+      path.parent=gameWorldRoot;
+      path.material=pathMat;
+    }
+
+    gameWorldBoard=BABYLON.MeshBuilder.CreatePlane("gameArchiveBoard",{width:5.4,height:6.8},scene);
+    gameWorldBoard.position=new BABYLON.Vector3(5.3,2.9,0);
+    gameWorldBoard.rotation.y=-.12;
+    gameWorldBoard.parent=gameWorldRoot;
+    const boardMat=new BABYLON.StandardMaterial("gameArchiveBoardMat",scene);
+    boardMat.diffuseColor=new BABYLON.Color3(.008,.01,.018);
+    boardMat.emissiveColor=new BABYLON.Color3(.035,.012,.05);
+    boardMat.alpha=.94;
+    gameWorldBoard.material=boardMat;
+
+    const title=BABYLON.MeshBuilder.CreatePlane("gameArchiveBoardGlow",{width:4.7,height:.55},scene);
+    title.position=new BABYLON.Vector3(5.3,5.1,-.04);
+    title.parent=gameWorldRoot;
+    const titleMat=new BABYLON.StandardMaterial("gameArchiveTitleMat",scene);
+    titleMat.emissiveColor=new BABYLON.Color3(.12,.035,.16);
+    title.material=titleMat;
+
+    const items=(payload&&payload.items)||[];
+    items.forEach((item,index)=>{
+      const row=BABYLON.MeshBuilder.CreatePlane("archiveRow_"+index,{width:4.4,height:.55},scene);
+      row.position=new BABYLON.Vector3(5.3,4.15-index*.82,-.05);
+      row.parent=gameWorldRoot;
+      const rowMat=new BABYLON.StandardMaterial("archiveRowMat_"+index,scene);
+      rowMat.diffuseColor=new BABYLON.Color3(.012,.014,.025);
+      rowMat.emissiveColor=new BABYLON.Color3(.045,.014,.065);
+      row.material=rowMat;
+    });
+    camera.setTarget(new BABYLON.Vector3(0,1,0));
+    camera.radius=22;
+  }
+
   function enterWorld(nodeKey){
     const mesh=[...runtimeNodes.values()].find(x=>x.metadata&&x.metadata.nodeKey===nodeKey);
     if(!mesh)return false;
@@ -149,7 +210,7 @@
   addEventListener("resize",()=>engine.resize());
 
   window.DarkestWorldBabylon={
-    version:"foundation-4",
+    version:"foundation-5",
     setNodes:applyRuntimeNodes,
     setStreamingPolicy:p=>{streamingPolicy={...streamingPolicy,...p}},
     resetGalaxy:()=>{
@@ -158,7 +219,8 @@
       travelStart=null;travelTarget=null;travelProgress=1;entryTarget=null;entryProgress=1;
     },
     focusWorld,
-    enterWorld
+    enterWorld,
+    setGameWorldNavigation:createGameWorldNavigation
   };
 })();
 </script>
