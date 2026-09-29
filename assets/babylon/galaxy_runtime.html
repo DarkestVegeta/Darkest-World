@@ -47,6 +47,10 @@
   let travelTarget=null;
   let travelStart=null;
   let travelProgress=1;
+  let travelStartRadius=28;
+  let travelTargetRadius=28;
+  let entryTarget=null;
+  let entryProgress=1;
 
   function materialFor(node){
     const m=new BABYLON.StandardMaterial("mat_"+node.id,scene);
@@ -98,9 +102,26 @@
   function focusWorld(nodeKey){
     const mesh=[...runtimeNodes.values()].find(x=>x.metadata&&x.metadata.nodeKey===nodeKey);
     if(!mesh)return false;
+    const node=mesh.metadata;
     travelStart=camera.target.clone();
     travelTarget=mesh.position.clone();
+    travelStartRadius=camera.radius;
+    travelTargetRadius=node.nodeType==="planet" ? Math.max(7, Math.min(18, node.radius*5.5)) : Math.max(5, Math.min(12, node.radius*4));
     travelProgress=0;
+    return true;
+  }
+
+  function enterWorld(nodeKey){
+    const mesh=[...runtimeNodes.values()].find(x=>x.metadata&&x.metadata.nodeKey===nodeKey);
+    if(!mesh)return false;
+    const node=mesh.metadata;
+    travelStart=camera.target.clone();
+    travelTarget=mesh.position.clone();
+    travelStartRadius=camera.radius;
+    travelTargetRadius=node.nodeType==="planet" ? Math.max(3.5, Math.min(8, node.radius*2.2)) : Math.max(3, Math.min(7, node.radius*2));
+    travelProgress=0;
+    entryTarget=nodeKey;
+    entryProgress=0;
     return true;
   }
 
@@ -109,7 +130,11 @@
     travelProgress=Math.min(1,travelProgress+engine.getDeltaTime()*.0018);
     const eased=1-Math.pow(1-travelProgress,3);
     camera.setTarget(BABYLON.Vector3.Lerp(travelStart,travelTarget,eased));
-    if(travelProgress>=1){travelStart=null;travelTarget=null;}
+    camera.radius=BABYLON.Scalar.Lerp(travelStartRadius,travelTargetRadius,eased);
+    if(travelProgress>=1){
+      travelStart=null;travelTarget=null;
+      if(entryTarget){ entryProgress=1; }
+    }
   }
 
   scene.onBeforeRenderObservable.add(()=>{
@@ -124,15 +149,16 @@
   addEventListener("resize",()=>engine.resize());
 
   window.DarkestWorldBabylon={
-    version:"foundation-3",
+    version:"foundation-4",
     setNodes:applyRuntimeNodes,
     setStreamingPolicy:p=>{streamingPolicy={...streamingPolicy,...p}},
     resetGalaxy:()=>{
       camera.setTarget(BABYLON.Vector3.Zero());
       camera.radius=28;
-      travelStart=null;travelTarget=null;travelProgress=1;
+      travelStart=null;travelTarget=null;travelProgress=1;entryTarget=null;entryProgress=1;
     },
-    focusWorld
+    focusWorld,
+    enterWorld
   };
 })();
 </script>
