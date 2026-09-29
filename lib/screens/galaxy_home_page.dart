@@ -63,6 +63,21 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
 
   void _select(GalaxyWorld world) => session.select(world.kind);
 
+  String? _runtimeNodeKey(GalaxyWorldKind? kind) {
+    switch (kind) {
+      case GalaxyWorldKind.game: return 'game-world';
+      case GalaxyWorldKind.music: return 'music-world';
+      case GalaxyWorldKind.identity: return 'identity-world';
+      case GalaxyWorldKind.cinema: return 'cinema-world';
+      case GalaxyWorldKind.creation: return 'creation-world';
+      case GalaxyWorldKind.vegeta: return null;
+      case GalaxyWorldKind.family: return null;
+      case GalaxyWorldKind.archive: return null;
+      case GalaxyWorldKind.comingSoon: return null;
+      case null: return null;
+    }
+  }
+
   void _moveRoute(int delta, List<GalaxyWorld> worlds) {
     if (session.targetLocked) return;
     if (session.selected == null) {
@@ -155,7 +170,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
                             );
                           })
                         : runtimeNodes;
-                    return BabylonGalaxyRuntime(nodes: nodes, focusedNodeKey: session.selected?.name);
+                    return BabylonGalaxyRuntime(nodes: nodes, focusedNodeKey: _runtimeNodeKey(session.selected));
                   },
                 ),
                 Positioned(top: 16, left: 16, right: 16, child: _GalaxyStatus(session: session, onAtlas: () => setState(() => atlasOpen = !atlasOpen))),
