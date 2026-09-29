@@ -155,7 +155,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
                             );
                           })
                         : runtimeNodes;
-                    return BabylonGalaxyRuntime(nodes: nodes);
+                    return BabylonGalaxyRuntime(nodes: nodes, focusedNodeKey: session.selected?.name);
                   },
                 ),
                 Positioned(top: 16, left: 16, right: 16, child: _GalaxyStatus(session: session, onAtlas: () => setState(() => atlasOpen = !atlasOpen))),
