@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/world_sections_repository.dart';
 import '../galaxy/babylon_galaxy_runtime.dart';
+import '../galaxy/galaxy_node.dart';
 import 'archive_world_page.dart';
 import 'cinema_world_page.dart';
 import 'coming_soon_world_page.dart';
@@ -130,7 +131,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
               autofocus: true,
               onKeyEvent: (node, event) => _handleKey(node, event, worlds),
               child: Stack(fit: StackFit.expand, children: [
-                const BabylonGalaxyRuntime(),
+                BabylonGalaxyRuntime(nodes: List.generate(worlds.length, (i) { final w = worlds[i]; const positions = <List<double>>[[-8,.8,0],[0,.5,8],[8,.7,0],[0,-.2,-8],[-6.2,-.3,-5.2]]; final p = positions[i % positions.length]; return GalaxyNode(id:'runtime-'+w.kind.name,nodeType:'planet',nodeKey:w.kind.name,title:w.title,x:p[0],y:p[1],z:p[2],radius:1.0); })),
                 Positioned(top: 16, left: 16, right: 16, child: _GalaxyStatus(session: session, onAtlas: () => setState(() => atlasOpen = !atlasOpen))),
                 if (session.selected != null)
                   Positioned(left: 16, right: 16, bottom: 16, child: _RouteBar(
