@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../core/world_sections_repository.dart';
 import '../galaxy/babylon_galaxy_runtime.dart';
 import '../galaxy/galaxy_node.dart';
+import '../galaxy/galaxy_repository.dart';
 import 'archive_world_page.dart';
 import 'cinema_world_page.dart';
 import 'coming_soon_world_page.dart';
@@ -21,7 +22,9 @@ class GalaxyHomePage extends StatefulWidget {
 
 class _GalaxyHomePageState extends State<GalaxyHomePage> {
   final repository = WorldSectionsRepository();
+  final galaxyRepository = GalaxyRepository();
   late Future<List<WorldSection>> sections = repository.load();
+  late Future<List<GalaxyNode>> galaxyNodes = galaxyRepository.loadActiveNodes();
   final session = GalaxyNavigationSession.instance;
   bool atlasOpen = false;
 
@@ -131,7 +134,30 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
               autofocus: true,
               onKeyEvent: (node, event) => _handleKey(node, event, worlds),
               child: Stack(fit: StackFit.expand, children: [
-                BabylonGalaxyRuntime(nodes: List.generate(worlds.length, (i) { final w = worlds[i]; const positions = <List<double>>[[-8,.8,0],[0,.5,8],[8,.7,0],[0,-.2,-8],[-6.2,-.3,-5.2]]; final p = positions[i % positions.length]; return GalaxyNode(id:'runtime-'+w.kind.name,nodeType:'planet',nodeKey:w.kind.name,title:w.title,x:p[0],y:p[1],z:p[2],radius:1.0); })),
+                FutureBuilder<List<GalaxyNode>>(
+                  future: galaxyNodes,
+                  builder: (context, nodeSnapshot) {
+                    final runtimeNodes = nodeSnapshot.data;
+                    final nodes = runtimeNodes == null || runtimeNodes.isEmpty
+                        ? List.generate(worlds.length, (i) {
+                            final w = worlds[i];
+                            const positions = <List<double>>[
+                              [-8, .8, 0], [0, .5, 8], [8, .7, 0],
+                              [0, -.2, -8], [-6.2, -.3, -5.2]
+                            ];
+                            final p = positions[i % positions.length];
+                            return GalaxyNode(
+                              id: 'runtime-' + w.kind.name,
+                              nodeType: 'planet',
+                              nodeKey: w.kind.name,
+                              title: w.title,
+                              x: p[0], y: p[1], z: p[2], radius: 1.0,
+                            );
+                          })
+                        : runtimeNodes;
+                    return BabylonGalaxyRuntime(nodes: nodes);
+                  },
+                ),
                 Positioned(top: 16, left: 16, right: 16, child: _GalaxyStatus(session: session, onAtlas: () => setState(() => atlasOpen = !atlasOpen))),
                 if (session.selected != null)
                   Positioned(left: 16, right: 16, bottom: 16, child: _RouteBar(
