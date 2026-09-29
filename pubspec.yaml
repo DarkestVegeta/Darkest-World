@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   supabase_flutter: ^2.8.0
+  webview_windows: ^0.4.0
 
 dev_dependencies:
   flutter_test:
@@ -18,3 +19,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/babylon/galaxy_runtime.html
