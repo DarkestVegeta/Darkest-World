@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_windows/webview_windows.dart';
 import 'galaxy_node.dart';
+import 'game_world_navigation.dart';
 
 enum WorldEntryPhase { idle, preparing, entering, entered }
 
