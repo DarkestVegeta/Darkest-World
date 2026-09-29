@@ -1,0 +1,6 @@
+class GalaxyNode {
+  final String id; final String? parentId; final String nodeType; final String nodeKey; final String title; final double x,y,z,radius; final Map<String,dynamic> lodPolicy; final Map<String,dynamic> assetManifest;
+  const GalaxyNode({required this.id,this.parentId,required this.nodeType,required this.nodeKey,required this.title,required this.x,required this.y,required this.z,required this.radius,this.lodPolicy=const {},this.assetManifest=const {}});
+  factory GalaxyNode.fromMap(Map<String,dynamic> m)=>GalaxyNode(id:m['id'] as String,parentId:m['parent_id'] as String?,nodeType:m['node_type'] as String,nodeKey:m['node_key'] as String,title:m['title'] as String,x:(m['position_x'] as num?)?.toDouble()??0,y:(m['position_y'] as num?)?.toDouble()??0,z:(m['position_z'] as num?)?.toDouble()??0,radius:(m['radius'] as num?)?.toDouble()??1,lodPolicy:Map<String,dynamic>.from(m['lod_policy'] as Map? ?? const {}),assetManifest:Map<String,dynamic>.from(m['asset_manifest'] as Map? ?? const {}));
+  Map<String,dynamic> toRuntimeMap()=>{'id':id,'parentId':parentId,'nodeType':nodeType,'nodeKey':nodeKey,'title':title,'position':[x,y,z],'radius':radius,'lodPolicy':lodPolicy,'assetManifest':assetManifest};
+}
