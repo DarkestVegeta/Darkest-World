@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/world_sections_repository.dart';
-import '../widgets/darkest_world_universe.dart';
+import '../galaxy/babylon_galaxy_runtime.dart';
 import 'archive_world_page.dart';
 import 'cinema_world_page.dart';
 import 'coming_soon_world_page.dart';
@@ -130,7 +130,7 @@ class _GalaxyHomePageState extends State<GalaxyHomePage> {
               autofocus: true,
               onKeyEvent: (node, event) => _handleKey(node, event, worlds),
               child: Stack(fit: StackFit.expand, children: [
-                DarkestWorldUniverse(worlds: worlds, onWorldTap: _openWorld),
+                const BabylonGalaxyRuntime(),
                 Positioned(top: 16, left: 16, right: 16, child: _GalaxyStatus(session: session, onAtlas: () => setState(() => atlasOpen = !atlasOpen))),
                 if (session.selected != null)
                   Positioned(left: 16, right: 16, bottom: 16, child: _RouteBar(
