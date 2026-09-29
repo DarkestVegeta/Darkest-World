@@ -1,21 +1,140 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body,#renderCanvas{margin:0;width:100%;height:100%;overflow:hidden;background:#010107}#renderCanvas{display:block;touch-action:none}</style></head><body><canvas id="renderCanvas"></canvas><script src="https://cdn.babylonjs.com/babylon.js"></script><script>(()=>{const c=document.getElementById("renderCanvas"),e=new BABYLON.Engine(c,true,{preserveDrawingBuffer:false,stencil:true,antialias:true});e.setHardwareScalingLevel(1.25);const s=new BABYLON.Scene(e);s.clearColor=new BABYLON.Color4(.003,.003,.012,1);const cam=new BABYLON.ArcRotateCamera("galaxyCamera",-Math.PI/2,1.12,28,BABYLON.Vector3.Zero(),s);cam.lowerRadiusLimit=8;cam.upperRadiusLimit=55;cam.wheelPrecision=45;cam.attachControl(c,true);const h=new BABYLON.HemisphericLight("fill",new BABYLON.Vector3(0,1,0),s);h.intensity=.35;const p=new BABYLON.PointLight("coreLight",BABYLON.Vector3.Zero(),s);p.intensity=2;p.range=10;const core=BABYLON.MeshBuilder.CreateSphere("DARK_CORE",{diameter:2.6,segments:24},s);const cm=new BABYLON.StandardMaterial("coreMat",s);cm.diffuseColor=new BABYLON.Color3(.012,.008,.02);cm.emissiveColor=new BABYLON.Color3(.12,.025,.16);cm.specularColor=BABYLON.Color3.Black();core.material=cm;const runtimeNodes=new Map();let streamingPolicy={loadDistance:20,unloadDistance:28};
-function removeRuntimeNode(id){const m=runtimeNodes.get(id);if(m){m.dispose();runtimeNodes.delete(id);}}
-function applyRuntimeNodes(nodes){
-  const incoming=new Set(nodes.map(n=>n.id));
-  [...runtimeNodes.keys()].forEach(id=>{if(!incoming.has(id))removeRuntimeNode(id);});
-  nodes.forEach(n=>{
-    let m=runtimeNodes.get(n.id);
-    if(!m){m=BABYLON.MeshBuilder.CreateSphere("node_"+n.id,{diameter:Math.max(.25,n.radius*2),segments:16},s);runtimeNodes.set(n.id,m);}
-    const p=n.position||[0,0,0];m.position.set(p[0]||0,p[1]||0,p[2]||0);m.metadata=n;
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body,#renderCanvas{margin:0;width:100%;height:100%;overflow:hidden;background:#010107}#renderCanvas{display:block;touch-action:none}</style>
+</head>
+<body>
+<canvas id="renderCanvas"></canvas>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script>
+(()=> {
+  const canvas=document.getElementById("renderCanvas");
+  const engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true});
+  engine.setHardwareScalingLevel(1.25);
+  const scene=new BABYLON.Scene(engine);
+  scene.clearColor=new BABYLON.Color4(.003,.003,.012,1);
+
+  const camera=new BABYLON.ArcRotateCamera("galaxyCamera",-Math.PI/2,1.12,28,BABYLON.Vector3.Zero(),scene);
+  camera.lowerRadiusLimit=8;
+  camera.upperRadiusLimit=55;
+  camera.wheelPrecision=45;
+  camera.attachControl(canvas,true);
+
+  const fill=new BABYLON.HemisphericLight("fill",new BABYLON.Vector3(0,1,0),scene);
+  fill.intensity=.35;
+  const coreLight=new BABYLON.PointLight("coreLight",BABYLON.Vector3.Zero(),scene);
+  coreLight.intensity=2;
+  coreLight.range=10;
+
+  const core=BABYLON.MeshBuilder.CreateSphere("DARK_CORE",{diameter:2.6,segments:24},scene);
+  const coreMat=new BABYLON.StandardMaterial("coreMat",scene);
+  coreMat.diffuseColor=new BABYLON.Color3(.012,.008,.02);
+  coreMat.emissiveColor=new BABYLON.Color3(.12,.025,.16);
+  coreMat.specularColor=BABYLON.Color3.Black();
+  core.material=coreMat;
+
+  const ring=BABYLON.MeshBuilder.CreateTorus("coreOrbit",{diameter:8.5,thickness:.018,tessellation:128},scene);
+  ring.rotation.x=Math.PI/2;
+  const ringMat=new BABYLON.StandardMaterial("ringMat",scene);
+  ringMat.emissiveColor=new BABYLON.Color3(.08,.025,.12);
+  ringMat.alpha=.45;
+  ring.material=ringMat;
+
+  const runtimeNodes=new Map();
+  let streamingPolicy={loadDistance:20,unloadDistance:28};
+  let travelTarget=null;
+  let travelStart=null;
+  let travelProgress=1;
+
+  function materialFor(node){
+    const m=new BABYLON.StandardMaterial("mat_"+node.id,scene);
+    if(node.nodeType==="planet"){
+      m.diffuseColor=new BABYLON.Color3(.025,.035,.06);
+      m.emissiveColor=new BABYLON.Color3(.012,.006,.022);
+    } else if(node.nodeType==="area"){
+      m.diffuseColor=new BABYLON.Color3(.045,.03,.07);
+      m.emissiveColor=new BABYLON.Color3(.02,.006,.035);
+    } else {
+      m.diffuseColor=new BABYLON.Color3(.03,.03,.05);
+      m.emissiveColor=new BABYLON.Color3(.008,.004,.016);
+    }
+    return m;
+  }
+
+  function removeRuntimeNode(id){
+    const m=runtimeNodes.get(id);
+    if(m){m.dispose();runtimeNodes.delete(id);}
+  }
+
+  function applyRuntimeNodes(nodes){
+    const incoming=new Set(nodes.map(n=>n.id));
+    [...runtimeNodes.keys()].forEach(id=>{if(!incoming.has(id))removeRuntimeNode(id);});
+    nodes.forEach(node=>{
+      let mesh=runtimeNodes.get(node.id);
+      if(!mesh){
+        const segments=node.nodeType==="planet"?20:node.nodeType==="area"?14:10;
+        mesh=BABYLON.MeshBuilder.CreateSphere("node_"+node.id,{diameter:Math.max(.25,node.radius*2),segments},scene);
+        mesh.material=materialFor(node);
+        runtimeNodes.set(node.id,mesh);
+      }
+      const p=node.position||[0,0,0];
+      mesh.position.set(p[0]||0,p[1]||0,p[2]||0);
+      mesh.metadata=node;
+      mesh.setEnabled(true);
+    });
+  }
+
+  function updateStreaming(){
+    const cameraPosition=camera.position;
+    runtimeNodes.forEach(mesh=>{
+      const d=BABYLON.Vector3.Distance(cameraPosition,mesh.position);
+      mesh.setEnabled(d<=streamingPolicy.unloadDistance);
+      mesh.metadata={...(mesh.metadata||{}),distance:d};
+    });
+  }
+
+  function focusWorld(nodeKey){
+    const mesh=[...runtimeNodes.values()].find(x=>x.metadata&&x.metadata.nodeKey===nodeKey);
+    if(!mesh)return false;
+    travelStart=camera.target.clone();
+    travelTarget=mesh.position.clone();
+    travelProgress=0;
+    return true;
+  }
+
+  function updateTravel(){
+    if(!travelTarget||!travelStart||travelProgress>=1)return;
+    travelProgress=Math.min(1,travelProgress+engine.getDeltaTime()*.0018);
+    const eased=1-Math.pow(1-travelProgress,3);
+    camera.setTarget(BABYLON.Vector3.Lerp(travelStart,travelTarget,eased));
+    if(travelProgress>=1){travelStart=null;travelTarget=null;}
+  }
+
+  scene.onBeforeRenderObservable.add(()=>{
+    const dt=engine.getDeltaTime();
+    core.rotation.y+=dt*.00008;
+    ring.rotation.z+=dt*.00001;
+    updateTravel();
+    updateStreaming();
   });
-}
-function updateStreaming(){
-  const cameraPosition=cam.position;
-  runtimeNodes.forEach((m)=>{
-    const d=BABYLON.Vector3.Distance(cameraPosition,m.position);
-    m.setEnabled(d<=streamingPolicy.unloadDistance);
-    const lod=d<=streamingPolicy.loadDistance?16:8;
-    if(m.getTotalVertices()!==lod*lod*2){/* reserved LOD contract; mesh replacement comes with asset pipeline */}
-  });
-}
-const worlds=[["identity",-8,.8,0,2],["game",0,.5,8,2.25],["cinema",8,.7,0,2],["music",0,-.2,-8,2.1],["creation",-6.2,-.3,-5.2,1.8]];worlds.forEach((w,i)=>{const m=BABYLON.MeshBuilder.CreateSphere(w[0],{diameter:w[4],segments:20},s);m.position.set(w[1],w[2],w[3]);const mat=new BABYLON.StandardMaterial(w[0]+"Mat",s);mat.diffuseColor=new BABYLON.Color3(.025+i*.008,.03,.055+i*.006);mat.emissiveColor=new BABYLON.Color3(.012,.006,.022);m.material=mat;m.metadata={worldId:w[0]};});const r=BABYLON.MeshBuilder.CreateTorus("coreOrbit",{diameter:8.5,thickness:.018,tessellation:128},s);r.rotation.x=Math.PI/2;const rm=new BABYLON.StandardMaterial("ringMat",s);rm.emissiveColor=new BABYLON.Color3(.08,.025,.12);rm.alpha=.45;r.material=rm;s.onBeforeRenderObservable.add(()=>{core.rotation.y+=e.getDeltaTime()*.00008;updateStreaming()});e.runRenderLoop(()=>s.render());addEventListener("resize",()=>e.resize());window.DarkestWorldBabylon={version:"foundation-2",setNodes:applyRuntimeNodes,setStreamingPolicy:p=>{streamingPolicy={...streamingPolicy,...p}},resetGalaxy:()=>{cam.setTarget(BABYLON.Vector3.Zero());cam.radius=28},focusWorld:id=>{const m=s.getMeshByName(id)||[...runtimeNodes.values()].find(x=>x.metadata&&x.metadata.nodeKey===id);if(!m)return false;cam.setTarget(m.position);return true}}})();</script></body></html>
+
+  engine.runRenderLoop(()=>scene.render());
+  addEventListener("resize",()=>engine.resize());
+
+  window.DarkestWorldBabylon={
+    version:"foundation-3",
+    setNodes:applyRuntimeNodes,
+    setStreamingPolicy:p=>{streamingPolicy={...streamingPolicy,...p}},
+    resetGalaxy:()=>{
+      camera.setTarget(BABYLON.Vector3.Zero());
+      camera.radius=28;
+      travelStart=null;travelTarget=null;travelProgress=1;
+    },
+    focusWorld
+  };
+})();
+</script>
+</body>
+</html>
