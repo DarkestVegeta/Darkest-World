@@ -235,7 +235,7 @@
 
   function removeRuntimeNode(id){
     const m=runtimeNodes.get(id);
-    if(m){m.dispose();runtimeNodes.delete(id);}
+    if(m){m.dispose(false,true);runtimeNodes.delete(id);}
   }
 
   function applyRuntimeNodes(nodes){
